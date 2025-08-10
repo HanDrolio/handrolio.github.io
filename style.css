@@ -1,0 +1,9 @@
+*{box-sizing:border-box}body{margin:0;font:16px/1.6 system-ui,Arial,sans-serif;background:#0b0b0f;color:#e7e7ef}
+header,footer{padding:24px;text-align:center}
+h1{margin:0 0 8px}
+main{max-width:1000px;margin:0 auto;padding:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.card{display:block;padding:16px;border:1px solid #222;border-radius:10px;text-decoration:none;color:#e7e7ef;background:#121219;transition:.2s}
+.card:hover{transform:translateY(-2px);border-color:#444}
+pre{white-space:pre-wrap;background:#111;padding:12px;border-radius:8px;border:1px solid #222}
+a{color:#b7c6ff}
