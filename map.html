@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Map</title>
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+  <style>html,body{height:100%;margin:0}#map{height:100vh;width:100%}</style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const center = [37.486, -122.232];              // Redwood City (change if you want)
+    const map = L.map('map').setView(center, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+    L.marker(center).addTo(map).bindPopup('Home base').openPopup();
+
+    // OPTIONAL: live points from your reactor (if you publish it)
+    // fetch('points.geojson').then(r=>r.json()).then(geo =>
+    //   L.geoJSON(geo).addTo(map)
+    // );
+  </script>
+</body>
+</html>
