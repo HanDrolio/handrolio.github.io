@@ -1,5 +1,5 @@
 # handrolio.github.io
-# PhreeAI — GitHub Pages Fleet Starter (Astro, Ripple, Brick, Orion Vega)
+# PhreeAI — GitHub Pages Fleet Starter (Astro, Ripple, Brick, PocketHelix)
 
 **Deploy steps:**
 1. Create repo: `handrolio.github.io` (public).
