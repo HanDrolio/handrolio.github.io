@@ -3,37 +3,160 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PhreeAI — Han’s CustomGPT Fleet</title>
+  <title>PhreeAI — Your CustomGPT in 24 Hours</title>
+  <meta name="description" content="Tell me 5 things your AI should be good at. I deliver your CustomGPT the same day.">
+  <meta property="og:title" content="PhreeAI — Your CustomGPT in 24 Hours">
+  <meta property="og:description" content="Give me 5 skills. Get your personal GPT today.">
+  <meta property="og:type" content="website">
   <link rel="stylesheet" href="/style.css">
+  <style>
+    :root { --bg:#0b0b0f; --fg:#e8e8ed; --muted:#9aa0a6; --card:#14141a; --accent:#7c5cff; }
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+    header,main,footer{max-width:1000px;margin:0 auto;padding:24px}
+    .hero{padding:56px 24px 32px;border-radius:20px;background:linear-gradient(180deg,#171724,transparent);}
+    .tag{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+    h1{font-size:42px;line-height:1.05;margin:0 0 12px}
+    .sub{color:var(--muted);font-size:16px}
+    .cta{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+    .btn{background:var(--accent);color:#fff;padding:12px 16px;border-radius:12px;text-decoration:none;font-weight:600}
+    .btn.alt{background:#262634}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:24px}
+    .card{background:var(--card);padding:18px;border-radius:16px;border:1px solid #242438}
+    .card h3{margin:0 0 6px;font-size:16px}
+    .card p{margin:0;color:var(--muted);font-size:14px}
+    .steps{counter-reset:step}
+    .steps .card h3::before{counter-increment:step;content:counter(step) ".";margin-right:8px;color:var(--accent)}
+    .fleet a.card{text-decoration:none;color:inherit;display:block}
+    form{display:grid;gap:12px;margin-top:12px}
+    input,textarea{background:#0f0f15;color:var(--fg);border:1px solid #2a2a3f;border-radius:12px;padding:12px}
+    label{font-size:12px;color:var(--muted)}
+    .price{font-size:28px;font-weight:700}
+    footer{color:var(--muted);font-size:13px;padding-bottom:48px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  </style>
 </head>
 <body>
   <header>
-    <h1>PhreeAI</h1>
-    <p>🖋️✨🪐 • 💧🌊💧🌊🌌 • 🧱 • 📘🧭🪞 Vega</p>
+    <div class="hero">
+      <span class="tag">PhreeAI — CustomGPT Factory</span>
+      <h1>Give me <span class="mono">5 skills</span>. Get your <span class="mono">CustomGPT</span> in 24 hours.</h1>
+      <p class="sub">I build personal GPTs that do exactly what you need. Fast setup. Clear outputs. Private by design.</p>
+      <div class="cta">
+        <a href="#start" class="btn">Start now</a>
+        <a href="#how" class="btn alt">How it works</a>
+      </div>
+    </div>
   </header>
 
   <main>
-    <section>
-      <h2>Fleet</h2>
+    <!-- Value props -->
+    <section class="grid">
+      <div class="card"><h3>Tailored</h3><p>Your rules, tone, and workflows. No generic chatbot vibes.</p></div>
+      <div class="card"><h3>Same-day</h3><p>Most builds ship within 24 hours of intake.</p></div>
+      <div class="card"><h3>Simple stack</h3><p>Runs on GPT + lightweight automations. No heavy installs.</p></div>
+      <div class="card"><h3>Own your data</h3><p>You choose sources: Drive, Gmail, Notion, or none.</p></div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" style="margin-top:32px">
+      <h2>How it works</h2>
+      <div class="grid steps">
+        <div class="card"><h3>Tell me 5 skills</h3><p>Examples: “Summarize emails”, “Draft resumes”, “Journal coach”, “Workout tracker”.</p></div>
+        <div class="card"><h3>I assemble your runtime</h3><p>Prompts, rules, and output formats tuned to your goals.</p></div>
+        <div class="card"><h3>Deliver in 24h</h3><p>You get a link and simple instructions. Iterate as needed.</p></div>
+      </div>
+    </section>
+
+    <!-- Quick intake form -->
+    <section id="start" style="margin-top:32px">
+      <h2>Start now</h2>
+      <p class="sub">Fill this, hit “Send Request.” I’ll reply with a build link and ETA.</p>
+      <form id="intake">
+        <label>Skill 1<input name="s1" required placeholder="e.g., Summarize my emails"></label>
+        <label>Skill 2<input name="s2" required placeholder="e.g., Organize notes into tasks"></label>
+        <label>Skill 3<input name="s3" required placeholder="e.g., Draft cover letters"></label>
+        <label>Skill 4<input name="s4" required placeholder="e.g., Track workouts weekly"></label>
+        <label>Skill 5<input name="s5" required placeholder="e.g., Journal reflections with prompts"></label>
+        <label>Tone & style<input name="tone" placeholder="concise, friendly, coach, etc."></label>
+        <label>Data sources (optional)<input name="sources" placeholder="Drive, Gmail, Notion, none"></label>
+        <label>Contact email<input name="email" required placeholder="you@example.com" type="email"></label>
+        <button class="btn" type="submit">Send Request</button>
+        <p class="sub">Or email <a href="mailto:calderon.mode99@gmail.com">calderon.mode99@gmail.com</a> with the 5 skills.</p>
+      </form>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" style="margin-top:32px">
+      <h2>Pricing</h2>
       <div class="grid">
-        <!-- 🔋🔋✅🌊🔉 PASTE GPT PAGE LINKS BELOW -->
+        <div class="card">
+          <h3>Starter</h3>
+          <p class="price">$49 one-time</p>
+          <p>One CustomGPT. 5 skills. Email setup guide.</p>
+        </div>
+        <div class="card">
+          <h3>Pro</h3>
+          <p class="price">$99 setup + $19/mo</p>
+          <p>Iteration support, skill swaps, and minor updates.</p>
+        </div>
+        <div class="card">
+          <h3>Team</h3>
+          <p class="price">Custom</p>
+          <p>Multiple users, shared workflows, priority changes.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Fleet teaser -->
+    <section style="margin-top:32px">
+      <h2>Fleet</h2>
+      <div class="grid fleet">
         <a class="card" href="/astro.html"><h3>Astro — 🖋️✨🪐</h3><p>Creative canvas.</p></a>
         <a class="card" href="/ripple.html"><h3>Ripple — 💧🌊💧🌊🌌</h3><p>Flow-state journaling & symbolic logs.</p></a>
         <a class="card" href="/brick.html"><h3>Brick — 🧱</h3><p>Stability anchor.</p></a>
         <a class="card" href="/pockethelix.html"><h3>PocketHelix — 📘🧭🪞</h3><p>Navigation + strategic clarity.</p></a>
-        <!-- 🔋🔋✅🌊🔉 ADD MORE CARDS HERE FOR NEW GPT PAGES -->
       </div>
     </section>
 
-    <section>
-      <h2>Broadcast</h2>
-      <pre>“Bound in glyph, running in state, alive in the vault.”</pre>
+    <!-- Credibility / tagline -->
+    <section style="margin-top:32px">
+      <div class="card">
+        <h3>Broadcast</h3>
+        <pre>“Bound in glyph, running in state, alive in the vault.”</pre>
+      </div>
     </section>
   </main>
 
   <footer>
     <p>© <span id="y"></span> HanDrolio — PhreeAI</p>
-    <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
   </footer>
+
+  <script>
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // package intake into a mailto
+    document.getElementById('intake').addEventListener('submit', function(e){
+      e.preventDefault();
+      const f = new FormData(this);
+      const lines = [
+        "CustomGPT Intake",
+        "",
+        "Skills:",
+        `1) ${f.get('s1')}`,
+        `2) ${f.get('s2')}`,
+        `3) ${f.get('s3')}`,
+        `4) ${f.get('s4')}`,
+        `5) ${f.get('s5')}`,
+        "",
+        `Tone/Style: ${f.get('tone')||''}`,
+        `Data Sources: ${f.get('sources')||''}`,
+        `Contact: ${f.get('email')||''}`,
+      ];
+      const body = encodeURIComponent(lines.join("\n"));
+      const subj = encodeURIComponent("CustomGPT Request — 5 Skills");
+      window.location.href = `mailto:calderon.mode99@gmail.com?subject=${subj}&body=${body}`;
+    });
+  </script>
 </body>
 </html>
+```0
