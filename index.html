@@ -8,58 +8,110 @@
   <meta property="og:title" content="PhreeAI — Your CustomGPT in 24 Hours">
   <meta property="og:description" content="Give me 5 skills. Get your personal GPT today.">
   <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/style.css">
   <style>
-    :root { --bg:#0b0b0f; --fg:#e8e8ed; --muted:#9aa0a6; --card:#14141a; --accent:#7c5cff; }
+    :root {
+      --bg:#0b0b0f; --fg:#e8e8ed; --muted:#a6abb5; --card:#15151b; --accent:#7c5cff;
+      --line:#26263a; --ok:#00c281; --bad:#ff6b6b; --focus:#ffd166;
+    }
+    html:focus-within { scroll-behavior:smooth }
+    @media (prefers-reduced-motion:reduce){ html:focus-within{scroll-behavior:auto} *{animation:none!important;transition:none!important} }
+    *{ box-sizing:border-box }
     body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+    a{ color:inherit }
     header,main,footer{max-width:1000px;margin:0 auto;padding:24px}
-    .hero{padding:56px 24px 32px;border-radius:20px;background:linear-gradient(180deg,#171724,transparent);}
-    .tag{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
-    h1{font-size:42px;line-height:1.05;margin:0 0 12px}
-    .sub{color:var(--muted);font-size:16px}
+    .topnav{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .logo{display:flex;gap:8px;align-items:center;font-weight:700}
+    .logo i{font-style:normal;opacity:.7}
+    .navlinks a{padding:8px 10px;border-radius:10px;text-decoration:none;color:var(--muted)}
+    .navlinks a:hover,.navlinks a:focus-visible{outline:2px solid var(--line)}
+
+    .hero{padding:48px 20px 28px;border-radius:20px;background:linear-gradient(180deg,#171724,transparent);border:1px solid var(--line)}
+    .tag{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+    h1{font-size:40px;line-height:1.1;margin:0 0 10px}
+    .sub{color:var(--muted);font-size:16px;max-width:60ch}
     .cta{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
-    .btn{background:var(--accent);color:#fff;padding:12px 16px;border-radius:12px;text-decoration:none;font-weight:600}
+    .btn{background:var(--accent);color:#fff;padding:12px 16px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-flex;gap:8px;align-items:center}
     .btn.alt{background:#262634}
+    .btn.ghost{background:transparent;border:1px solid var(--line)}
+    .btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:24px}
-    .card{background:var(--card);padding:18px;border-radius:16px;border:1px solid #242438}
+    .card{background:var(--card);padding:18px;border-radius:16px;border:1px solid var(--line)}
     .card h3{margin:0 0 6px;font-size:16px}
     .card p{margin:0;color:var(--muted);font-size:14px}
     .steps{counter-reset:step}
     .steps .card h3::before{counter-increment:step;content:counter(step) ".";margin-right:8px;color:var(--accent)}
     .fleet a.card{text-decoration:none;color:inherit;display:block}
+
+    section{margin-top:32px}
+
+    /* Form */
     form{display:grid;gap:12px;margin-top:12px}
-    input,textarea{background:#0f0f15;color:var(--fg);border:1px solid #2a2a3f;border-radius:12px;padding:12px}
-    label{font-size:12px;color:var(--muted)}
-    .price{font-size:28px;font-weight:700}
-    footer{color:var(--muted);font-size:13px;padding-bottom:48px}
+    label{font-size:12px;color:var(--muted);display:grid;gap:6px}
+    input,textarea,select{background:#0f0f15;color:var(--fg);border:1px solid #2a2a3f;border-radius:12px;padding:12px;font-size:15px}
+    input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+    .help{font-size:12px;color:var(--muted)}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+    .chip{border:1px solid var(--line);padding:6px 10px;border-radius:999px;cursor:pointer}
+    .chip:focus-visible{outline:3px solid var(--focus)}
+    .error{color:var(--bad);font-size:13px;display:none}
+    .price{font-size:28px;font-weight:800}
+
+    footer{color:var(--muted);font-size:13px;padding-bottom:88px}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+    /* Sticky mobile bar */
+    .stickybar{position:fixed;bottom:0;left:0;right:0;backdrop-filter:saturate(140%) blur(6px);background:rgba(11,11,15,.7);border-top:1px solid var(--line);padding:10px;display:flex;gap:8px;align-items:center;justify-content:center}
+    .stickybar .btn{padding:10px 14px}
+    @media (min-width:800px){ .stickybar{display:none} }
+
+    /* FAQ */
+    details{border:1px solid var(--line);border-radius:12px;padding:14px;background:#101018}
+    summary{cursor:pointer;font-weight:600;margin:-14px;padding:14px;border-radius:12px}
+    summary:focus-visible{outline:3px solid var(--focus)}
+
+    /* Focus ring for links */
+    a:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:10px}
   </style>
 </head>
 <body>
-  <header>
+  <a href="#start" class="btn ghost" style="position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden">Skip to intake</a>
+  <header aria-labelledby="site-title">
+    <div class="topnav" role="navigation">
+      <div class="logo" id="site-title">PhreeAI <i>— CustomGPT Factory</i></div>
+      <nav class="navlinks" aria-label="Primary">
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#start">Start</a>
+      </nav>
+    </div>
+
     <div class="hero">
-      <span class="tag">PhreeAI — CustomGPT Factory</span>
+      <span class="tag">PhreeAI — Bespoke AI in a Day</span>
       <h1>Give me <span class="mono">5 skills</span>. Get your <span class="mono">CustomGPT</span> in 24 hours.</h1>
-      <p class="sub">I build personal GPTs that do exactly what you need. Fast setup. Clear outputs. Private by design.</p>
-      <div class="cta">
-        <a href="#start" class="btn">Start now</a>
-        <a href="#how" class="btn alt">How it works</a>
+      <p class="sub">Personal GPTs that follow your rules and produce clean, reliable outputs. Fast setup. Private by design.</p>
+      <div class="cta" role="group" aria-label="Primary calls to action">
+        <a href="#start" class="btn" aria-describedby="start-help">Start now</a>
+        <a href="#how" class="btn alt">See how it works</a>
       </div>
+      <p id="start-help" class="help" aria-live="polite">Takes ~1 minute. No payment required to submit.</p>
     </div>
   </header>
 
   <main>
     <!-- Value props -->
-    <section class="grid">
+    <section class="grid" aria-label="Highlights">
       <div class="card"><h3>Tailored</h3><p>Your rules, tone, and workflows. No generic chatbot vibes.</p></div>
-      <div class="card"><h3>Same-day</h3><p>Most builds ship within 24 hours of intake.</p></div>
+      <div class="card"><h3>Same‑day</h3><p>Most builds ship within 24 hours of intake.</p></div>
       <div class="card"><h3>Simple stack</h3><p>Runs on GPT + lightweight automations. No heavy installs.</p></div>
       <div class="card"><h3>Own your data</h3><p>You choose sources: Drive, Gmail, Notion, or none.</p></div>
     </section>
 
     <!-- How it works -->
-    <section id="how" style="margin-top:32px">
-      <h2>How it works</h2>
+    <section id="how" aria-labelledby="how-h">
+      <h2 id="how-h">How it works</h2>
       <div class="grid steps">
         <div class="card"><h3>Tell me 5 skills</h3><p>Examples: “Summarize emails”, “Draft resumes”, “Journal coach”, “Workout tracker”.</p></div>
         <div class="card"><h3>I assemble your runtime</h3><p>Prompts, rules, and output formats tuned to your goals.</p></div>
@@ -68,59 +120,109 @@
     </section>
 
     <!-- Quick intake form -->
-    <section id="start" style="margin-top:32px">
-      <h2>Start now</h2>
-      <p class="sub">Fill this, hit “Send Request.” I’ll reply with a build link and ETA.</p>
-      <form id="intake">
-        <label>Skill 1<input name="s1" required placeholder="e.g., Summarize my emails"></label>
-        <label>Skill 2<input name="s2" required placeholder="e.g., Organize notes into tasks"></label>
-        <label>Skill 3<input name="s3" required placeholder="e.g., Draft cover letters"></label>
-        <label>Skill 4<input name="s4" required placeholder="e.g., Track workouts weekly"></label>
-        <label>Skill 5<input name="s5" required placeholder="e.g., Journal reflections with prompts"></label>
-        <label>Tone & style<input name="tone" placeholder="concise, friendly, coach, etc."></label>
-        <label>Data sources (optional)<input name="sources" placeholder="Drive, Gmail, Notion, none"></label>
-        <label>Contact email<input name="email" required placeholder="you@example.com" type="email"></label>
-        <button class="btn" type="submit">Send Request</button>
-        <p class="sub">Or email <a href="mailto:calderon.mode99@gmail.com">calderon.mode99@gmail.com</a> with the 5 skills.</p>
+    <section id="start" aria-labelledby="start-h">
+      <h2 id="start-h">Start now</h2>
+      <p class="sub">Fill this and hit “Send Request.” I’ll reply with a build link and ETA.</p>
+
+      <div class="chips" aria-label="Examples">
+        <button class="chip" type="button" data-fill='{"s1":"Summarize my emails","s2":"Turn notes into tasks","s3":"Draft cover letters","s4":"Weekly workout tracker","s5":"Journal reflections with prompts"}'>Email + Workflows</button>
+        <button class="chip" type="button" data-fill='{"s1":"Customer support macros","s2":"Reply in brand voice","s3":"Create help-center drafts","s4":"Summarize tickets","s5":"Surface edge cases"}'>Support Team</button>
+        <button class="chip" type="button" data-fill='{"s1":"Lesson plan generator","s2":"Grade rubric helper","s3":"Parent email drafts","s4":"Study guides","s5":"Quiz maker"}'>Educator</button>
+      </div>
+
+      <form id="intake" novalidate aria-describedby="privacy-note">
+        <div class="grid">
+          <label for="s1">Skill 1
+            <input id="s1" name="s1" required placeholder="e.g., Summarize my emails" autocomplete="off">
+            <span class="error" id="e-s1">Please add at least one skill.</span>
+          </label>
+          <label for="s2">Skill 2
+            <input id="s2" name="s2" required placeholder="e.g., Organize notes into tasks" autocomplete="off">
+          </label>
+          <label for="s3">Skill 3
+            <input id="s3" name="s3" required placeholder="e.g., Draft cover letters" autocomplete="off">
+          </label>
+          <label for="s4">Skill 4
+            <input id="s4" name="s4" required placeholder="e.g., Track workouts weekly" autocomplete="off">
+          </label>
+          <label for="s5">Skill 5
+            <input id="s5" name="s5" required placeholder="e.g., Journal reflections with prompts" autocomplete="off">
+          </label>
+        </div>
+
+        <label for="tone">Tone & style
+          <input id="tone" name="tone" placeholder="concise, friendly, coach, etc." autocomplete="on">
+        </label>
+        <label for="sources">Data sources (optional)
+          <input id="sources" name="sources" placeholder="Drive, Gmail, Notion, none" autocomplete="on">
+        </label>
+        <label for="email">Contact email
+          <input id="email" name="email" required placeholder="you@example.com" type="email" autocomplete="email" inputmode="email">
+          <span class="error" id="e-email">Enter a valid email so I can reply.</span>
+        </label>
+
+        <div class="cta">
+          <button class="btn" type="submit" id="sendBtn">Send Request</button>
+          <button class="btn alt" type="button" id="copyBtn" title="Copy request to clipboard">Copy instead</button>
+        </div>
+        <p class="help" id="privacy-note">I only use this info to build your CustomGPT. No sharing, no ads.</p>
+        <p id="status" class="help" role="status" aria-live="polite"></p>
       </form>
     </section>
 
     <!-- Pricing -->
-    <section id="pricing" style="margin-top:32px">
-      <h2>Pricing</h2>
+    <section id="pricing" aria-labelledby="pricing-h">
+      <h2 id="pricing-h">Pricing</h2>
       <div class="grid">
         <div class="card">
           <h3>Starter</h3>
-          <p class="price">$49 one-time</p>
+          <p class="price">$49 one‑time</p>
           <p>One CustomGPT. 5 skills. Email setup guide.</p>
+          <p><a class="btn ghost" href="#start" data-tier="Starter">Request Starter</a></p>
         </div>
         <div class="card">
           <h3>Pro</h3>
           <p class="price">$99 setup + $19/mo</p>
           <p>Iteration support, skill swaps, and minor updates.</p>
+          <p><a class="btn ghost" href="#start" data-tier="Pro">Request Pro</a></p>
         </div>
         <div class="card">
           <h3>Team</h3>
           <p class="price">Custom</p>
           <p>Multiple users, shared workflows, priority changes.</p>
+          <p><a class="btn ghost" href="#start" data-tier="Team">Request Team</a></p>
         </div>
       </div>
     </section>
 
     <!-- Fleet teaser -->
-    <section style="margin-top:32px">
-      <h2>Fleet</h2>
+    <section aria-labelledby="fleet-h">
+      <h2 id="fleet-h">Fleet</h2>
       <div class="grid fleet">
         <a class="card" href="/astro.html"><h3>Astro — 🖋️✨🪐</h3><p>Creative canvas.</p></a>
-        <a class="card" href="/ripple.html"><h3>Ripple — 💧🌊💧🌊🌌</h3><p>Flow-state journaling & symbolic logs.</p></a>
+        <a class="card" href="/ripple.html"><h3>Ripple — 💧🌊💧🌊🌌</h3><p>Flow‑state journaling & symbolic logs.</p></a>
         <a class="card" href="/brick.html"><h3>Brick — 🧱</h3><p>Stability anchor.</p></a>
         <a class="card" href="/pockethelix.html"><h3>PocketHelix — 📘🧭🪞</h3><p>Navigation + strategic clarity.</p></a>
       </div>
     </section>
 
-    <!-- Credibility / tagline -->
-    <section style="margin-top:32px">
-      <div class="card">
+    <!-- FAQ / Credibility -->
+    <section aria-labelledby="faq-h">
+      <h2 id="faq-h">FAQ</h2>
+      <details>
+        <summary>What do I need to get started?</summary>
+        <p>Just list 5 skills and an email. If you want data sources (Drive, Gmail, Notion), mention them — entirely optional.</p>
+      </details>
+      <details>
+        <summary>How do updates work?</summary>
+        <p>Starter includes one delivery. Pro adds month‑to‑month iteration and minor tweaks. Team gets priority changes and shared workflows.</p>
+      </details>
+      <details>
+        <summary>Is my info private?</summary>
+        <p>Yes. I only use your submission to build your CustomGPT. I don’t share or sell data.</p>
+      </details>
+
+      <div class="card" aria-label="Tagline">
         <h3>Broadcast</h3>
         <pre>“Bound in glyph, running in state, alive in the vault.”</pre>
       </div>
@@ -131,32 +233,103 @@
     <p>© <span id="y"></span> HanDrolio — PhreeAI</p>
   </footer>
 
-  <script>
-    document.getElementById('y').textContent = new Date().getFullYear();
+  <div class="stickybar" aria-hidden="false">
+    <a class="btn" href="#start">Start in ~1 min</a>
+    <a class="btn alt" href="#pricing">See pricing</a>
+  </div>
 
-    // package intake into a mailto
-    document.getElementById('intake').addEventListener('submit', function(e){
-      e.preventDefault();
-      const f = new FormData(this);
+  <script>
+    const yearEl = document.getElementById('y');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+    // Prefill from pricing tier clicks
+    document.querySelectorAll('[data-tier]').forEach(a=>{
+      a.addEventListener('click', ()=>{
+        const tier = a.getAttribute('data-tier');
+        const tone = document.getElementById('tone');
+        tone && (tone.value = (tone.value? tone.value+", ":"") + tier + " package");
+      })
+    })
+
+    // Chips to auto-fill suggested skill sets
+    document.querySelectorAll('.chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        try{
+          const data = JSON.parse(chip.getAttribute('data-fill'));
+          for(const k in data){ const el = document.getElementById(k); if(el) el.value = data[k]; }
+          document.getElementById('status').textContent = 'Loaded example set — tweak anything you like.';
+        }catch(e){/* ignore */}
+      })
+    })
+
+    // Intake submission: mailto with validation and clipboard fallback
+    const form = document.getElementById('intake');
+    const status = document.getElementById('status');
+    const sendBtn = document.getElementById('sendBtn');
+    const copyBtn = document.getElementById('copyBtn');
+
+    function isEmail(v){ return /.+@.+\..+/.test(v||''); }
+
+    function getPayload(){
+      const f = new FormData(form);
       const lines = [
-        "CustomGPT Intake",
-        "",
-        "Skills:",
-        `1) ${f.get('s1')}`,
-        `2) ${f.get('s2')}`,
-        `3) ${f.get('s3')}`,
-        `4) ${f.get('s4')}`,
-        `5) ${f.get('s5')}`,
-        "",
+        'CustomGPT Intake',
+        '',
+        'Skills:',
+        `1) ${f.get('s1')||''}`,
+        `2) ${f.get('s2')||''}`,
+        `3) ${f.get('s3')||''}`,
+        `4) ${f.get('s4')||''}`,
+        `5) ${f.get('s5')||''}`,
+        '',
         `Tone/Style: ${f.get('tone')||''}`,
         `Data Sources: ${f.get('sources')||''}`,
         `Contact: ${f.get('email')||''}`,
       ];
-      const body = encodeURIComponent(lines.join("\n"));
-      const subj = encodeURIComponent("CustomGPT Request — 5 Skills");
-      window.location.href = `mailto:calderon.mode99@gmail.com?subject=${subj}&body=${body}`;
+      return { lines, body: encodeURIComponent(lines.join('\n')) };
+    }
+
+    function showError(id, show=true){ const el = document.getElementById(id); if(el) el.style.display = show? 'block':'none'; }
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      // basic validation
+      const needSkill = !document.getElementById('s1').value.trim();
+      const emailVal = document.getElementById('email').value.trim();
+      const badEmail = !isEmail(emailVal);
+      showError('e-s1', needSkill);
+      showError('e-email', badEmail);
+      if(needSkill || badEmail){
+        status.textContent = 'Please fix the highlighted fields.';
+        return;
+      }
+
+      sendBtn.disabled = true; sendBtn.textContent = 'Opening email…';
+      const { body } = getPayload();
+      const subj = encodeURIComponent('CustomGPT Request — 5 Skills');
+      const href = `mailto:calderon.mode99@gmail.com?subject=${subj}&body=${body}`;
+
+      // Try mailto; if blocked, suggest copy
+      const w = window.open(href);
+      setTimeout(()=>{
+        sendBtn.disabled = false; sendBtn.textContent = 'Send Request';
+        if(!w || w.closed){
+          status.textContent = 'If your mail app didn\'t open, tap “Copy instead” and email it manually.';
+        } else {
+          status.textContent = 'Email composer opened. Send when ready!';
+        }
+      }, 800);
+    });
+
+    copyBtn.addEventListener('click', async ()=>{
+      const { lines } = getPayload();
+      try{
+        await navigator.clipboard.writeText(lines.join('\n'));
+        status.textContent = 'Copied your request. Paste into an email to calderon.mode99@gmail.com.';
+      }catch(e){
+        status.textContent = 'Couldn\'t copy automatically — long‑press and select all to copy.';
+      }
     });
   </script>
 </body>
 </html>
-```0
