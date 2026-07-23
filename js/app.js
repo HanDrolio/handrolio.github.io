@@ -17,6 +17,9 @@ function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) state = Object.assign(state, JSON.parse(raw));
+    state.messages = Array.isArray(state.messages) ? state.messages : [];
+    state.entries = Array.isArray(state.entries) ? state.entries : [];
+    if (migrateEntries(state.entries)) save();
   } catch (e) { /* corrupt store, start clean */ }
 }
 function save() {
@@ -81,10 +84,40 @@ function renderChat() {
   const sc = $('#scroll'); sc.scrollTop = sc.scrollHeight;
 }
 
+/* ---------- living threads ---------- */
+function renderThread(thread) {
+  if (!thread) return '';
+  const moments = thread.entries.map(item => `
+    <li>
+      <time>${stamp(item.ts)}</time>
+      <p>${esc(item.text)}</p>
+    </li>`).join('');
+
+  return `<details class="threadcard">
+    <summary>
+      <span class="threadglyph">🟠📡</span>
+      <span><b>Living Thread</b><em>${esc(thread.title)}</em></span>
+      <span class="threadopen">open</span>
+    </summary>
+    <div class="threadbody">
+      <p class="threadsummary">${esc(thread.summary)}</p>
+      <ol>${moments}</ol>
+    </div>
+  </details>`;
+}
+
 /* ---------- log ---------- */
 function sendEntry(text) {
   const r = route(text, state.lock);
-  state.entries.unshift({ text, ts: Date.now(), persona: r.persona, reply: r.text });
+  const ts = Date.now();
+  state.entries.unshift({
+    id: makeEntryId(ts),
+    text,
+    ts,
+    persona: r.persona,
+    reply: r.text,
+    threadIds: detectThreads(text, state.entries)
+  });
   save(); render(); flash(PERSONAS[r.persona].color);
 }
 
@@ -96,16 +129,24 @@ function renderLog() {
     const d = dayOf(e.ts);
     const head = d !== lastDay ? `<div class="daymark">${d}</div>` : '';
     lastDay = d;
-    const p = PERSONAS[e.persona];
+    const p = PERSONAS[e.persona] || PERSONAS.flux;
+    const thread = livingThreadForEntry(e, state.entries);
     return `${head}<article class="entry" style="--c:${p.color}">
       <header><time>${stamp(e.ts)}</time><button class="x" data-i="${i}" aria-label="delete entry">✕</button></header>
       <p>${esc(e.text)}</p>
       <div class="reply"><span class="rg">${p.glyph}</span>${esc(e.reply)}</div>
+      ${renderThread(thread)}
     </article>`;
   }).join('');
   col.querySelectorAll('.x').forEach(b => b.addEventListener('click', () => {
     state.entries.splice(+b.dataset.i, 1); save(); render();
   }));
+  col.querySelectorAll('.threadcard').forEach(card => {
+    card.addEventListener('toggle', () => {
+      const label = card.querySelector('.threadopen');
+      if (label) label.textContent = card.open ? 'close' : 'open';
+    });
+  });
   $('#scroll').scrollTop = 0;
 }
 
@@ -154,8 +195,9 @@ function importAll(file) {
   r.onload = e => {
     try {
       const data = JSON.parse(e.target.result);
-      state.messages = data.messages || state.messages;
-      state.entries = data.entries || state.entries;
+      state.messages = Array.isArray(data.messages) ? data.messages : state.messages;
+      state.entries = Array.isArray(data.entries) ? data.entries : state.entries;
+      migrateEntries(state.entries);
       save(); render();
     } catch (err) { alert('That file isn\'t a COSM.OS backup.'); }
   };
