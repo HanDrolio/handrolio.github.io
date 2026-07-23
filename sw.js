@@ -1,11 +1,12 @@
 /* COSM.OS service worker — cache the shell so the app opens offline. */
-const CACHE = 'cosmos-v3';
+const CACHE = 'cosmos-v4-living-threads';
 const SHELL = [
   './',
   './index.html',
   './css/style.css',
   './js/personas.js',
   './js/engine.js',
+  './js/threads.js',
   './js/app.js',
   './manifest.webmanifest',
   './icon.svg'

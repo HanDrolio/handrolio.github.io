@@ -90,10 +90,28 @@ header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:
 .entry .x{margin-left:auto;color:var(--t2);font-size:12px;padding:2px 6px;opacity:0;transition:.15s}
 .entry:hover .x,.entry:focus-within .x{opacity:.65}
 .entry .x:hover{opacity:1;color:#ff7d88}
-.entry p{margin-top:8px;white-space:pre-wrap;font-size:14.6px}
+.entry>p{margin-top:8px;white-space:pre-wrap;font-size:14.6px}
 .entry .reply{margin-top:11px;padding-left:11px;border-left:2px solid var(--line-lit);
   color:var(--t1);font-size:13.4px;display:flex;gap:8px;align-items:flex-start}
 .entry .rg{font-size:11px;letter-spacing:-1px;padding-top:2px;flex:none}
+
+/* ---- living threads ---- */
+.threadcard{margin-top:13px;border-top:1px solid var(--line);padding-top:11px}
+.threadcard summary{list-style:none;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;
+  cursor:pointer;color:var(--t1);user-select:none}
+.threadcard summary::-webkit-details-marker{display:none}
+.threadglyph{font-size:12px;letter-spacing:-1px;filter:drop-shadow(0 0 8px rgba(196,144,209,.35))}
+.threadcard summary span:nth-child(2){display:flex;align-items:baseline;gap:7px;min-width:0}
+.threadcard summary b{font-family:var(--mono);font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:#c490d1;white-space:nowrap}
+.threadcard summary em{font-style:normal;font-size:12px;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.threadopen{font-family:var(--mono);font-size:9.5px;letter-spacing:.5px;color:var(--t2)}
+.threadbody{margin:10px 0 1px 20px;padding-left:12px;border-left:1px solid rgba(196,144,209,.28)}
+.threadsummary{font-size:12.8px;color:var(--t1);margin-bottom:9px}
+.threadbody ol{list-style:none;display:flex;flex-direction:column;gap:8px}
+.threadbody li{padding:8px 10px;background:rgba(196,144,209,.045);border-radius:7px}
+.threadbody li time{display:block;font-size:9.5px;margin-bottom:3px}
+.threadbody li p{font-size:12.4px;color:var(--t1);white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.threadcard[open] summary{color:var(--t0)}
 
 /* ---- composer ---- */
 .barwrap{padding:10px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
@@ -114,5 +132,7 @@ header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:
   .brand span.txt{display:none}
   #rail,#lockNote,#scroll{padding-left:14px;padding-right:14px}
   .barwrap{padding-left:14px;padding-right:14px}
+  .threadcard summary span:nth-child(2){display:block}
+  .threadcard summary em{display:block;margin-top:1px}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
