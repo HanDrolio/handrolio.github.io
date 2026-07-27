@@ -1,6 +1,6 @@
 /* COSM.OS service worker — cache the shell so deterministic mode opens offline.
    WebLLM manages its own model cache after the operator loads a model. */
-const CACHE = 'cosmos-v5-webllm';
+const CACHE = 'cosmos-v6-qwen-balanced';
 const SHELL = [
   './',
   './index.html',
