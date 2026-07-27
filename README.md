@@ -1,8 +1,8 @@
 # COSM.OS
 
-A journal that answers in a voice.
+A private journal that answers in a voice.
 
-Nine voices route what you write — logic, flow, heart, body, truth, memory, myth, synthesis, and the system itself. No model, no server, no account. A deterministic rule engine picks the voice and everything you write stays in your browser's local storage.
+Nine deterministic voices route what you write through logic, flow, heart, body, truth, memory, myth, synthesis, and the system itself. An optional WebLLM layer can generate richer replies entirely inside the browser with WebGPU. No account and no inference server.
 
 🟦🌌🟨
 
@@ -10,39 +10,62 @@ Nine voices route what you write — logic, flow, heart, body, truth, memory, my
 
 ## Run it
 
-Open `index.html`. That's it. Works offline, works from a file, works on a phone.
+Serve the folder over HTTPS or localhost. GitHub Pages works out of the box.
+
+The deterministic mode loads immediately and remains available offline. The local model is opt-in because the first model load is a large download and may take several minutes. After WebLLM caches the model, later loads are much faster.
+
+> Opening `index.html` directly still runs deterministic mode, but WebLLM requires a secure browser context and WebGPU.
 
 ## Put it on GitHub Pages
 
-1. Create a repo and push these files to the root of the `main` branch.
+1. Push these files to the root of the `main` branch.
 2. Repo → **Settings** → **Pages**.
-3. Source: **Deploy from a branch**. Branch: `main`, folder: `/ (root)`. Save.
-4. Wait about a minute. Your site is at `https://<username>.github.io/<repo>/`.
+3. Source: **Deploy from a branch**. Branch: `main`, folder: `/ (root)`.
+4. Open the Pages URL in a current browser.
 
-The `.nojekyll` file is already included so GitHub serves every file as-is.
+On iPhone, open the Pages URL in Safari → Share → **Add to Home Screen**.
 
-On iPhone, open the Pages URL in Safari → Share → **Add to Home Screen**. It installs as a standalone app and keeps working with no signal.
+---
+
+## Two response engines
+
+### Deterministic mode
+
+Available instantly. `js/engine.js` scores keywords, honors explicit persona calls, applies grounding overrides, and returns a line from the selected voice. It does not need WebGPU or a network.
+
+### Local AI mode
+
+Tap **load local ai**. COSM.OS then:
+
+1. imports WebLLM from its pinned CDN module,
+2. checks WebGPU capabilities,
+3. chooses the smallest compatible general-purpose chat model from WebLLM's prebuilt list,
+4. downloads and caches the model locally,
+5. streams replies through the persona selected by the deterministic router.
+
+The router still decides *which voice should answer*. The model only writes the answer. Relevant journal entries are retrieved deterministically and passed in as limited local context.
+
+If model loading or generation fails, COSM.OS falls back to the original deterministic reply instead of breaking the conversation.
 
 ---
 
 ## How to use it
 
 **chat** — write a thought, a voice answers.
-**log** — write an entry, it gets dated, archived, and answered.
 
-**Calling a voice.** Start your message with a name and that voice takes it:
+**log** — write an entry, it gets dated, archived, answered, and connected to Living Threads.
 
-```
+**Calling a voice** — begin with a name:
+
+```text
 orion  how do i structure the rest of this week
 @demon  am i avoiding this
 astro   why does this keep bothering me
 ```
 
-**Pinning a voice.** Tap a name in the rail under the header to lock every reply to it. Tap again to release. The lock survives a refresh.
+**Pinning a voice** — tap a voice in the rail. Tap it again to release.
 
-**Otherwise** the engine scores your words against each voice's keywords and picks the strongest match. No match lands on Flux.
-
-**export / import** — download everything as JSON, or restore from a backup. Local storage can be cleared by the browser, so export anything you want to keep.
+**export / import** — download or restore the browser-local archive as JSON.
 
 ---
 
@@ -57,58 +80,46 @@ astro   why does this keep bothering me
 | Demon | 🔴🪞 | truth pressure, naming the avoidance |
 | Echo | 🟠📡 | memory, patterns, what happened before |
 | Hermes | ⚪🪽 | reframing, myth, putting it into words |
-| Flux | 🟣🌀 | synthesis, holding contradictions — the default |
-| COSM.OS | 🟦🌌🟨 | the container, the system talking about itself |
+| Flux | 🟣🌀 | synthesis, holding contradictions |
+| COSM.OS | 🟦🌌🟨 | the container and operating layer |
 
-Two rules override everything: signs of a body running on empty route to Brix for grounding, and clear exhaustion softens Demon into Astro. Those fire before any keyword match.
-
----
-
-## Make it yours
-
-Everything you'd want to change lives in `js/personas.js`.
-
-**Add a line to a voice** — append a string to that voice's `lines` array. `{x}` gets replaced with what you wrote.
-
-```js
-lines: [
-  'Existing line.',
-  'New line. What you said was "{x}" — start there.'
-]
-```
-
-**Change what triggers a voice** — edit its `keys` array. Lowercase substrings, matched against your message.
-
-**Add a whole voice** — copy a block in `PERSONAS`, give it a `name`, `glyph`, `color`, `role`, `keys`, and `lines`, then add its id to `ORDER` at the bottom of the file.
-
-Safety overrides live at the top of `js/engine.js`.
+Safety overrides remain deterministic and run before model generation.
 
 ---
 
 ## Files
 
-```
-index.html              markup
-css/style.css           styles
-js/personas.js          the nine voices — edit this one
-js/engine.js            routing, safety overrides, persona lock
-js/app.js               state, storage, rendering
-sw.js                   offline cache
-manifest.webmanifest    install-to-homescreen
-icon.svg                app icon
-.nojekyll               tells Pages to serve files untouched
+```text
+index.html                 markup and local-model controls
+css/style.css              interface styles
+js/personas.js             voice definitions
+js/engine.js               deterministic routing and safety overrides
+js/threads.js              deterministic continuity and memory retrieval
+js/webllm.js               model selection, loading, status, streaming
+js/webllm-worker.js        WebLLM worker thread
+js/app.js                  state, storage, rendering, prompt assembly
+sw.js                      offline shell cache
+manifest.webmanifest       install-to-homescreen metadata
+icon.svg                   app icon
+.nojekyll                  serve files untouched on GitHub Pages
 ```
 
-No build step. No dependencies. No network calls.
+No build step is required.
+
+---
+
+## Privacy reality check
+
+Journal data and generated inference stay in the browser. Loading the model still contacts the WebLLM CDN, GitHub-hosted model libraries, and the model host to download software and weights. After those assets are cached, inference itself runs locally.
+
+Browser storage can be cleared by the user, the OS, or storage pressure. Export anything you care about.
 
 ---
 
 ## What this isn't
 
-Not therapy, not a crisis tool, not a replacement for a person. It's a structured mirror for your own thinking. If you're in real trouble, talk to someone who can actually help.
+Not therapy, not a crisis tool, and not a replacement for human judgment. It is a structured mirror. The operator holds the pen.
 
----
-
-Built by Alejandro "Han" Calderon Cerrillo. MIT licensed — fork it, rewrite the voices, make your own.
+Built by Alejandro "Han" Calderon Cerrillo. MIT licensed.
 
 *Not healed. Compiled.*
