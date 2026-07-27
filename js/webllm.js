@@ -6,6 +6,13 @@
   const scriptURL = document.currentScript?.src || new URL('./js/webllm.js', location.href).href;
   const workerURL = new URL('./webllm-worker.js', scriptURL);
   const MODULE_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.84';
+  const MODEL_PREFERENCES = [
+    'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
+    'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+    'Qwen3-0.6B-q4f16_1-MLC',
+    'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+    'Qwen2-0.5B-Instruct-q4f16_1-MLC'
+  ];
 
   const listeners = new Set();
   let engine = null;
@@ -47,13 +54,7 @@
 
   function modelRank(record) {
     const id = record.model_id || '';
-    const preferred = [
-      'Qwen3-0.6B-q4f16_1-MLC',
-      'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
-      'Qwen2-0.5B-Instruct-q4f16_1-MLC',
-      'Llama-3.2-1B-Instruct-q4f16_1-MLC'
-    ];
-    const preferredIndex = preferred.indexOf(id);
+    const preferredIndex = MODEL_PREFERENCES.indexOf(id);
     if (preferredIndex !== -1) return preferredIndex;
 
     const vram = Number.isFinite(record.vram_required_MB) ? record.vram_required_MB : 99999;
@@ -61,28 +62,29 @@
     return 1000 + quantPenalty + vram;
   }
 
-  function selectModel(webllm, adapter) {
+  function selectModels(webllm, adapter) {
     const records = webllm.prebuiltAppConfig.model_list
       .filter(record => requiredFeaturesSupported(record, adapter))
       .filter(record => !/(vision|vlm|embedding|coder|math)/i.test(record.model_id || ''));
 
     const preferred = records
-      .filter(record => [
-        'Qwen3-0.6B-q4f16_1-MLC',
-        'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
-        'Qwen2-0.5B-Instruct-q4f16_1-MLC',
-        'Llama-3.2-1B-Instruct-q4f16_1-MLC'
-      ].includes(record.model_id))
+      .filter(record => MODEL_PREFERENCES.includes(record.model_id))
       .sort((a, b) => modelRank(a) - modelRank(b));
 
-    if (preferred[0]) return preferred[0].model_id;
+    if (preferred.length) return preferred.map(record => record.model_id);
 
     const instruct = records
       .filter(record => /instruct|chat/i.test(record.model_id || ''))
       .sort((a, b) => modelRank(a) - modelRank(b));
 
     if (!instruct[0]) throw new Error('No compatible low-resource chat model was found for this browser.');
-    return instruct[0].model_id;
+    return [instruct[0].model_id];
+  }
+
+  function resetWorker() {
+    engine = null;
+    if (worker) worker.terminate();
+    worker = null;
   }
 
   async function load() {
@@ -100,29 +102,48 @@
       const adapter = await navigator.gpu.requestAdapter();
       if (!adapter) throw new Error('No WebGPU adapter is available.');
 
-      modelId = selectModel(webllm, adapter);
-      publish({ phase: 'loading', progress: 0, text: `preparing ${modelId}…`, modelId });
+      const candidates = selectModels(webllm, adapter);
+      let lastError = null;
 
-      worker = new Worker(workerURL, { type: 'module' });
-      engine = await webllm.CreateWebWorkerMLCEngine(worker, modelId, {
-        appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: 'cache' },
-        initProgressCallback: report => {
-          const progress = Number.isFinite(report.progress) ? report.progress : 0;
-          publish({
-            phase: 'loading',
-            progress,
-            text: report.text || `loading model ${Math.round(progress * 100)}%`,
-            modelId
+      for (let index = 0; index < candidates.length; index += 1) {
+        modelId = candidates[index];
+        publish({
+          phase: 'loading',
+          progress: 0,
+          text: index === 0 ? `preparing ${modelId}…` : `trying lighter fallback ${modelId}…`,
+          modelId,
+          error: lastError ? (lastError instanceof Error ? lastError.message : String(lastError)) : null
+        });
+
+        resetWorker();
+        worker = new Worker(workerURL, { type: 'module' });
+
+        try {
+          engine = await webllm.CreateWebWorkerMLCEngine(worker, modelId, {
+            appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: 'cache' },
+            initProgressCallback: report => {
+              const progress = Number.isFinite(report.progress) ? report.progress : 0;
+              publish({
+                phase: 'loading',
+                progress,
+                text: report.text || `loading model ${Math.round(progress * 100)}%`,
+                modelId,
+                error: null
+              });
+            }
           });
-        }
-      });
 
-      publish({ phase: 'ready', progress: 1, text: 'local ai ready', modelId, error: null });
-      return modelId;
+          publish({ phase: 'ready', progress: 1, text: 'local ai ready', modelId, error: null });
+          return modelId;
+        } catch (error) {
+          lastError = error;
+          resetWorker();
+        }
+      }
+
+      throw lastError || new Error('No local model could be loaded.');
     })().catch(error => {
-      engine = null;
-      if (worker) worker.terminate();
-      worker = null;
+      resetWorker();
       publish({
         phase: supportsWebGPU() ? 'error' : 'unsupported',
         text: 'local ai failed',
@@ -161,9 +182,7 @@
       const finalText = await engine.getMessage();
       return (finalText || text).trim();
     } catch (error) {
-      engine = null;
-      if (worker) worker.terminate();
-      worker = null;
+      resetWorker();
       publish({
         phase: 'error',
         text: 'generation failed',
