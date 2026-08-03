@@ -1,92 +1,39 @@
-/* COSM.OS — local model tuning + presets
-   Stores generation settings and custom presets in localStorage. */
+/* COSM.OS — generation-only Model Lab v0.7
+   No prompt injection, memory depth, starter banks, examples, or response schemas. */
 
 (() => {
-  const SETTINGS_KEY = 'cosmos_model_tuning_v1';
-  const PRESETS_KEY = 'cosmos_model_presets_v1';
-  const ACTIVE_KEY = 'cosmos_model_active_preset_v1';
-
-  const DEFAULT_RESONANCE = `Before answering, silently remove anything that sounds like a textbook, therapist script, corporate support language, generic advice, or commentary about responding. Respond to this exact moment with natural language, concrete detail, and emotional honesty. Prefer one vivid observation over a lecture. Do not force wisdom, productivity, or a question. If the reply could come from any generic chatbot, rewrite it until it fits this persona and this exact conversation.`;
+  const SETTINGS_KEY = 'cosmos_model_tuning_v2';
+  const PRESETS_KEY = 'cosmos_model_presets_v2';
+  const ACTIVE_KEY = 'cosmos_model_active_preset_v2';
 
   const BASE = {
-    temperature: 0.76,
-    topP: 0.94,
+    temperature: 0.72,
+    topP: 0.9,
     repeatPenalty: 1.08,
-    maxTokens: 260,
-    numCtx: 4096,
-    contextTurns: 4,
-    starterCount: 3,
-    exampleCount: 2,
-    maxWords: 130,
-    resonance: true,
-    resonancePrompt: DEFAULT_RESONANCE
+    maxTokens: 220,
+    numCtx: 4096
   };
 
   const BUILT_INS = {
-    balanced: {
-      name: 'Balanced conversation',
-      settings: { ...BASE }
-    },
-    ripple: {
-      name: 'Ripple calm',
-      settings: {
-        ...BASE,
-        temperature: 0.62,
-        topP: 0.88,
-        repeatPenalty: 1.12,
-        maxTokens: 160,
-        contextTurns: 3,
-        starterCount: 2,
-        exampleCount: 1,
-        maxWords: 70
-      }
+    balanced: { name: 'Balanced', settings: { ...BASE } },
+    calm: {
+      name: 'Calm',
+      settings: { ...BASE, temperature: 0.55, topP: 0.85, repeatPenalty: 1.1, maxTokens: 160 }
     },
     precise: {
-      name: 'Orion precise',
-      settings: {
-        ...BASE,
-        temperature: 0.44,
-        topP: 0.82,
-        repeatPenalty: 1.12,
-        maxTokens: 180,
-        contextTurns: 4,
-        starterCount: 2,
-        exampleCount: 2,
-        maxWords: 100
-      }
+      name: 'Precise',
+      settings: { ...BASE, temperature: 0.35, topP: 0.8, repeatPenalty: 1.12, maxTokens: 180 }
     },
-    kablow: {
-      name: 'KABLOW creative',
-      settings: {
-        ...BASE,
-        temperature: 1.02,
-        topP: 0.98,
-        repeatPenalty: 1.03,
-        maxTokens: 340,
-        contextTurns: 4,
-        starterCount: 3,
-        exampleCount: 2,
-        maxWords: 170
-      }
+    creative: {
+      name: 'Creative',
+      settings: { ...BASE, temperature: 0.95, topP: 0.98, repeatPenalty: 1.03, maxTokens: 320 }
     },
     deep: {
-      name: 'Deep conversation',
-      settings: {
-        ...BASE,
-        temperature: 0.8,
-        topP: 0.95,
-        repeatPenalty: 1.08,
-        maxTokens: 460,
-        numCtx: 8192,
-        contextTurns: 7,
-        starterCount: 3,
-        exampleCount: 3,
-        maxWords: 210
-      }
+      name: 'Deep',
+      settings: { ...BASE, temperature: 0.78, topP: 0.94, maxTokens: 420, numCtx: 8192 }
     }
   };
 
-  const listeners = new Set();
   let customPresets = loadJson(PRESETS_KEY, {});
   let activePreset = localStorage.getItem(ACTIVE_KEY) || 'balanced';
   let settings = normalize(loadJson(SETTINGS_KEY, BUILT_INS.balanced.settings));
@@ -111,13 +58,9 @@
       topP: clamp(value.topP, 0.05, 1, BASE.topP),
       repeatPenalty: clamp(value.repeatPenalty, 0.8, 1.5, BASE.repeatPenalty),
       maxTokens: Math.round(clamp(value.maxTokens, 64, 768, BASE.maxTokens)),
-      numCtx: [2048, 4096, 8192, 16384].includes(Number(value.numCtx)) ? Number(value.numCtx) : BASE.numCtx,
-      contextTurns: Math.round(clamp(value.contextTurns, 0, 10, BASE.contextTurns)),
-      starterCount: Math.round(clamp(value.starterCount, 1, 5, BASE.starterCount)),
-      exampleCount: Math.round(clamp(value.exampleCount, 0, 4, BASE.exampleCount)),
-      maxWords: Math.round(clamp(value.maxWords, 20, 240, BASE.maxWords)),
-      resonance: value.resonance !== false,
-      resonancePrompt: String(value.resonancePrompt || DEFAULT_RESONANCE).trim().slice(0, 1600)
+      numCtx: [2048, 4096, 8192, 16384].includes(Number(value.numCtx))
+        ? Number(value.numCtx)
+        : BASE.numCtx
     };
   }
 
@@ -127,24 +70,8 @@
     localStorage.setItem(ACTIVE_KEY, activePreset);
   }
 
-  function publish() {
-    const snapshot = get();
-    listeners.forEach(listener => {
-      try { listener(snapshot); } catch (error) { console.error(error); }
-    });
-  }
-
   function get() {
     return { ...settings };
-  }
-
-  function update(patch, markCustom = true) {
-    settings = normalize({ ...settings, ...patch });
-    if (markCustom) activePreset = 'custom-current';
-    persist();
-    syncUi();
-    publish();
-    return get();
   }
 
   function presetMap() {
@@ -154,6 +81,14 @@
     };
   }
 
+  function update(patch) {
+    settings = normalize({ ...settings, ...patch });
+    activePreset = 'custom-current';
+    persist();
+    syncUi();
+    return get();
+  }
+
   function applyPreset(id) {
     const preset = presetMap()[id];
     if (!preset) return false;
@@ -161,7 +96,6 @@
     activePreset = id;
     persist();
     syncUi();
-    publish();
     return true;
   }
 
@@ -178,7 +112,9 @@
     const clean = String(name || '').trim().slice(0, 48);
     if (!clean) return null;
     let id = `custom-${slug(clean)}`;
-    if (customPresets[id] && customPresets[id].name !== clean) id = `${id}-${Date.now().toString(36)}`;
+    if (customPresets[id] && customPresets[id].name !== clean) {
+      id = `${id}-${Date.now().toString(36)}`;
+    }
     customPresets[id] = { name: clean, settings: get() };
     activePreset = id;
     persist();
@@ -195,39 +131,17 @@
     return true;
   }
 
-  function subscribe(listener) {
-    listeners.add(listener);
-    listener(get());
-    return () => listeners.delete(listener);
-  }
-
-  function allPresets() {
-    return presetMap();
-  }
-
-  const fieldIds = {
-    temperature: 'tuneTemperature',
-    topP: 'tuneTopP',
-    repeatPenalty: 'tuneRepeatPenalty',
-    maxTokens: 'tuneMaxTokens',
-    numCtx: 'tuneNumCtx',
-    contextTurns: 'tuneContextTurns',
-    starterCount: 'tuneStarterCount',
-    exampleCount: 'tuneExampleCount',
-    maxWords: 'tuneMaxWords',
-    resonance: 'tuneResonance',
-    resonancePrompt: 'tuneResonancePrompt'
-  };
-
-  function formatValue(key, value) {
-    if (key === 'temperature' || key === 'topP' || key === 'repeatPenalty') return Number(value).toFixed(2);
-    return String(value);
+  function escapeHtml(value) {
+    const node = document.createElement('div');
+    node.textContent = value;
+    return node.innerHTML;
   }
 
   function renderPresetOptions() {
     const select = document.querySelector('#tunePreset');
     if (!select) return;
-    const presets = allPresets();
+
+    const presets = presetMap();
     const built = Object.entries(presets).filter(([, preset]) => preset.builtIn);
     const custom = Object.entries(presets).filter(([, preset]) => !preset.builtIn);
 
@@ -237,33 +151,38 @@
         ${built.map(([id, preset]) => `<option value="${id}">${escapeHtml(preset.name)}</option>`).join('')}
       </optgroup>
       ${custom.length ? `<optgroup label="saved presets">${custom.map(([id, preset]) => `<option value="${id}">${escapeHtml(preset.name)}</option>`).join('')}</optgroup>` : ''}`;
-    select.value = presets[activePreset] ? activePreset : 'custom-current';
 
+    select.value = presets[activePreset] ? activePreset : 'custom-current';
     const deleteButton = document.querySelector('#tuneDeletePreset');
     if (deleteButton) deleteButton.disabled = !customPresets[select.value];
   }
 
-  function escapeHtml(value) {
-    const node = document.createElement('div');
-    node.textContent = value;
-    return node.innerHTML;
-  }
+  const fields = {
+    temperature: 'tuneTemperature',
+    topP: 'tuneTopP',
+    repeatPenalty: 'tuneRepeatPenalty',
+    maxTokens: 'tuneMaxTokens',
+    numCtx: 'tuneNumCtx'
+  };
 
   function syncUi() {
     renderPresetOptions();
-    Object.entries(fieldIds).forEach(([key, id]) => {
+
+    Object.entries(fields).forEach(([key, id]) => {
       const input = document.getElementById(id);
       if (!input) return;
-      if (input.type === 'checkbox') input.checked = Boolean(settings[key]);
-      else input.value = settings[key];
-
+      input.value = settings[key];
       const output = document.querySelector(`[data-value-for="${key}"]`);
-      if (output) output.textContent = formatValue(key, settings[key]);
+      if (output) {
+        output.textContent = ['temperature', 'topP', 'repeatPenalty'].includes(key)
+          ? Number(settings[key]).toFixed(2)
+          : String(settings[key]);
+      }
     });
 
     const status = document.querySelector('#tuneStatus');
     if (status) {
-      const preset = allPresets()[activePreset];
+      const preset = presetMap()[activePreset];
       status.textContent = preset ? `active · ${preset.name}` : 'active · custom settings';
     }
   }
@@ -288,7 +207,6 @@
     openButton.addEventListener('click', open);
     document.querySelector('#tuneClose')?.addEventListener('click', close);
     document.querySelector('#tuneDone')?.addEventListener('click', close);
-
     dialog.addEventListener('click', event => {
       if (event.target === dialog) close();
     });
@@ -298,35 +216,23 @@
         activePreset = 'custom-current';
         persist();
         syncUi();
-        return;
+      } else {
+        applyPreset(event.target.value);
       }
-      applyPreset(event.target.value);
     });
 
-    Object.entries(fieldIds).forEach(([key, id]) => {
+    Object.entries(fields).forEach(([key, id]) => {
       const input = document.getElementById(id);
       if (!input) return;
-      const eventName = input.type === 'range' ? 'input' : 'change';
-      input.addEventListener(eventName, () => {
-        const value = input.type === 'checkbox'
-          ? input.checked
-          : input.tagName === 'TEXTAREA'
-            ? input.value
-            : Number(input.value);
-        update({ [key]: value });
+      input.addEventListener(input.type === 'range' ? 'input' : 'change', () => {
+        update({ [key]: Number(input.value) });
       });
-      if (input.tagName === 'TEXTAREA') {
-        input.addEventListener('input', () => update({ [key]: input.value }));
-      }
     });
 
     document.querySelector('#tuneSavePreset')?.addEventListener('click', () => {
       const input = document.querySelector('#tunePresetName');
       const id = savePreset(input?.value);
-      if (!id) {
-        input?.focus();
-        return;
-      }
+      if (!id) return input?.focus();
       if (input) input.value = '';
     });
 
@@ -342,11 +248,10 @@
   window.COSMOS_MODEL_SETTINGS = {
     get,
     update,
-    subscribe,
     applyPreset,
     savePreset,
     deletePreset,
-    allPresets,
+    allPresets: presetMap,
     open,
     close,
     defaults: () => ({ ...BASE })
