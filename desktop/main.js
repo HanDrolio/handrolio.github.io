@@ -86,7 +86,9 @@ ipcMain.handle('ollama:chat', async (_event, payload = {}) => {
     options: {
       temperature: Number.isFinite(payload.temperature) ? payload.temperature : 0.72,
       top_p: Number.isFinite(payload.topP) ? payload.topP : 0.9,
-      num_predict: Number.isFinite(payload.maxTokens) ? payload.maxTokens : 220
+      repeat_penalty: Number.isFinite(payload.repeatPenalty) ? payload.repeatPenalty : 1.08,
+      num_predict: Number.isFinite(payload.maxTokens) ? payload.maxTokens : 220,
+      num_ctx: Number.isFinite(payload.numCtx) ? payload.numCtx : 4096
     }
   };
 
