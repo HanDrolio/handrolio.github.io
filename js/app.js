@@ -1,43 +1,185 @@
 /* COSM.OS — app shell
-   Two surfaces: chat (routes to a voice) and log (dated entries).
-   Local storage remains the source of truth. WebLLM is an optional reasoning
-   layer; the deterministic engine stays available as the instant fallback. */
+   Multi-chat local archive, persona routing, journal log, and local Ollama layer.
+   Local storage remains the source of truth; no account or cloud is required. */
 
 const KEY = 'cosmos_v3';
-const $ = s => document.querySelector(s);
+const $ = selector => document.querySelector(selector);
 
 let state = {
-  mode: 'chat',      // chat | log
-  lock: null,        // pinned persona id
-  messages: [],
-  entries: []
+  mode: 'chat',
+  lock: null,
+  chats: [],
+  currentChatId: null,
+  entries: [],
+  sidebarOpen: true
 };
 let generating = false;
 
-/* ---------- storage ---------- */
+/* ---------- storage + chat migration ---------- */
+function uid(prefix = 'id') {
+  if (crypto?.randomUUID) return `${prefix}-${crypto.randomUUID()}`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function chatTitle(messages = []) {
+  const first = messages.find(message => message.role === 'you' && message.text?.trim());
+  if (!first) return 'New chat';
+  const clean = first.text.replace(/\s+/g, ' ').trim();
+  return clean.length > 42 ? `${clean.slice(0, 42).trim()}…` : clean;
+}
+
+function normalizeChat(chat, index = 0) {
+  const messages = Array.isArray(chat?.messages) ? chat.messages : [];
+  const createdAt = Number(chat?.createdAt) || Number(messages[0]?.ts) || Date.now() + index;
+  return {
+    id: String(chat?.id || uid('chat')),
+    title: String(chat?.title || chatTitle(messages)),
+    createdAt,
+    updatedAt: Number(chat?.updatedAt) || Number(messages[messages.length - 1]?.ts) || createdAt,
+    messages
+  };
+}
+
+function emptyChat() {
+  const now = Date.now();
+  return { id: uid('chat'), title: 'New chat', createdAt: now, updatedAt: now, messages: [] };
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) state = Object.assign(state, JSON.parse(raw));
-    state.messages = Array.isArray(state.messages) ? state.messages : [];
-    state.entries = Array.isArray(state.entries) ? state.entries : [];
-    if (migrateEntries(state.entries)) save();
-  } catch (e) { /* corrupt store, start clean */ }
+    const data = raw ? JSON.parse(raw) : {};
+
+    state.mode = data.mode === 'log' ? 'log' : 'chat';
+    state.lock = PERSONAS[data.lock] ? data.lock : null;
+    state.entries = Array.isArray(data.entries) ? data.entries : [];
+    state.sidebarOpen = data.sidebarOpen !== false;
+
+    if (Array.isArray(data.chats) && data.chats.length) {
+      state.chats = data.chats.map(normalizeChat);
+    } else if (Array.isArray(data.messages) && data.messages.length) {
+      state.chats = [normalizeChat({
+        id: uid('chat'),
+        title: chatTitle(data.messages),
+        messages: data.messages,
+        createdAt: data.messages[0]?.ts,
+        updatedAt: data.messages[data.messages.length - 1]?.ts
+      })];
+    } else {
+      state.chats = [emptyChat()];
+    }
+
+    state.currentChatId = state.chats.some(chat => chat.id === data.currentChatId)
+      ? data.currentChatId
+      : state.chats[0].id;
+
+    migrateEntries(state.entries);
+    save();
+  } catch (error) {
+    console.error(error);
+    state.chats = [emptyChat()];
+    state.currentChatId = state.chats[0].id;
+  }
 }
+
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (error) { console.error(error); }
+}
+
+function currentChat() {
+  let chat = state.chats.find(item => item.id === state.currentChatId);
+  if (!chat) {
+    chat = emptyChat();
+    state.chats.unshift(chat);
+    state.currentChatId = chat.id;
+  }
+  return chat;
+}
+
+function currentMessages() {
+  return currentChat().messages;
+}
+
+function touchChat(chat = currentChat()) {
+  chat.updatedAt = Date.now();
+  if (!chat.title || chat.title === 'New chat') chat.title = chatTitle(chat.messages);
+}
+
+function createNewChat() {
+  if (generating) return;
+  const existing = currentChat();
+  if (!existing.messages.length) {
+    state.mode = 'chat';
+    render();
+    $('#input').focus();
+    return;
+  }
+
+  const chat = emptyChat();
+  state.chats.unshift(chat);
+  state.currentChatId = chat.id;
+  state.mode = 'chat';
+  state.lock = null;
+  save();
+  render();
+  paintRail();
+  $('#input').focus();
+}
+
+function switchChat(id) {
+  if (generating || !state.chats.some(chat => chat.id === id)) return;
+  state.currentChatId = id;
+  state.mode = 'chat';
+  save();
+  render();
+  if (window.innerWidth < 820) setSidebar(false);
+  $('#input').focus();
+}
+
+function deleteChat(id) {
+  if (generating) return;
+  const chat = state.chats.find(item => item.id === id);
+  if (!chat || !confirm(`Delete “${chat.title}”?`)) return;
+
+  state.chats = state.chats.filter(item => item.id !== id);
+  if (!state.chats.length) state.chats = [emptyChat()];
+  if (state.currentChatId === id) state.currentChatId = state.chats[0].id;
+  save();
+  render();
+}
+
+function renameChat(id) {
+  const chat = state.chats.find(item => item.id === id);
+  if (!chat) return;
+  const next = prompt('Rename chat', chat.title)?.trim();
+  if (!next) return;
+  chat.title = next.slice(0, 70);
+  touchChat(chat);
+  save();
+  renderSidebar();
 }
 
 /* ---------- helpers ---------- */
-const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+const esc = value => {
+  const element = document.createElement('div');
+  element.textContent = value;
+  return element.innerHTML;
+};
 const stamp = ts => new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const dayOf = ts => new Date(ts).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+const chatDay = ts => {
+  const date = new Date(ts);
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) return 'today';
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+};
 
 function setGenerating(value) {
   generating = value;
   $('#send').disabled = value;
   $('#input').disabled = value;
   $('#bar').classList.toggle('busy', value);
+  $('#newChat').disabled = value;
 }
 
 function modelReady() {
@@ -46,21 +188,80 @@ function modelReady() {
 
 function compactModelName(id = '') {
   return id
+    .replace(/^hf\.co\//i, '')
     .replace(/-q\df\d+_\d+-MLC.*$/i, '')
     .replace(/-Instruct/i, '')
-    .replace(/-/g, ' ')
+    .replace(/[:/_-]+/g, ' ')
     .trim();
 }
 
+/* ---------- sidebar ---------- */
+function setSidebar(open) {
+  state.sidebarOpen = Boolean(open);
+  document.body.classList.toggle('sidebar-open', state.sidebarOpen);
+  save();
+}
+
+function renderSidebar() {
+  const list = $('#chatList');
+  if (!list) return;
+
+  const chats = [...state.chats].sort((a, b) => b.updatedAt - a.updatedAt);
+  list.innerHTML = chats.map(chat => `
+    <div class="chatRow${chat.id === state.currentChatId ? ' active' : ''}" data-id="${esc(chat.id)}">
+      <button class="chatOpen" data-id="${esc(chat.id)}" title="${esc(chat.title)}">
+        <span class="chatTitle">${esc(chat.title || 'New chat')}</span>
+        <time>${chatDay(chat.updatedAt)}</time>
+      </button>
+      <button class="chatDelete" data-id="${esc(chat.id)}" aria-label="delete chat">×</button>
+    </div>`).join('');
+
+  list.querySelectorAll('.chatOpen').forEach(button => {
+    button.addEventListener('click', () => switchChat(button.dataset.id));
+    button.addEventListener('dblclick', event => {
+      event.preventDefault();
+      renameChat(button.dataset.id);
+    });
+  });
+  list.querySelectorAll('.chatDelete').forEach(button => {
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      deleteChat(button.dataset.id);
+    });
+  });
+
+  $('#currentChatTitle').textContent = currentChat().title || 'New chat';
+  document.body.classList.toggle('sidebar-open', state.sidebarOpen);
+}
+
 /* ---------- local model ---------- */
+function paintModelOptions(modelState) {
+  const select = $('#modelSelect');
+  if (!select) return;
+  const models = Array.isArray(modelState.models) ? modelState.models : [];
+  const signature = JSON.stringify(models.map(model => [model.name, model.size]));
+  if (select.dataset.signature !== signature) {
+    select.dataset.signature = signature;
+    select.innerHTML = `<option value="auto">auto · largest Qwen</option>${models.map(model => {
+      const gb = model.size ? ` · ${(model.size / 1e9).toFixed(1)} GB` : '';
+      return `<option value="${esc(model.name)}">${esc(compactModelName(model.name))}${gb}</option>`;
+    }).join('')}`;
+  }
+  select.value = modelState.selection || 'auto';
+  select.disabled = modelState.phase === 'loading' || !models.length;
+}
+
 function paintModelStatus(modelState) {
   const box = $('#modelBar');
   const label = $('#modelStatus');
   const button = $('#modelBtn');
+  const refresh = $('#modelRefresh');
   if (!box || !label || !button) return;
 
   box.dataset.phase = modelState.phase;
   button.disabled = false;
+  if (refresh) refresh.disabled = modelState.phase === 'loading';
+  paintModelOptions(modelState);
 
   if (modelState.phase === 'loading') {
     const percent = Math.max(0, Math.min(100, Math.round((modelState.progress || 0) * 100)));
@@ -69,7 +270,7 @@ function paintModelStatus(modelState) {
     button.disabled = true;
   } else if (modelState.phase === 'ready') {
     label.textContent = `local · ${compactModelName(modelState.modelId) || 'ai ready'}`;
-    button.textContent = 'ai ready';
+    button.textContent = 'ready';
     button.disabled = true;
   } else if (modelState.phase === 'unsupported') {
     label.textContent = 'WebGPU unavailable · deterministic mode active';
@@ -79,7 +280,7 @@ function paintModelStatus(modelState) {
     label.textContent = 'local ai failed · deterministic mode active';
     button.textContent = 'retry';
   } else {
-    label.textContent = 'deterministic mode · no download yet';
+    label.textContent = 'deterministic mode · no model loaded';
     button.textContent = 'load local ai';
   }
 
@@ -91,30 +292,43 @@ async function loadLocalAI() {
   try { await window.COSMOS_AI.load(); } catch (error) { console.error(error); }
 }
 
+async function refreshModels() {
+  if (!window.COSMOS_AI?.refreshModels) return loadLocalAI();
+  try { await window.COSMOS_AI.refreshModels(); } catch (error) { console.error(error); }
+}
+
+async function changeModel(value) {
+  if (!window.COSMOS_AI?.setModel) return;
+  try { await window.COSMOS_AI.setModel(value); } catch (error) { console.error(error); }
+}
+
 /* ---------- persona rail ---------- */
 function buildRail() {
   const rail = $('#rail');
   rail.innerHTML = ORDER.map(id => {
-    const p = PERSONAS[id];
-    return `<button class="chip" data-id="${id}" style="--c:${p.color}" title="${p.role}">
-      <span class="cg">${p.glyph}</span><span class="cn">${p.name}</span></button>`;
+    const persona = PERSONAS[id];
+    return `<button class="chip" data-id="${id}" style="--c:${persona.color}" title="${persona.role}">
+      <span class="cg">${persona.glyph}</span><span class="cn">${persona.name}</span></button>`;
   }).join('');
-  rail.querySelectorAll('.chip').forEach(b => {
-    b.addEventListener('click', () => toggleLock(b.dataset.id));
+  rail.querySelectorAll('.chip').forEach(button => {
+    button.addEventListener('click', () => toggleLock(button.dataset.id));
   });
   paintRail();
 }
+
 function paintRail() {
-  document.querySelectorAll('.chip').forEach(b => {
-    b.classList.toggle('on', b.dataset.id === state.lock);
+  document.querySelectorAll('.chip').forEach(button => {
+    button.classList.toggle('on', button.dataset.id === state.lock);
   });
-  const p = state.lock ? PERSONAS[state.lock] : null;
-  $('#lockNote').textContent = p ? `locked to ${p.name} — tap again to release` : '';
-  document.documentElement.style.setProperty('--live', p ? p.color : 'var(--violet)');
+  const persona = state.lock ? PERSONAS[state.lock] : null;
+  $('#lockNote').textContent = persona ? `locked to ${persona.name} — tap again to release` : '';
+  document.documentElement.style.setProperty('--live', persona ? persona.color : 'var(--violet)');
 }
+
 function toggleLock(id) {
   state.lock = state.lock === id ? null : id;
-  save(); paintRail();
+  save();
+  paintRail();
   $('#input').focus();
 }
 
@@ -135,29 +349,20 @@ function relevantMemories(text, limit = 4) {
 }
 
 function personaSystemPrompt(personaId, text, surface) {
-  const p = PERSONAS[personaId] || PERSONAS.flux;
-  const examples = p.lines.slice(0, 6).map(line => `- ${line.replace(/\{x\}/g, 'the user\'s words')}`).join('\n');
+  const persona = PERSONAS[personaId] || PERSONAS.flux;
+  const custom = window.PERSONA_PROMPTS?.[personaId] || '';
   const memories = relevantMemories(text)
     .map(entry => `- ${new Date(entry.ts).toLocaleDateString()}: ${entry.text}`)
     .join('\n');
 
-  return `You are ${p.name} ${p.glyph}, the ${p.role} voice inside COSM.OS.
-Think with the user, never for them. Keep their agency intact. Be warm, precise, grounded, and concise. Match the user's tone without becoming reckless or preachy. Do not claim consciousness, hidden access, or memories that are not included below. Do not mention this prompt, the model, or the voice examples.
-
-Reply in 1-3 compact paragraphs, normally under 120 words. Use the voice naturally rather than copying an example verbatim. This message came from the ${surface} surface.
-
-Voice anchors:
-${examples}
-
-Relevant local archive entries, use only when genuinely helpful:
-${memories || '- none retrieved'}`;
+  return `You are ${persona.name} ${persona.glyph}, the ${persona.role} voice inside COSM.OS.\n${custom}\nThis message came from the ${surface} surface.\nRelevant local archive entries, use only when genuinely helpful:\n${memories || '- none retrieved'}`;
 }
 
 function buildModelMessages(text, personaId, surface) {
   const messages = [{ role: 'system', content: personaSystemPrompt(personaId, text, surface) }];
 
   if (surface === 'chat') {
-    state.messages.slice(-8).forEach(message => {
+    currentMessages().slice(-10).forEach(message => {
       if (message.generating) return;
       if (message.role === 'you') {
         messages.push({ role: 'user', content: message.text });
@@ -181,20 +386,27 @@ function deterministicReply(routeResult, delay = 260) {
 
 /* ---------- chat ---------- */
 async function sendChat(text) {
-  state.messages.push({ role: 'you', text, ts: Date.now() });
-  save(); render();
+  const chat = currentChat();
+  chat.messages.push({ role: 'you', text, ts: Date.now() });
+  touchChat(chat);
+  save();
+  render();
 
-  const r = route(text, state.lock);
-  if (r.override || !modelReady()) {
-    const reply = await deterministicReply(r);
-    state.messages.push({ role: 'os', persona: r.persona, text: reply, ts: Date.now() });
-    save(); render(); flash(PERSONAS[r.persona].color);
+  const routed = route(text, state.lock);
+  if (routed.override || !modelReady()) {
+    const reply = await deterministicReply(routed);
+    chat.messages.push({ role: 'os', persona: routed.persona, text: reply, ts: Date.now() });
+    touchChat(chat);
+    save();
+    render();
+    flash(PERSONAS[routed.persona].color);
     return;
   }
 
-  const request = buildModelMessages(text, r.persona, 'chat');
-  const message = { role: 'os', persona: r.persona, text: 'thinking locally…', ts: Date.now(), generating: true };
-  state.messages.push(message);
+  const request = buildModelMessages(text, routed.persona, 'chat');
+  const message = { role: 'os', persona: routed.persona, text: 'thinking locally…', ts: Date.now(), generating: true };
+  chat.messages.push(message);
+  touchChat(chat);
   setGenerating(true);
   render();
 
@@ -205,45 +417,52 @@ async function sendChat(text) {
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = null;
-        render();
+        renderChat();
       });
     });
-    message.text = finalText || r.text;
+    message.text = finalText || routed.text;
   } catch (error) {
     console.error(error);
-    message.text = r.text;
+    message.text = routed.text;
   } finally {
     if (frame) cancelAnimationFrame(frame);
     delete message.generating;
     setGenerating(false);
-    save(); render(); flash(PERSONAS[r.persona].color);
+    touchChat(chat);
+    save();
+    render();
+    flash(PERSONAS[routed.persona].color);
     $('#input').focus();
   }
 }
 
 function renderChat() {
   const col = $('#col');
-  if (!state.messages.length) { col.innerHTML = hero('say it plain. it answers in a voice.'); return; }
-  col.innerHTML = state.messages.map(m => {
-    if (m.role === 'you') {
-      return `<div class="msg you"><div class="bubble">${esc(m.text)}</div></div>`;
+  const messages = currentMessages();
+  if (!messages.length) {
+    col.innerHTML = hero('say it plain. it answers in a voice.');
+    return;
+  }
+
+  col.innerHTML = messages.map(message => {
+    if (message.role === 'you') {
+      return `<div class="msg you"><div class="bubble">${esc(message.text)}</div></div>`;
     }
-    const p = PERSONAS[m.persona] || PERSONAS.flux;
-    return `<div class="msg os${m.generating ? ' generating' : ''}" style="--c:${p.color}">
-      <div class="who"><span class="wg">${p.glyph}</span>${p.name}<em>${p.role}</em></div>
-      <div class="bubble">${esc(m.text)}</div></div>`;
+    const persona = PERSONAS[message.persona] || PERSONAS.flux;
+    return `<div class="msg os${message.generating ? ' generating' : ''}" style="--c:${persona.color}">
+      <div class="who"><span class="wg">${persona.glyph}</span>${persona.name}<em>${persona.role}</em></div>
+      <div class="bubble">${esc(message.text)}</div></div>`;
   }).join('');
-  const sc = $('#scroll'); sc.scrollTop = sc.scrollHeight;
+
+  const scroll = $('#scroll');
+  scroll.scrollTop = scroll.scrollHeight;
 }
 
 /* ---------- living threads ---------- */
 function renderThread(thread) {
   if (!thread) return '';
   const moments = thread.entries.map(item => `
-    <li>
-      <time>${stamp(item.ts)}</time>
-      <p>${esc(item.text)}</p>
-    </li>`).join('');
+    <li><time>${stamp(item.ts)}</time><p>${esc(item.text)}</p></li>`).join('');
 
   return `<details class="threadcard">
     <summary>
@@ -251,79 +470,82 @@ function renderThread(thread) {
       <span><b>Living Thread</b><em>${esc(thread.title)}</em></span>
       <span class="threadopen">open</span>
     </summary>
-    <div class="threadbody">
-      <p class="threadsummary">${esc(thread.summary)}</p>
-      <ol>${moments}</ol>
-    </div>
+    <div class="threadbody"><p class="threadsummary">${esc(thread.summary)}</p><ol>${moments}</ol></div>
   </details>`;
 }
 
 /* ---------- log ---------- */
 async function sendEntry(text) {
-  const r = route(text, state.lock);
+  const routed = route(text, state.lock);
   const ts = Date.now();
-  const request = (!r.override && modelReady()) ? buildModelMessages(text, r.persona, 'log') : null;
+  const request = (!routed.override && modelReady()) ? buildModelMessages(text, routed.persona, 'log') : null;
   const entry = {
-    id: makeEntryId(ts),
-    text,
-    ts,
-    persona: r.persona,
-    reply: request ? 'thinking locally…' : r.text,
+    id: makeEntryId(ts), text, ts, persona: routed.persona,
+    reply: request ? 'thinking locally…' : routed.text,
     threadIds: detectThreads(text, state.entries)
   };
 
   state.entries.unshift(entry);
-  save(); render(); flash(PERSONAS[r.persona].color);
+  save();
+  render();
+  flash(PERSONAS[routed.persona].color);
   if (!request) return;
 
   setGenerating(true);
   try {
-    entry.reply = await window.COSMOS_AI.complete(request) || r.text;
+    entry.reply = await window.COSMOS_AI.complete(request) || routed.text;
   } catch (error) {
     console.error(error);
-    entry.reply = r.text;
+    entry.reply = routed.text;
   } finally {
     setGenerating(false);
-    save(); render(); flash(PERSONAS[r.persona].color);
+    save();
+    render();
+    flash(PERSONAS[routed.persona].color);
     $('#input').focus();
   }
 }
 
 function renderLog() {
   const col = $('#col');
-  if (!state.entries.length) { col.innerHTML = hero('the archive starts when you do.'); return; }
+  if (!state.entries.length) {
+    col.innerHTML = hero('the archive starts when you do.');
+    return;
+  }
+
   let lastDay = '';
-  col.innerHTML = state.entries.map((e, i) => {
-    const d = dayOf(e.ts);
-    const head = d !== lastDay ? `<div class="daymark">${d}</div>` : '';
-    lastDay = d;
-    const p = PERSONAS[e.persona] || PERSONAS.flux;
-    const thread = livingThreadForEntry(e, state.entries);
-    return `${head}<article class="entry" style="--c:${p.color}">
-      <header><time>${stamp(e.ts)}</time><button class="x" data-i="${i}" aria-label="delete entry">✕</button></header>
-      <p>${esc(e.text)}</p>
-      <div class="reply"><span class="rg">${p.glyph}</span>${esc(e.reply)}</div>
+  col.innerHTML = state.entries.map((entry, index) => {
+    const day = dayOf(entry.ts);
+    const head = day !== lastDay ? `<div class="daymark">${day}</div>` : '';
+    lastDay = day;
+    const persona = PERSONAS[entry.persona] || PERSONAS.flux;
+    const thread = livingThreadForEntry(entry, state.entries);
+    return `${head}<article class="entry" style="--c:${persona.color}">
+      <header><time>${stamp(entry.ts)}</time><button class="x" data-i="${index}" aria-label="delete entry">✕</button></header>
+      <p>${esc(entry.text)}</p>
+      <div class="reply"><span class="rg">${persona.glyph}</span>${esc(entry.reply)}</div>
       ${renderThread(thread)}
     </article>`;
   }).join('');
-  col.querySelectorAll('.x').forEach(b => b.addEventListener('click', () => {
-    state.entries.splice(+b.dataset.i, 1); save(); render();
+
+  col.querySelectorAll('.x').forEach(button => button.addEventListener('click', () => {
+    state.entries.splice(+button.dataset.i, 1);
+    save();
+    render();
   }));
-  col.querySelectorAll('.threadcard').forEach(card => {
-    card.addEventListener('toggle', () => {
-      const label = card.querySelector('.threadopen');
-      if (label) label.textContent = card.open ? 'close' : 'open';
-    });
-  });
+  col.querySelectorAll('.threadcard').forEach(card => card.addEventListener('toggle', () => {
+    const label = card.querySelector('.threadopen');
+    if (label) label.textContent = card.open ? 'close' : 'open';
+  }));
   $('#scroll').scrollTop = 0;
 }
 
-function hero(sub) {
+function hero(subtitle) {
   return `<div class="hero">
     <div class="mark">🟦🌌🟨</div>
     <h1>COSM.OS</h1>
-    <p>${sub}</p>
-    <p class="tip">call a voice directly — type <code>demon</code> or <code>@orion</code> first. pin one above, or load the private local model.</p>
+    <p>${subtitle}</p>
+    <p class="tip">call a voice directly, pin one above, or let the router choose. every chat stays local on this machine.</p>
   </div>`;
 }
 
@@ -332,7 +554,8 @@ function render() {
   $('#input').placeholder = generating
     ? 'local model is thinking…'
     : state.mode === 'chat' ? 'say it plain…' : 'what\'s flowing through you now?';
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.mode === state.mode));
+  document.querySelectorAll('.tab').forEach(tab => tab.classList.toggle('on', tab.dataset.mode === state.mode));
+  renderSidebar();
   state.mode === 'chat' ? renderChat() : renderLog();
 }
 
@@ -345,34 +568,50 @@ function flash(color) {
 
 function submit() {
   if (generating) return;
-  const el = $('#input');
-  const text = el.value.trim();
+  const input = $('#input');
+  const text = input.value.trim();
   if (!text) return;
-  el.value = ''; el.style.height = 'auto';
+  input.value = '';
+  input.style.height = 'auto';
   state.mode === 'chat' ? sendChat(text) : sendEntry(text);
 }
 
 function exportAll() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `cosmos-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const anchor = document.createElement('a');
+  anchor.href = URL.createObjectURL(blob);
+  anchor.download = `cosmos-${new Date().toISOString().slice(0, 10)}.json`;
+  anchor.click();
+  URL.revokeObjectURL(anchor.href);
 }
 
 function importAll(file) {
-  const r = new FileReader();
-  r.onload = e => {
+  const reader = new FileReader();
+  reader.onload = event => {
     try {
-      const data = JSON.parse(e.target.result);
-      state.messages = Array.isArray(data.messages) ? data.messages : state.messages;
-      state.entries = Array.isArray(data.entries) ? data.entries : state.entries;
+      const data = JSON.parse(event.target.result);
+      if (Array.isArray(data.chats) && data.chats.length) {
+        state.chats = data.chats.map(normalizeChat);
+        state.currentChatId = state.chats[0].id;
+      } else if (Array.isArray(data.messages)) {
+        const chat = normalizeChat({
+          id: uid('chat'),
+          title: chatTitle(data.messages),
+          messages: data.messages
+        });
+        state.chats.unshift(chat);
+        state.currentChatId = chat.id;
+      }
+      if (Array.isArray(data.entries)) state.entries = data.entries;
       migrateEntries(state.entries);
-      save(); render();
-    } catch (err) { alert('That file isn\'t a COSM.OS backup.'); }
+      state.mode = 'chat';
+      save();
+      render();
+    } catch (error) {
+      alert('That file is not a COSM.OS backup.');
+    }
   };
-  r.readAsText(file);
+  reader.readAsText(file);
 }
 
 /* ---------- wiring ---------- */
@@ -383,26 +622,45 @@ render();
 if (window.COSMOS_AI) {
   window.COSMOS_AI.subscribe(paintModelStatus);
   $('#modelBtn').addEventListener('click', loadLocalAI);
+  $('#modelRefresh').addEventListener('click', refreshModels);
+  $('#modelSelect').addEventListener('change', event => changeModel(event.target.value));
 } else {
-  paintModelStatus({ phase: 'error', text: 'model layer unavailable', error: 'webllm.js did not load' });
+  paintModelStatus({ phase: 'error', text: 'model layer unavailable', error: 'model scripts did not load', models: [] });
 }
 
-$('#input').addEventListener('input', e => {
-  e.target.style.height = 'auto';
-  e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px';
+$('#sidebarToggle').addEventListener('click', () => setSidebar(!state.sidebarOpen));
+$('#sidebarClose').addEventListener('click', () => setSidebar(false));
+$('#newChat').addEventListener('click', createNewChat);
+$('#sidebarShade').addEventListener('click', () => setSidebar(false));
+
+$('#input').addEventListener('input', event => {
+  event.target.style.height = 'auto';
+  event.target.style.height = `${Math.min(140, event.target.scrollHeight)}px`;
 });
-$('#input').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+$('#input').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    submit();
+  }
 });
 $('#send').addEventListener('click', submit);
-document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
   if (generating) return;
-  state.mode = t.dataset.mode; save(); render();
+  state.mode = tab.dataset.mode;
+  save();
+  render();
 }));
 $('#export').addEventListener('click', exportAll);
 $('#importBtn').addEventListener('click', () => $('#importFile').click());
-$('#importFile').addEventListener('change', e => { if (e.target.files[0]) importAll(e.target.files[0]); e.target.value = ''; });
+$('#importFile').addEventListener('change', event => {
+  if (event.target.files[0]) importAll(event.target.files[0]);
+  event.target.value = '';
+});
 
-if ('serviceWorker' in navigator) {
+window.addEventListener('resize', () => {
+  if (window.innerWidth >= 820) document.body.classList.toggle('sidebar-open', state.sidebarOpen);
+});
+
+if ('serviceWorker' in navigator && !window.COSMOS_DESKTOP) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
