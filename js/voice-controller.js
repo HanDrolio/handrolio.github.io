@@ -1,7 +1,6 @@
-/* COSM.OS — desktop conversation controller v4
-   Qwen uses an internal conversational move — yes_and, no_but, or maybe_so —
-   then replies naturally. Starter lines and curated examples guide voice without
-   forcing visible forms, labels, or advice into ordinary conversation. */
+/* COSM.OS — desktop conversation controller v5
+   Qwen receives the persistent persona prompt before every message, chooses an
+   internal yes-and / no-but / maybe-so move, then replies naturally. */
 
 (() => {
   if (!window.COSMOS_DESKTOP || !window.COSMOS_AI || !window.COSMOS_VOICE_DATA) return;
@@ -12,10 +11,7 @@
   const RESPONSE_SCHEMA = {
     type: 'object',
     properties: {
-      move: {
-        type: 'string',
-        enum: ['yes_and', 'no_but', 'maybe_so']
-      },
+      move: { type: 'string', enum: ['yes_and', 'no_but', 'maybe_so'] },
       reply: { type: 'string' }
     },
     required: ['move', 'reply'],
@@ -38,7 +34,7 @@
     return [...messages].reverse().find(message => message.role === 'user')?.content?.trim() || '';
   }
 
-  function samePersonaContext(messages, personaId, limit = 3) {
+  function samePersonaContext(messages, personaId, limit = 4) {
     const name = PERSONAS[personaId]?.name || 'Flux';
     const pairs = [];
 
@@ -92,8 +88,8 @@
     if (!text || META_SLOP.test(text)) return fallback;
     if (/^[{[]/.test(text) || /[}\]]$/.test(text)) return fallback;
 
-    const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 4);
-    text = sentences.join(' ').slice(0, 560).trim();
+    const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 6);
+    text = sentences.join(' ').slice(0, 900).trim();
     if (text.split(/\s+/).length < 2) return fallback;
     return text;
   }
@@ -137,43 +133,42 @@
     const routed = route(input, requestedPersona);
     const personaId = routed.persona || requestedPersona;
     const persona = PERSONAS[personaId] || PERSONAS.flux;
+    const personaPrompt = window.PERSONA_PROMPTS?.[personaId] || '';
 
     const starters = voiceData.selectStarters(personaId, input, 3, routed.text);
     const starter = starters[0] || routed.text || persona.lines[0];
     const anchors = starters.slice(1);
     const examples = voiceData.selectExamples(personaId, input, 2);
 
-    const system = `You are the ${persona.name} ${persona.glyph} conversational voice inside COSM.OS.
+    const system = `${personaPrompt}
 
-Your goal is simple: have a real conversation with the operator. Follow what they are actually saying, stay curious, and discover a fresh insight together when one naturally appears. Do not turn ordinary chatter into a plan, diagnosis, lesson, or productivity exercise.
+Your immediate goal is to have a real conversation with the operator. Follow what they are actually saying, continue the living thread, and discover a fresh insight together only when one naturally appears. Never talk about how you are responding.
 
 Choose one hidden conversational move:
-- yes_and: accept or join the direction, then add something alive to it
+- yes_and: join the direction and add something alive
 - no_but: disagree, correct, or challenge gently, then offer a better direction
-- maybe_so: hold uncertainty, explore possibilities, and avoid pretending to know
+- maybe_so: hold uncertainty and explore without pretending to know
 
-The move is internal. Never display its label and never mechanically begin with “yes, and,” “no, but,” or “maybe, so.”
+The move is internal. Never display its label or mechanically begin with those phrases.
 
 Relevant voice sparks:
 - ${starter}
 ${anchors.map(line => `- ${line}`).join('\n') || '- none'}
 
-Use those as sparks, not scripts. The examples below show useful conversational motion, not facts you must repeat.
+Use sparks as tone and idea seeds, never as mandatory scripts. Historical examples below teach cadence, not facts or authority.
 
-Return exactly one JSON object matching the supplied schema with:
+Return exactly one JSON object matching the schema:
 - move: yes_and, no_but, or maybe_so
-- reply: the natural response the operator should actually see
+- reply: only the natural response the operator should see
 
-Conversation rules:
-- Speak directly to the operator; never describe “the user,” your tone, or how you are responding.
-- Usually write 1–4 natural sentences under 90 words.
-- Greetings, jokes, reactions, hype, and casual chatter can simply be greetings, jokes, reactions, hype, and casual chatter.
-- A new insight is a bonus, not a quota. Never invent one.
-- Ask at most one question, only when it genuinely keeps the thread moving.
-- Match the operator’s energy, including lowercase, humor, slang, or excitement when appropriate.
-- Preserve the ${persona.name} flavor without announcing the persona.
-- Do not invent memories, motives, diagnoses, hidden meanings, patterns, or facts.
-- Historical examples teach cadence, not authority. Metaphor stays metaphor. The operator keeps final judgment.`;
+Rules:
+- Speak directly to the operator; never say “the user” or describe your tone, process, goal, or response.
+- Usually write 1–6 natural sentences under 130 words.
+- Greetings, jokes, hype, stories, and casual chatter may simply remain those things.
+- Ask at most one question, only when it genuinely moves the same thread forward.
+- Match lowercase, slang, humor, warmth, bluntness, or excitement when appropriate.
+- Do not invent memories, motives, diagnoses, hidden meanings, patterns, spiritual signs, or facts.
+- Metaphor stays metaphor. The operator keeps final judgment.`;
 
     return {
       personaId,
@@ -218,9 +213,9 @@ Conversation rules:
         model,
         messages: request.messages,
         format: RESPONSE_SCHEMA,
-        temperature: 0.68,
-        topP: 0.92,
-        maxTokens: 180
+        temperature: 0.76,
+        topP: 0.94,
+        maxTokens: 260
       });
 
       const text = parseResult(result.text, request);
