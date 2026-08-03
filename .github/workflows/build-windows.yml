@@ -30,6 +30,7 @@ jobs:
         run: |
           node --check js/app.js
           node --check js/desktop-ai.js
+          node --check js/model-settings.js
           node --check js/voice-controller.js
           node --check js/persona-prompts.js
           node --check js/voice-training.js
