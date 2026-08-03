@@ -1,6 +1,6 @@
-/* COSM.OS — desktop conversation controller v5
-   Qwen receives the persistent persona prompt before every message, chooses an
-   internal yes-and / no-but / maybe-so move, then replies naturally. */
+/* COSM.OS — desktop conversation controller v6
+   Persona prompts, resonance filtering, few-shot voice anchors, and user-tuned
+   Ollama generation settings cooperate before every local response. */
 
 (() => {
   if (!window.COSMOS_DESKTOP || !window.COSMOS_AI || !window.COSMOS_VOICE_DATA) return;
@@ -21,6 +21,22 @@
   const VALID_MOVES = new Set(['yes_and', 'no_but', 'maybe_so']);
   const META_SLOP = /\b(the user|respond(?:ing)?|response|informative tone|empathetic tone|effective communication|clear actionable guidance|provide a clean answer|underlying desire|how can i assist|feel free|your journey|grow together|do not overclaim|action\s*[—:-]|insight\s*[—:-]|constraint\s*[—:-])\b/i;
 
+  function tuning() {
+    return window.COSMOS_MODEL_SETTINGS?.get?.() || {
+      temperature: 0.76,
+      topP: 0.94,
+      repeatPenalty: 1.08,
+      maxTokens: 260,
+      numCtx: 4096,
+      contextTurns: 4,
+      starterCount: 3,
+      exampleCount: 2,
+      maxWords: 130,
+      resonance: true,
+      resonancePrompt: ''
+    };
+  }
+
   function personaFromMessages(messages) {
     const system = messages.find(message => message.role === 'system')?.content || '';
     for (const id of ORDER) {
@@ -34,7 +50,8 @@
     return [...messages].reverse().find(message => message.role === 'user')?.content?.trim() || '';
   }
 
-  function samePersonaContext(messages, personaId, limit = 4) {
+  function samePersonaContext(messages, personaId, limit) {
+    if (!limit) return [];
     const name = PERSONAS[personaId]?.name || 'Flux';
     const pairs = [];
 
@@ -77,7 +94,13 @@
     return String(starter || 'yeah… keep going.').replace(/\{x\}/g, text).trim();
   }
 
-  function cleanReply(value, fallback) {
+  function capWords(text, maxWords) {
+    const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+    if (words.length <= maxWords) return words.join(' ');
+    return `${words.slice(0, maxWords).join(' ').replace(/[,:;—-]+$/, '')}…`;
+  }
+
+  function cleanReply(value, fallback, maxWords) {
     let text = String(value || '')
       .replace(/```(?:json)?/gi, '')
       .replace(/^\s*(yes_and|no_but|maybe_so|yes,?\s*and|no,?\s*but|maybe,?\s*so)\s*[:—-]\s*/i, '')
@@ -85,13 +108,13 @@
       .replace(/\s+/g, ' ')
       .trim();
 
-    if (!text || META_SLOP.test(text)) return fallback;
-    if (/^[{[]/.test(text) || /[}\]]$/.test(text)) return fallback;
+    if (!text || META_SLOP.test(text)) return capWords(fallback, maxWords);
+    if (/^[{[]/.test(text) || /[}\]]$/.test(text)) return capWords(fallback, maxWords);
 
-    const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 6);
-    text = sentences.join(' ').slice(0, 900).trim();
-    if (text.split(/\s+/).length < 2) return fallback;
-    return text;
+    const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 8);
+    text = sentences.join(' ').slice(0, 1800).trim();
+    if (text.split(/\s+/).length < 2) return capWords(fallback, maxWords);
+    return capWords(text, maxWords);
   }
 
   function inferExampleMove(example) {
@@ -128,6 +151,7 @@
   }
 
   function buildRequest(messages) {
+    const settings = tuning();
     const requestedPersona = personaFromMessages(messages);
     const input = lastUserMessage(messages);
     const routed = route(input, requestedPersona);
@@ -135,12 +159,15 @@
     const persona = PERSONAS[personaId] || PERSONAS.flux;
     const personaPrompt = window.PERSONA_PROMPTS?.[personaId] || '';
 
-    const starters = voiceData.selectStarters(personaId, input, 3, routed.text);
+    const starters = voiceData.selectStarters(personaId, input, settings.starterCount, routed.text);
     const starter = starters[0] || routed.text || persona.lines[0];
     const anchors = starters.slice(1);
-    const examples = voiceData.selectExamples(personaId, input, 2);
+    const examples = voiceData.selectExamples(personaId, input, settings.exampleCount);
+    const resonance = settings.resonance && settings.resonancePrompt
+      ? `\n\nRESONANCE FILTER\n${settings.resonancePrompt}`
+      : '';
 
-    const system = `${personaPrompt}
+    const system = `${personaPrompt}${resonance}
 
 Your immediate goal is to have a real conversation with the operator. Follow what they are actually saying, continue the living thread, and discover a fresh insight together only when one naturally appears. Never talk about how you are responding.
 
@@ -163,7 +190,7 @@ Return exactly one JSON object matching the schema:
 
 Rules:
 - Speak directly to the operator; never say “the user” or describe your tone, process, goal, or response.
-- Usually write 1–6 natural sentences under 130 words.
+- Stay under ${settings.maxWords} visible words.
 - Greetings, jokes, hype, stories, and casual chatter may simply remain those things.
 - Ask at most one question, only when it genuinely moves the same thread forward.
 - Match lowercase, slang, humor, warmth, bluntness, or excitement when appropriate.
@@ -174,10 +201,11 @@ Rules:
       personaId,
       starter,
       input,
+      settings,
       messages: [
         { role: 'system', content: system },
         ...fewShotMessages(examples),
-        ...samePersonaContext(messages, personaId),
+        ...samePersonaContext(messages, personaId, settings.contextTurns),
         { role: 'user', content: input }
       ]
     };
@@ -194,11 +222,11 @@ Rules:
         .trim();
       parsed = JSON.parse(cleaned);
     } catch {
-      return fallback;
+      return capWords(fallback, request.settings.maxWords);
     }
 
-    if (!VALID_MOVES.has(parsed.move)) return fallback;
-    return cleanReply(parsed.reply, fallback);
+    if (!VALID_MOVES.has(parsed.move)) return capWords(fallback, request.settings.maxWords);
+    return cleanReply(parsed.reply, fallback, request.settings.maxWords);
   }
 
   async function complete(messages, onUpdate) {
@@ -213,9 +241,11 @@ Rules:
         model,
         messages: request.messages,
         format: RESPONSE_SCHEMA,
-        temperature: 0.76,
-        topP: 0.94,
-        maxTokens: 260
+        temperature: request.settings.temperature,
+        topP: request.settings.topP,
+        repeatPenalty: request.settings.repeatPenalty,
+        maxTokens: request.settings.maxTokens,
+        numCtx: request.settings.numCtx
       });
 
       const text = parseResult(result.text, request);
@@ -223,7 +253,7 @@ Rules:
       return text;
     } catch (error) {
       console.error(error);
-      const text = fallbackReply(request.input, request.starter);
+      const text = capWords(fallbackReply(request.input, request.starter), request.settings.maxWords);
       if (onUpdate) onUpdate(text);
       return text;
     }
@@ -232,6 +262,7 @@ Rules:
   window.COSMOS_AI = {
     ...baseAI,
     complete,
-    getVoiceData: () => voiceData
+    getVoiceData: () => voiceData,
+    getTuning: tuning
   };
 })();
