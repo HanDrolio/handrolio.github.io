@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>COSM.OS</title>
-<meta name="description" content="A private journal that answers through deterministic voices or a local in-browser model.">
+<meta name="description" content="A private local-first journal and conversation system powered by deterministic voices and optional Ollama models.">
 <meta name="theme-color" content="#06080f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,41 +12,67 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%2306080f'/><circle cx='22' cy='32' r='9' fill='%234a8dff'/><circle cx='42' cy='32' r='9' fill='%23f0c060'/></svg>">
 <link rel="stylesheet" href="./css/style.css">
 </head>
-<body>
+<body class="sidebar-open">
 
-<header>
-  <div class="brand"><span class="m">🟦🌌🟨</span><span class="txt">COSM.OS</span></div>
-  <div class="tabs">
-    <button class="tab on" data-mode="chat">chat</button>
-    <button class="tab" data-mode="log">log</button>
-  </div>
-  <div class="utils">
-    <button class="util" id="export">export</button>
-    <button class="util" id="importBtn">import</button>
-    <input type="file" id="importFile" accept="application/json">
-  </div>
-</header>
+<div id="appShell">
+  <aside id="sidebar" aria-label="chat history">
+    <div class="sideHead">
+      <div class="sideBrand"><span>🟦🌌🟨</span><b>COSM.OS</b></div>
+      <button id="sidebarClose" aria-label="close sidebar">×</button>
+    </div>
+    <button id="newChat"><span>＋</span> new chat</button>
+    <div class="sideLabel">local chats</div>
+    <div id="chatList"></div>
+    <div class="sideFoot">stored privately on this machine</div>
+  </aside>
 
-<nav id="rail" aria-label="voices"></nav>
-<div id="lockNote"></div>
-<div id="modelBar" data-phase="idle">
-  <span class="modelDot" aria-hidden="true"></span>
-  <span id="modelStatus" role="status" aria-live="polite">deterministic mode · no download yet</span>
-  <button class="util" id="modelBtn">load local ai</button>
-</div>
+  <button id="sidebarShade" aria-label="close sidebar"></button>
 
-<main id="scroll">
-  <div id="col"></div>
-</main>
+  <section id="workspace">
+    <header>
+      <button id="sidebarToggle" aria-label="toggle chat history">☰</button>
+      <div class="chatHeading">
+        <span id="currentChatTitle">New chat</span>
+      </div>
+      <div class="tabs">
+        <button class="tab on" data-mode="chat">chat</button>
+        <button class="tab" data-mode="log">log</button>
+      </div>
+      <div class="utils">
+        <button class="util" id="export">export</button>
+        <button class="util" id="importBtn">import</button>
+        <input type="file" id="importFile" accept="application/json">
+      </div>
+    </header>
 
-<div class="barwrap">
-  <div class="bar" id="bar">
-    <textarea id="input" rows="1" placeholder="say it plain…" aria-label="message"></textarea>
-    <button id="send" aria-label="send">↑</button>
-  </div>
+    <nav id="rail" aria-label="voices"></nav>
+    <div id="lockNote"></div>
+
+    <div id="modelBar" data-phase="idle">
+      <span class="modelDot" aria-hidden="true"></span>
+      <span id="modelStatus" role="status" aria-live="polite">checking local models…</span>
+      <select id="modelSelect" aria-label="local model">
+        <option value="auto">auto · largest Qwen</option>
+      </select>
+      <button class="util" id="modelRefresh" title="scan Ollama models" aria-label="refresh models">↻</button>
+      <button class="util" id="modelBtn">load local ai</button>
+    </div>
+
+    <main id="scroll">
+      <div id="col"></div>
+    </main>
+
+    <div class="barwrap">
+      <div class="bar" id="bar">
+        <textarea id="input" rows="1" placeholder="say it plain…" aria-label="message"></textarea>
+        <button id="send" aria-label="send">↑</button>
+      </div>
+    </div>
+  </section>
 </div>
 
 <script src="./js/personas.js"></script>
+<script src="./js/persona-prompts.js"></script>
 <script src="./js/voice-training.js"></script>
 <script src="./js/engine.js"></script>
 <script src="./js/threads.js"></script>
