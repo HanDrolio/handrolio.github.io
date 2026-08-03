@@ -558,16 +558,16 @@
 
   function selectStarters(personaId, query, limit = 3, deterministicFallback = '') {
     const pool = STARTER_BANKS[personaId] || STARTER_BANKS.flux || [];
-    const ranked = rankWithStableTies(pool, query, line => line);
+    const candidates = deterministicFallback ? [deterministicFallback, ...pool] : [...pool];
+    const ranked = rankWithStableTies(candidates, query, line => line);
     const selected = [];
 
-    if (deterministicFallback) selected.push(deterministicFallback);
     for (const line of ranked) {
       if (selected.length >= limit) break;
       if (!selected.includes(line)) selected.push(line);
     }
 
-    return selected.slice(0, limit);
+    return selected;
   }
 
   function selectExamples(personaId, query, limit = 2) {
