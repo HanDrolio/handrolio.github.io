@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>COSM.OS</title>
-<meta name="description" content="A private local-first journal and conversation system powered by deterministic voices and optional Ollama models.">
+<meta name="description" content="A private local-first journal and conversation system powered by selected persona prompts and local Ollama models.">
 <meta name="theme-color" content="#06080f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,9 +32,7 @@
   <section id="workspace">
     <header>
       <button id="sidebarToggle" aria-label="toggle chat history">☰</button>
-      <div class="chatHeading">
-        <span id="currentChatTitle">New chat</span>
-      </div>
+      <div class="chatHeading"><span id="currentChatTitle">New chat</span></div>
       <div class="tabs">
         <button class="tab on" data-mode="chat">chat</button>
         <button class="tab" data-mode="log">log</button>
@@ -55,14 +53,12 @@
       <select id="modelSelect" aria-label="local model">
         <option value="auto">auto · largest Qwen</option>
       </select>
-      <button class="util" id="modelTune" title="model tuning and presets" aria-label="open model settings">⚙</button>
+      <button class="util" id="modelTune" title="generation settings and presets" aria-label="open model settings">⚙</button>
       <button class="util" id="modelRefresh" title="scan Ollama models" aria-label="refresh models">↻</button>
       <button class="util" id="modelBtn">load local ai</button>
     </div>
 
-    <main id="scroll">
-      <div id="col"></div>
-    </main>
+    <main id="scroll"><div id="col"></div></main>
 
     <div class="barwrap">
       <div class="bar" id="bar">
@@ -78,8 +74,8 @@
     <div class="tuneHead">
       <div class="tuneHeadText">
         <div class="tuneEyebrow">local model lab</div>
-        <h2 id="modelSettingsTitle">Tune the voice</h2>
-        <p>Dial the generation, prompt context, and resonance filter. Everything saves on this machine.</p>
+        <h2 id="modelSettingsTitle">Tune generation</h2>
+        <p>Only sampling and context settings. Persona prompts stay fixed and clean.</p>
       </div>
       <button id="tuneClose" aria-label="close model settings">×</button>
     </div>
@@ -94,7 +90,7 @@
       </section>
 
       <section class="tuneSection">
-        <div class="tuneSectionTitle"><h3>Generation</h3><span>how Qwen moves</span></div>
+        <div class="tuneSectionTitle"><h3>Generation</h3><span>raw Ollama controls</span></div>
         <div class="tuneGrid">
           <div class="tuneField">
             <label for="tuneTemperature">temperature</label>
@@ -103,7 +99,7 @@
             <div class="tuneHint">lower = steadier · higher = stranger</div>
           </div>
           <div class="tuneField">
-            <label for="tuneTopP">top‑p</label>
+            <label for="tuneTopP">top-p</label>
             <output class="tuneValue" data-value-for="topP"></output>
             <input id="tuneTopP" type="range" min="0.05" max="1" step="0.05">
             <div class="tuneHint">smaller = narrower word choices</div>
@@ -112,7 +108,7 @@
             <label for="tuneRepeatPenalty">repeat penalty</label>
             <output class="tuneValue" data-value-for="repeatPenalty"></output>
             <input id="tuneRepeatPenalty" type="range" min="0.8" max="1.5" step="0.02">
-            <div class="tuneHint">higher reduces loops and recycled phrases</div>
+            <div class="tuneHint">higher reduces repeated phrasing</div>
           </div>
           <div class="tuneField">
             <label for="tuneMaxTokens">token cap</label>
@@ -129,48 +125,9 @@
               <option value="8192">8192</option>
               <option value="16384">16384</option>
             </select>
-            <div class="tuneHint">larger remembers more but costs RAM and speed</div>
-          </div>
-          <div class="tuneField">
-            <label for="tuneMaxWords">visible word cap</label>
-            <output class="tuneValue" data-value-for="maxWords"></output>
-            <input id="tuneMaxWords" type="range" min="20" max="240" step="10">
-            <div class="tuneHint">client-side limit after generation</div>
+            <div class="tuneHint">chat still sends only three raw exchanges</div>
           </div>
         </div>
-      </section>
-
-      <section class="tuneSection">
-        <div class="tuneSectionTitle"><h3>Prompt context</h3><span>what it sees</span></div>
-        <div class="tuneGrid">
-          <div class="tuneField">
-            <label for="tuneContextTurns">past persona turns</label>
-            <output class="tuneValue" data-value-for="contextTurns"></output>
-            <input id="tuneContextTurns" type="range" min="0" max="10" step="1">
-            <div class="tuneHint">same-persona exchanges carried forward</div>
-          </div>
-          <div class="tuneField">
-            <label for="tuneStarterCount">starter sparks</label>
-            <output class="tuneValue" data-value-for="starterCount"></output>
-            <input id="tuneStarterCount" type="range" min="1" max="5" step="1">
-            <div class="tuneHint">static persona lines used as seeds</div>
-          </div>
-          <div class="tuneField">
-            <label for="tuneExampleCount">conversation examples</label>
-            <output class="tuneValue" data-value-for="exampleCount"></output>
-            <input id="tuneExampleCount" type="range" min="0" max="4" step="1">
-            <div class="tuneHint">few-shot examples selected by relevance</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="tuneSection">
-        <div class="tuneSectionTitle"><h3>Resonance filter</h3><span>anti-sludge pass</span></div>
-        <label class="tuneToggle" for="tuneResonance">
-          <input id="tuneResonance" type="checkbox">
-          <span><strong>filter generic AI language</strong><span>Injected after the persona prompt before every generated reply.</span></span>
-        </label>
-        <textarea id="tuneResonancePrompt" aria-label="resonance filter prompt"></textarea>
       </section>
 
       <section class="tuneSection">
@@ -183,7 +140,7 @@
     </div>
 
     <div class="tuneFoot">
-      <span id="tuneStatus">active · Balanced conversation</span>
+      <span id="tuneStatus">active · Balanced</span>
       <button class="tuneAction" id="tuneReset">reset balanced</button>
       <button class="tuneAction primary" id="tuneDone">done</button>
     </div>
@@ -192,9 +149,7 @@
 
 <script src="./js/personas.js"></script>
 <script src="./js/persona-prompts.js"></script>
-<script src="./js/voice-training.js"></script>
 <script src="./js/model-settings.js"></script>
-<script src="./js/engine.js"></script>
 <script src="./js/threads.js"></script>
 <script src="./js/desktop-ai.js"></script>
 <script src="./js/voice-controller.js"></script>
