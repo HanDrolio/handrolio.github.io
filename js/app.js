@@ -1,6 +1,6 @@
-/* COSM.OS — app shell
-   Multi-chat local archive, persona routing, journal log, and local Ollama layer.
-   Local storage remains the source of truth; no account or cloud is required. */
+/* COSM.OS — minimalist app shell v0.7
+   Selected persona + tiny raw context in chat, one-shot reflection in log,
+   and deterministic commands only when explicitly invoked. */
 
 const KEY = 'cosmos_v3';
 const $ = selector => document.querySelector(selector);
@@ -15,9 +15,8 @@ let state = {
 };
 let generating = false;
 
-/* ---------- storage + chat migration ---------- */
 function uid(prefix = 'id') {
-  if (crypto?.randomUUID) return `${prefix}-${crypto.randomUUID()}`;
+  if (globalThis.crypto?.randomUUID) return `${prefix}-${crypto.randomUUID()}`;
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
@@ -49,7 +48,6 @@ function load() {
   try {
     const raw = localStorage.getItem(KEY);
     const data = raw ? JSON.parse(raw) : {};
-
     state.mode = data.mode === 'log' ? 'log' : 'chat';
     state.lock = PERSONAS[data.lock] ? data.lock : null;
     state.entries = Array.isArray(data.entries) ? data.entries : [];
@@ -59,7 +57,6 @@ function load() {
       state.chats = data.chats.map(normalizeChat);
     } else if (Array.isArray(data.messages) && data.messages.length) {
       state.chats = [normalizeChat({
-        id: uid('chat'),
         title: chatTitle(data.messages),
         messages: data.messages,
         createdAt: data.messages[0]?.ts,
@@ -72,7 +69,6 @@ function load() {
     state.currentChatId = state.chats.some(chat => chat.id === data.currentChatId)
       ? data.currentChatId
       : state.chats[0].id;
-
     migrateEntries(state.entries);
     save();
   } catch (error) {
@@ -83,7 +79,8 @@ function load() {
 }
 
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (error) { console.error(error); }
+  try { localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch (error) { console.error(error); }
 }
 
 function currentChat() {
@@ -96,9 +93,7 @@ function currentChat() {
   return chat;
 }
 
-function currentMessages() {
-  return currentChat().messages;
-}
+function currentMessages() { return currentChat().messages; }
 
 function touchChat(chat = currentChat()) {
   chat.updatedAt = Date.now();
@@ -114,15 +109,12 @@ function createNewChat() {
     $('#input').focus();
     return;
   }
-
   const chat = emptyChat();
   state.chats.unshift(chat);
   state.currentChatId = chat.id;
   state.mode = 'chat';
-  state.lock = null;
   save();
   render();
-  paintRail();
   $('#input').focus();
 }
 
@@ -140,7 +132,6 @@ function deleteChat(id) {
   if (generating) return;
   const chat = state.chats.find(item => item.id === id);
   if (!chat || !confirm(`Delete “${chat.title}”?`)) return;
-
   state.chats = state.chats.filter(item => item.id !== id);
   if (!state.chats.length) state.chats = [emptyChat()];
   if (state.currentChatId === id) state.currentChatId = state.chats[0].id;
@@ -159,7 +150,6 @@ function renameChat(id) {
   renderSidebar();
 }
 
-/* ---------- helpers ---------- */
 const esc = value => {
   const element = document.createElement('div');
   element.textContent = value;
@@ -170,9 +160,15 @@ const dayOf = ts => new Date(ts).toLocaleDateString([], { weekday: 'long', month
 const chatDay = ts => {
   const date = new Date(ts);
   const today = new Date();
-  if (date.toDateString() === today.toDateString()) return 'today';
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return date.toDateString() === today.toDateString()
+    ? 'today'
+    : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
+
+function clip(value, length = 180) {
+  const clean = String(value || '').replace(/\s+/g, ' ').trim();
+  return clean.length > length ? `${clean.slice(0, length).trim()}…` : clean;
+}
 
 function setGenerating(value) {
   generating = value;
@@ -182,20 +178,26 @@ function setGenerating(value) {
   $('#newChat').disabled = value;
 }
 
-function modelReady() {
-  return Boolean(window.COSMOS_AI?.isReady());
-}
+function modelReady() { return Boolean(window.COSMOS_AI?.isReady()); }
 
 function compactModelName(id = '') {
   return id
     .replace(/^hf\.co\//i, '')
-    .replace(/-q\df\d+_\d+-MLC.*$/i, '')
+    .replace(/-q\d+_\d+-MLC.*$/i, '')
     .replace(/-Instruct/i, '')
     .replace(/[:/_-]+/g, ' ')
     .trim();
 }
 
-/* ---------- sidebar ---------- */
+function activePersona(surface = state.mode) {
+  if (state.lock && PERSONAS[state.lock]) return state.lock;
+  return surface === 'log' ? 'ripple' : 'flux';
+}
+
+function unavailableReply() {
+  return 'local model unavailable. start Ollama or press ↻, then try again.';
+}
+
 function setSidebar(open) {
   state.sidebarOpen = Boolean(open);
   document.body.classList.toggle('sidebar-open', state.sidebarOpen);
@@ -205,7 +207,6 @@ function setSidebar(open) {
 function renderSidebar() {
   const list = $('#chatList');
   if (!list) return;
-
   const chats = [...state.chats].sort((a, b) => b.updatedAt - a.updatedAt);
   list.innerHTML = chats.map(chat => `
     <div class="chatRow${chat.id === state.currentChatId ? ' active' : ''}" data-id="${esc(chat.id)}">
@@ -229,12 +230,10 @@ function renderSidebar() {
       deleteChat(button.dataset.id);
     });
   });
-
   $('#currentChatTitle').textContent = currentChat().title || 'New chat';
   document.body.classList.toggle('sidebar-open', state.sidebarOpen);
 }
 
-/* ---------- local model ---------- */
 function paintModelOptions(modelState) {
   const select = $('#modelSelect');
   if (!select) return;
@@ -257,7 +256,6 @@ function paintModelStatus(modelState) {
   const button = $('#modelBtn');
   const refresh = $('#modelRefresh');
   if (!box || !label || !button) return;
-
   box.dataset.phase = modelState.phase;
   button.disabled = false;
   if (refresh) refresh.disabled = modelState.phase === 'loading';
@@ -273,42 +271,42 @@ function paintModelStatus(modelState) {
     button.textContent = 'ready';
     button.disabled = true;
   } else if (modelState.phase === 'unsupported') {
-    label.textContent = 'WebGPU unavailable · deterministic mode active';
+    label.textContent = 'local model unavailable';
     button.textContent = 'unsupported';
     button.disabled = true;
   } else if (modelState.phase === 'error') {
-    label.textContent = 'local ai failed · deterministic mode active';
+    label.textContent = 'local model unavailable';
     button.textContent = 'retry';
   } else {
-    label.textContent = 'deterministic mode · no model loaded';
+    label.textContent = 'checking local models…';
     button.textContent = 'load local ai';
   }
-
   box.title = modelState.error || modelState.modelId || modelState.text || '';
 }
 
 async function loadLocalAI() {
   if (!window.COSMOS_AI) return;
-  try { await window.COSMOS_AI.load(); } catch (error) { console.error(error); }
+  try { await window.COSMOS_AI.load(); }
+  catch (error) { console.error(error); }
 }
-
 async function refreshModels() {
   if (!window.COSMOS_AI?.refreshModels) return loadLocalAI();
-  try { await window.COSMOS_AI.refreshModels(); } catch (error) { console.error(error); }
+  try { await window.COSMOS_AI.refreshModels(); }
+  catch (error) { console.error(error); }
 }
-
 async function changeModel(value) {
   if (!window.COSMOS_AI?.setModel) return;
-  try { await window.COSMOS_AI.setModel(value); } catch (error) { console.error(error); }
+  try { await window.COSMOS_AI.setModel(value); }
+  catch (error) { console.error(error); }
 }
 
-/* ---------- persona rail ---------- */
 function buildRail() {
   const rail = $('#rail');
   rail.innerHTML = ORDER.map(id => {
     const persona = PERSONAS[id];
     return `<button class="chip" data-id="${id}" style="--c:${persona.color}" title="${persona.role}">
-      <span class="cg">${persona.glyph}</span><span class="cn">${persona.name}</span></button>`;
+      <span class="cg">${persona.glyph}</span><span class="cn">${persona.name}</span>
+    </button>`;
   }).join('');
   rail.querySelectorAll('.chip').forEach(button => {
     button.addEventListener('click', () => toggleLock(button.dataset.id));
@@ -320,9 +318,12 @@ function paintRail() {
   document.querySelectorAll('.chip').forEach(button => {
     button.classList.toggle('on', button.dataset.id === state.lock);
   });
-  const persona = state.lock ? PERSONAS[state.lock] : null;
-  $('#lockNote').textContent = persona ? `locked to ${persona.name} — tap again to release` : '';
-  document.documentElement.style.setProperty('--live', persona ? persona.color : 'var(--violet)');
+  const personaId = activePersona();
+  const persona = PERSONAS[personaId];
+  $('#lockNote').textContent = state.lock
+    ? `selected · ${persona.name} — tap again for mode default`
+    : `default · ${persona.name}`;
+  document.documentElement.style.setProperty('--live', persona.color);
 }
 
 function toggleLock(id) {
@@ -332,106 +333,154 @@ function toggleLock(id) {
   $('#input').focus();
 }
 
-/* ---------- model context ---------- */
-function relevantMemories(text, limit = 4) {
-  if (!state.entries.length) return [];
-
-  const ids = new Set(detectThreads(text, state.entries));
-  const words = new Set(threadWords(text));
-  const scored = state.entries.map(entry => {
-    const threadScore = (entry.threadIds || []).reduce((sum, id) => sum + (ids.has(id) ? 5 : 0), 0);
-    const wordScore = threadWords(entry.text).reduce((sum, word) => sum + (words.has(word) ? 1 : 0), 0);
-    return { entry, score: threadScore + wordScore };
-  }).filter(item => item.score > 0)
-    .sort((a, b) => b.score - a.score || b.entry.ts - a.entry.ts);
-
-  return scored.slice(0, limit).map(item => item.entry);
+function personaSystemPrompt(personaId) {
+  return window.PERSONA_PROMPTS?.[personaId] || window.PERSONA_PROMPTS?.flux || '';
 }
 
-function personaSystemPrompt(personaId, text, surface) {
-  const persona = PERSONAS[personaId] || PERSONAS.flux;
-  const custom = window.PERSONA_PROMPTS?.[personaId] || '';
-  const memories = relevantMemories(text)
-    .map(entry => `- ${new Date(entry.ts).toLocaleDateString()}: ${entry.text}`)
-    .join('\n');
-
-  return `You are ${persona.name} ${persona.glyph}, the ${persona.role} voice inside COSM.OS.\n${custom}\nThis message came from the ${surface} surface.\nRelevant local archive entries, use only when genuinely helpful:\n${memories || '- none retrieved'}`;
-}
-
-function buildModelMessages(text, personaId, surface) {
-  const messages = [{ role: 'system', content: personaSystemPrompt(personaId, text, surface) }];
-
+function buildModelMessages(text, personaId, surface, chat = currentChat()) {
+  const messages = [{ role: 'system', content: personaSystemPrompt(personaId) }];
   if (surface === 'chat') {
-    currentMessages().slice(-10).forEach(message => {
-      if (message.generating) return;
-      if (message.role === 'you') {
-        messages.push({ role: 'user', content: message.text });
-      } else {
-        const name = PERSONAS[message.persona]?.name || 'COSM.OS';
-        messages.push({ role: 'assistant', content: `[${name}] ${message.text}` });
-      }
+    const prior = chat.messages
+      .slice(0, -1)
+      .filter(message => !message.generating)
+      .slice(-6);
+    prior.forEach(message => {
+      messages.push({
+        role: message.role === 'you' ? 'user' : 'assistant',
+        content: String(message.text || '')
+      });
     });
   }
-
-  const last = messages[messages.length - 1];
-  if (!last || last.role !== 'user' || last.content !== text) {
-    messages.push({ role: 'user', content: text });
-  }
+  messages.push({ role: 'user', content: text });
   return messages;
 }
 
-function deterministicReply(routeResult, delay = 260) {
-  return new Promise(resolve => setTimeout(() => resolve(routeResult.text), delay));
+function parseCommand(text) {
+  const match = String(text || '').trim().match(/^\/?(remember|summary|plan)(?:\s+([\s\S]*))?$/i);
+  if (!match) return null;
+  return { name: match[1].toLowerCase(), body: String(match[2] || '').trim() };
 }
 
-/* ---------- chat ---------- */
+function recentUserText(chat = currentChat()) {
+  return [...chat.messages]
+    .reverse()
+    .find(message => message.role === 'you' && !parseCommand(message.text))?.text || '';
+}
+
+function deterministicSummary(chat = currentChat()) {
+  const transcript = chat.messages
+    .filter(message => !message.generating)
+    .slice(-6)
+    .map(message => `${message.role === 'you' ? 'you' : 'cosm.os'}: ${clip(message.text, 150)}`);
+  if (!transcript.length) return 'LOGICAL BOOKMARK\nnothing to summarize yet.';
+  return [
+    'LOGICAL BOOKMARK',
+    `thread: ${chat.title || 'New chat'}`,
+    ...transcript,
+    `continue from: ${clip(recentUserText(chat), 120) || 'the current thread'}`
+  ].join('\n');
+}
+
+function deterministicPlan(goal) {
+  const target = clip(goal, 180);
+  if (!target) return 'usage: plan <goal>';
+  return [
+    `PLAN — ${target}`,
+    '1. define what “done” looks like in one sentence.',
+    '2. run the smallest test that produces real evidence.',
+    '3. inspect the result, then choose one next move.'
+  ].join('\n');
+}
+
+function saveRememberedNote(body) {
+  const text = String(body || '').trim();
+  if (!text) return null;
+  const ts = Date.now();
+  const entry = {
+    id: makeEntryId(ts),
+    text,
+    ts,
+    persona: 'echo',
+    reply: 'remembered locally.',
+    threadIds: detectThreads(text, state.entries)
+  };
+  state.entries.unshift(entry);
+  return entry;
+}
+
+function commandResult(command) {
+  if (command.name === 'remember') {
+    if (!command.body) return { persona: 'echo', text: 'usage: remember <exact note>' };
+    saveRememberedNote(command.body);
+    return { persona: 'echo', text: `remembered locally: ${clip(command.body, 180)}` };
+  }
+  if (command.name === 'summary') {
+    return { persona: 'echo', text: deterministicSummary(currentChat()) };
+  }
+  const goal = command.body || recentUserText(currentChat());
+  return { persona: 'orion', text: deterministicPlan(goal) };
+}
+
+function runCommand(text, command) {
+  const result = commandResult(command);
+  if (state.mode === 'chat') {
+    const chat = currentChat();
+    chat.messages.push({ role: 'you', text, ts: Date.now() });
+    chat.messages.push({ role: 'os', persona: result.persona, text: result.text, ts: Date.now() });
+    touchChat(chat);
+  } else if (!(command.name === 'remember' && command.body)) {
+    const ts = Date.now();
+    state.entries.unshift({
+      id: makeEntryId(ts),
+      text,
+      ts,
+      persona: result.persona,
+      reply: result.text,
+      threadIds: detectThreads(text, state.entries)
+    });
+  }
+  save();
+  render();
+  flash(PERSONAS[result.persona].color);
+  $('#input').focus();
+}
+
 async function sendChat(text) {
   const chat = currentChat();
+  const personaId = activePersona('chat');
   chat.messages.push({ role: 'you', text, ts: Date.now() });
   touchChat(chat);
   save();
   render();
 
-  const routed = route(text, state.lock);
-  if (routed.override || !modelReady()) {
-    const reply = await deterministicReply(routed);
-    chat.messages.push({ role: 'os', persona: routed.persona, text: reply, ts: Date.now() });
+  if (!modelReady()) {
+    chat.messages.push({ role: 'os', persona: personaId, text: unavailableReply(), ts: Date.now() });
     touchChat(chat);
     save();
     render();
-    flash(PERSONAS[routed.persona].color);
+    flash(PERSONAS[personaId].color);
     return;
   }
 
-  const request = buildModelMessages(text, routed.persona, 'chat');
-  const message = { role: 'os', persona: routed.persona, text: 'thinking locally…', ts: Date.now(), generating: true };
+  const request = buildModelMessages(text, personaId, 'chat', chat);
+  const message = { role: 'os', persona: personaId, text: 'thinking locally…', ts: Date.now(), generating: true };
   chat.messages.push(message);
   touchChat(chat);
   setGenerating(true);
   render();
 
-  let frame = null;
   try {
-    const finalText = await window.COSMOS_AI.complete(request, partial => {
-      message.text = partial || 'thinking locally…';
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        renderChat();
-      });
-    });
-    message.text = finalText || routed.text;
+    message.text = await window.COSMOS_AI.complete(request) || unavailableReply();
   } catch (error) {
     console.error(error);
-    message.text = routed.text;
+    message.text = unavailableReply();
   } finally {
-    if (frame) cancelAnimationFrame(frame);
     delete message.generating;
     setGenerating(false);
     touchChat(chat);
     save();
     render();
-    flash(PERSONAS[routed.persona].color);
+    flash(PERSONAS[personaId].color);
     $('#input').focus();
   }
 }
@@ -440,10 +489,9 @@ function renderChat() {
   const col = $('#col');
   const messages = currentMessages();
   if (!messages.length) {
-    col.innerHTML = hero('say it plain. it answers in a voice.');
+    col.innerHTML = hero('select a voice or let Flux talk.');
     return;
   }
-
   col.innerHTML = messages.map(message => {
     if (message.role === 'you') {
       return `<div class="msg you"><div class="bubble">${esc(message.text)}</div></div>`;
@@ -451,19 +499,18 @@ function renderChat() {
     const persona = PERSONAS[message.persona] || PERSONAS.flux;
     return `<div class="msg os${message.generating ? ' generating' : ''}" style="--c:${persona.color}">
       <div class="who"><span class="wg">${persona.glyph}</span>${persona.name}<em>${persona.role}</em></div>
-      <div class="bubble">${esc(message.text)}</div></div>`;
+      <div class="bubble">${esc(message.text)}</div>
+    </div>`;
   }).join('');
-
   const scroll = $('#scroll');
   scroll.scrollTop = scroll.scrollHeight;
 }
 
-/* ---------- living threads ---------- */
 function renderThread(thread) {
   if (!thread) return '';
-  const moments = thread.entries.map(item => `
-    <li><time>${stamp(item.ts)}</time><p>${esc(item.text)}</p></li>`).join('');
-
+  const moments = thread.entries
+    .map(item => `<li><time>${stamp(item.ts)}</time><p>${esc(item.text)}</p></li>`)
+    .join('');
   return `<details class="threadcard">
     <summary>
       <span class="threadglyph">🟠📡</span>
@@ -474,34 +521,35 @@ function renderThread(thread) {
   </details>`;
 }
 
-/* ---------- log ---------- */
 async function sendEntry(text) {
-  const routed = route(text, state.lock);
+  const personaId = activePersona('log');
   const ts = Date.now();
-  const request = (!routed.override && modelReady()) ? buildModelMessages(text, routed.persona, 'log') : null;
   const entry = {
-    id: makeEntryId(ts), text, ts, persona: routed.persona,
-    reply: request ? 'thinking locally…' : routed.text,
+    id: makeEntryId(ts),
+    text,
+    ts,
+    persona: personaId,
+    reply: modelReady() ? 'thinking locally…' : unavailableReply(),
     threadIds: detectThreads(text, state.entries)
   };
-
   state.entries.unshift(entry);
   save();
   render();
-  flash(PERSONAS[routed.persona].color);
-  if (!request) return;
+  flash(PERSONAS[personaId].color);
+  if (!modelReady()) return;
 
   setGenerating(true);
   try {
-    entry.reply = await window.COSMOS_AI.complete(request) || routed.text;
+    const request = buildModelMessages(text, personaId, 'log');
+    entry.reply = await window.COSMOS_AI.complete(request) || unavailableReply();
   } catch (error) {
     console.error(error);
-    entry.reply = routed.text;
+    entry.reply = unavailableReply();
   } finally {
     setGenerating(false);
     save();
     render();
-    flash(PERSONAS[routed.persona].color);
+    flash(PERSONAS[personaId].color);
     $('#input').focus();
   }
 }
@@ -509,16 +557,15 @@ async function sendEntry(text) {
 function renderLog() {
   const col = $('#col');
   if (!state.entries.length) {
-    col.innerHTML = hero('the archive starts when you do.');
+    col.innerHTML = hero('one entry in. one reflection back.');
     return;
   }
-
   let lastDay = '';
   col.innerHTML = state.entries.map((entry, index) => {
     const day = dayOf(entry.ts);
     const head = day !== lastDay ? `<div class="daymark">${day}</div>` : '';
     lastDay = day;
-    const persona = PERSONAS[entry.persona] || PERSONAS.flux;
+    const persona = PERSONAS[entry.persona] || PERSONAS.ripple;
     const thread = livingThreadForEntry(entry, state.entries);
     return `${head}<article class="entry" style="--c:${persona.color}">
       <header><time>${stamp(entry.ts)}</time><button class="x" data-i="${index}" aria-label="delete entry">✕</button></header>
@@ -528,15 +575,19 @@ function renderLog() {
     </article>`;
   }).join('');
 
-  col.querySelectorAll('.x').forEach(button => button.addEventListener('click', () => {
-    state.entries.splice(+button.dataset.i, 1);
-    save();
-    render();
-  }));
-  col.querySelectorAll('.threadcard').forEach(card => card.addEventListener('toggle', () => {
-    const label = card.querySelector('.threadopen');
-    if (label) label.textContent = card.open ? 'close' : 'open';
-  }));
+  col.querySelectorAll('.x').forEach(button => {
+    button.addEventListener('click', () => {
+      state.entries.splice(+button.dataset.i, 1);
+      save();
+      render();
+    });
+  });
+  col.querySelectorAll('.threadcard').forEach(card => {
+    card.addEventListener('toggle', () => {
+      const label = card.querySelector('.threadopen');
+      if (label) label.textContent = card.open ? 'close' : 'open';
+    });
+  });
   $('#scroll').scrollTop = 0;
 }
 
@@ -545,16 +596,18 @@ function hero(subtitle) {
     <div class="mark">🟦🌌🟨</div>
     <h1>COSM.OS</h1>
     <p>${subtitle}</p>
-    <p class="tip">call a voice directly, pin one above, or let the router choose. every chat stays local on this machine.</p>
+    <p class="tip">chat keeps three raw exchanges. log is one-shot. commands run only when you type remember, summary, or plan.</p>
   </div>`;
 }
 
-/* ---------- shell ---------- */
 function render() {
   $('#input').placeholder = generating
     ? 'local model is thinking…'
-    : state.mode === 'chat' ? 'say it plain…' : 'what\'s flowing through you now?';
-  document.querySelectorAll('.tab').forEach(tab => tab.classList.toggle('on', tab.dataset.mode === state.mode));
+    : state.mode === 'chat' ? 'say it plain…' : 'what’s flowing through you now?';
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.classList.toggle('on', tab.dataset.mode === state.mode);
+  });
+  paintRail();
   renderSidebar();
   state.mode === 'chat' ? renderChat() : renderLog();
 }
@@ -563,7 +616,7 @@ function flash(color) {
   const bar = $('#bar');
   bar.style.setProperty('--c', color);
   bar.classList.add('lit');
-  setTimeout(() => bar.classList.remove('lit'), 2200);
+  setTimeout(() => bar.classList.remove('lit'), 1400);
 }
 
 function submit() {
@@ -573,6 +626,8 @@ function submit() {
   if (!text) return;
   input.value = '';
   input.style.height = 'auto';
+  const command = parseCommand(text);
+  if (command) return runCommand(text, command);
   state.mode === 'chat' ? sendChat(text) : sendEntry(text);
 }
 
@@ -594,11 +649,7 @@ function importAll(file) {
         state.chats = data.chats.map(normalizeChat);
         state.currentChatId = state.chats[0].id;
       } else if (Array.isArray(data.messages)) {
-        const chat = normalizeChat({
-          id: uid('chat'),
-          title: chatTitle(data.messages),
-          messages: data.messages
-        });
+        const chat = normalizeChat({ title: chatTitle(data.messages), messages: data.messages });
         state.chats.unshift(chat);
         state.currentChatId = chat.id;
       }
@@ -614,7 +665,6 @@ function importAll(file) {
   reader.readAsText(file);
 }
 
-/* ---------- wiring ---------- */
 load();
 buildRail();
 render();
@@ -632,7 +682,6 @@ $('#sidebarToggle').addEventListener('click', () => setSidebar(!state.sidebarOpe
 $('#sidebarClose').addEventListener('click', () => setSidebar(false));
 $('#newChat').addEventListener('click', createNewChat);
 $('#sidebarShade').addEventListener('click', () => setSidebar(false));
-
 $('#input').addEventListener('input', event => {
   event.target.style.height = 'auto';
   event.target.style.height = `${Math.min(140, event.target.scrollHeight)}px`;
@@ -644,23 +693,23 @@ $('#input').addEventListener('keydown', event => {
   }
 });
 $('#send').addEventListener('click', submit);
-document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
-  if (generating) return;
-  state.mode = tab.dataset.mode;
-  save();
-  render();
-}));
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (generating) return;
+    state.mode = tab.dataset.mode;
+    save();
+    render();
+  });
+});
 $('#export').addEventListener('click', exportAll);
 $('#importBtn').addEventListener('click', () => $('#importFile').click());
 $('#importFile').addEventListener('change', event => {
   if (event.target.files[0]) importAll(event.target.files[0]);
   event.target.value = '';
 });
-
 window.addEventListener('resize', () => {
   if (window.innerWidth >= 820) document.body.classList.toggle('sidebar-open', state.sidebarOpen);
 });
-
 if ('serviceWorker' in navigator && !window.COSMOS_DESKTOP) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
