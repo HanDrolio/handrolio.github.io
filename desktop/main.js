@@ -126,8 +126,7 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  win.webContents.on('will-navigate', event => {
-    const target = event.url;
+  win.webContents.on('will-navigate', (event, target) => {
     if (!target.startsWith('file://')) {
       event.preventDefault();
       if (/^https?:\/\//i.test(target)) shell.openExternal(target);
