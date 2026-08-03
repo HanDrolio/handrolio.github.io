@@ -4,51 +4,155 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>COSM.OS</title>
-<meta name="description" content="A private journal that answers through deterministic voices or a local in-browser model.">
+<meta name="description" content="A private local-first journal and conversation system powered by selected persona prompts and local Ollama models.">
 <meta name="theme-color" content="#06080f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%2306080f'/><circle cx='22' cy='32' r='9' fill='%234a8dff'/><circle cx='42' cy='32' r='9' fill='%23f0c060'/></svg>">
 <link rel="stylesheet" href="./css/style.css">
+<link rel="stylesheet" href="./css/model-settings.css">
 </head>
-<body>
+<body class="sidebar-open">
 
-<header>
-  <div class="brand"><span class="m">🟦🌌🟨</span><span class="txt">COSM.OS</span></div>
-  <div class="tabs">
-    <button class="tab on" data-mode="chat">chat</button>
-    <button class="tab" data-mode="log">log</button>
-  </div>
-  <div class="utils">
-    <button class="util" id="export">export</button>
-    <button class="util" id="importBtn">import</button>
-    <input type="file" id="importFile" accept="application/json">
-  </div>
-</header>
+<div id="appShell">
+  <aside id="sidebar" aria-label="chat history">
+    <div class="sideHead">
+      <div class="sideBrand"><span>🟦🌌🟨</span><b>COSM.OS</b></div>
+      <button id="sidebarClose" aria-label="close sidebar">×</button>
+    </div>
+    <button id="newChat"><span>＋</span> new chat</button>
+    <div class="sideLabel">local chats</div>
+    <div id="chatList"></div>
+    <div class="sideFoot">stored privately on this machine</div>
+  </aside>
 
-<nav id="rail" aria-label="voices"></nav>
-<div id="lockNote"></div>
-<div id="modelBar" data-phase="idle">
-  <span class="modelDot" aria-hidden="true"></span>
-  <span id="modelStatus" role="status" aria-live="polite">deterministic mode · no download yet</span>
-  <button class="util" id="modelBtn">load local ai</button>
+  <button id="sidebarShade" aria-label="close sidebar"></button>
+
+  <section id="workspace">
+    <header>
+      <button id="sidebarToggle" aria-label="toggle chat history">☰</button>
+      <div class="chatHeading"><span id="currentChatTitle">New chat</span></div>
+      <div class="tabs">
+        <button class="tab on" data-mode="chat">chat</button>
+        <button class="tab" data-mode="log">log</button>
+      </div>
+      <div class="utils">
+        <button class="util" id="export">export</button>
+        <button class="util" id="importBtn">import</button>
+        <input type="file" id="importFile" accept="application/json">
+      </div>
+    </header>
+
+    <nav id="rail" aria-label="voices"></nav>
+    <div id="lockNote"></div>
+
+    <div id="modelBar" data-phase="idle">
+      <span class="modelDot" aria-hidden="true"></span>
+      <span id="modelStatus" role="status" aria-live="polite">checking local models…</span>
+      <select id="modelSelect" aria-label="local model">
+        <option value="auto">auto · largest Qwen</option>
+      </select>
+      <button class="util" id="modelTune" title="generation settings and presets" aria-label="open model settings">⚙</button>
+      <button class="util" id="modelRefresh" title="scan Ollama models" aria-label="refresh models">↻</button>
+      <button class="util" id="modelBtn">load local ai</button>
+    </div>
+
+    <main id="scroll"><div id="col"></div></main>
+
+    <div class="barwrap">
+      <div class="bar" id="bar">
+        <textarea id="input" rows="1" placeholder="say it plain…" aria-label="message"></textarea>
+        <button id="send" aria-label="send">↑</button>
+      </div>
+    </div>
+  </section>
 </div>
 
-<main id="scroll">
-  <div id="col"></div>
-</main>
+<dialog id="modelSettingsDialog" aria-labelledby="modelSettingsTitle">
+  <div class="tuneShell">
+    <div class="tuneHead">
+      <div class="tuneHeadText">
+        <div class="tuneEyebrow">local model lab</div>
+        <h2 id="modelSettingsTitle">Tune generation</h2>
+        <p>Only sampling and context settings. Persona prompts stay fixed and clean.</p>
+      </div>
+      <button id="tuneClose" aria-label="close model settings">×</button>
+    </div>
 
-<div class="barwrap">
-  <div class="bar" id="bar">
-    <textarea id="input" rows="1" placeholder="say it plain…" aria-label="message"></textarea>
-    <button id="send" aria-label="send">↑</button>
+    <div class="tuneBody">
+      <section class="tuneSection">
+        <div class="tuneSectionTitle"><h3>Preset</h3><span>switch instantly</span></div>
+        <div class="tunePresetRow">
+          <select id="tunePreset" aria-label="tuning preset"></select>
+          <button class="tuneMini" id="tuneDeletePreset">delete</button>
+        </div>
+      </section>
+
+      <section class="tuneSection">
+        <div class="tuneSectionTitle"><h3>Generation</h3><span>raw Ollama controls</span></div>
+        <div class="tuneGrid">
+          <div class="tuneField">
+            <label for="tuneTemperature">temperature</label>
+            <output class="tuneValue" data-value-for="temperature"></output>
+            <input id="tuneTemperature" type="range" min="0" max="1.5" step="0.05">
+            <div class="tuneHint">lower = steadier · higher = stranger</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneTopP">top-p</label>
+            <output class="tuneValue" data-value-for="topP"></output>
+            <input id="tuneTopP" type="range" min="0.05" max="1" step="0.05">
+            <div class="tuneHint">smaller = narrower word choices</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneRepeatPenalty">repeat penalty</label>
+            <output class="tuneValue" data-value-for="repeatPenalty"></output>
+            <input id="tuneRepeatPenalty" type="range" min="0.8" max="1.5" step="0.02">
+            <div class="tuneHint">higher reduces repeated phrasing</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneMaxTokens">token cap</label>
+            <output class="tuneValue" data-value-for="maxTokens"></output>
+            <input id="tuneMaxTokens" type="range" min="64" max="768" step="16">
+            <div class="tuneHint">hard ceiling for generated text</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneNumCtx">context window</label>
+            <output class="tuneValue" data-value-for="numCtx"></output>
+            <select id="tuneNumCtx">
+              <option value="2048">2048</option>
+              <option value="4096">4096</option>
+              <option value="8192">8192</option>
+              <option value="16384">16384</option>
+            </select>
+            <div class="tuneHint">chat still sends only three raw exchanges</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tuneSection">
+        <div class="tuneSectionTitle"><h3>Save this mix</h3><span>custom preset</span></div>
+        <div class="tuneSaveRow">
+          <input id="tunePresetName" maxlength="48" placeholder="preset name…">
+          <button class="tuneMini" id="tuneSavePreset">save preset</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="tuneFoot">
+      <span id="tuneStatus">active · Balanced</span>
+      <button class="tuneAction" id="tuneReset">reset balanced</button>
+      <button class="tuneAction primary" id="tuneDone">done</button>
+    </div>
   </div>
-</div>
+</dialog>
 
 <script src="./js/personas.js"></script>
-<script src="./js/engine.js"></script>
+<script src="./js/persona-prompts.js"></script>
+<script src="./js/model-settings.js"></script>
 <script src="./js/threads.js"></script>
+<script src="./js/desktop-ai.js"></script>
+<script src="./js/voice-controller.js"></script>
 <script src="./js/webllm.js"></script>
 <script src="./js/app.js"></script>
 </body>

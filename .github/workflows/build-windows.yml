@@ -1,0 +1,56 @@
+name: Build COSM.OS Windows App
+
+on:
+  push:
+    branches:
+      - windows-desktop-mvp
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check JavaScript syntax
+        shell: pwsh
+        run: |
+          node --check js/app.js
+          node --check js/personas.js
+          node --check js/persona-prompts.js
+          node --check js/model-settings.js
+          node --check js/desktop-ai.js
+          node --check js/voice-controller.js
+          node --check desktop/main.js
+          node --check desktop/preload.js
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build installer
+        run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: COSM.OS-Windows
+          path: |
+            dist/*.exe
+            dist/*.yml
+          if-no-files-found: error
+          retention-days: 30

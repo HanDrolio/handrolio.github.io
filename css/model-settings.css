@@ -1,0 +1,69 @@
+/* COSM.OS — model tuning dialog */
+
+#modelTune{width:34px;padding:5px 7px;font-size:13px}
+
+#modelSettingsDialog{
+  width:min(760px,calc(100vw - 32px));max-height:min(88dvh,860px);margin:auto;padding:0;
+  border:1px solid var(--line-lit);border-radius:18px;background:rgba(8,11,18,.98);color:var(--t0);
+  box-shadow:0 30px 90px rgba(0,0,0,.55),0 0 45px rgba(143,121,232,.08);overflow:hidden;
+}
+#modelSettingsDialog::backdrop{background:rgba(0,0,0,.66);backdrop-filter:blur(5px)}
+
+.tuneShell{display:flex;flex-direction:column;max-height:min(88dvh,860px)}
+.tuneHead{display:flex;align-items:flex-start;gap:14px;padding:18px 20px 14px;border-bottom:1px solid var(--line)}
+.tuneHeadText{min-width:0;flex:1}
+.tuneEyebrow{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--violet)}
+.tuneHead h2{font-family:var(--mono);font-size:17px;letter-spacing:.5px;margin-top:2px}
+.tuneHead p{font-size:12px;color:var(--t2);margin-top:3px}
+#tuneClose{width:32px;height:32px;border:1px solid var(--line);border-radius:9px;color:var(--t2);font-size:20px;line-height:1}
+#tuneClose:hover{color:var(--t0);border-color:var(--line-lit)}
+
+.tuneBody{overflow-y:auto;padding:17px 20px 20px;scrollbar-width:thin;scrollbar-color:var(--line-lit) transparent}
+.tuneSection{padding:14px;border:1px solid var(--line);border-radius:13px;background:rgba(16,20,31,.55);margin-bottom:12px}
+.tuneSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+.tuneSectionTitle h3{font-family:var(--mono);font-size:10px;letter-spacing:1.1px;text-transform:uppercase;color:var(--t1)}
+.tuneSectionTitle span{font-family:var(--mono);font-size:9px;color:var(--t2)}
+
+.tunePresetRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+#tunePreset{width:100%;padding:8px 10px;font-family:var(--mono);font-size:11px}
+.tuneMini{padding:7px 10px;border:1px solid var(--line);border-radius:9px;font-family:var(--mono);font-size:10px;color:var(--t2)}
+.tuneMini:hover{color:var(--t0);border-color:var(--line-lit)}
+.tuneMini:disabled{opacity:.35}
+
+.tuneGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.tuneField{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 10px;align-items:center}
+.tuneField>label{font-size:12px;color:var(--t1)}
+.tuneValue{font-family:var(--mono);font-size:10px;color:var(--gold);min-width:38px;text-align:right}
+.tuneField input[type="range"]{grid-column:1/-1;width:100%;accent-color:var(--violet)}
+.tuneField select{grid-column:1/-1;width:100%;padding:7px 9px;font-family:var(--mono);font-size:10.5px}
+.tuneHint{grid-column:1/-1;font-size:10px;color:var(--t2);line-height:1.45}
+
+.tuneToggle{display:flex;align-items:flex-start;gap:10px}
+.tuneToggle input{margin-top:3px;accent-color:var(--violet)}
+.tuneToggle strong{display:block;font-size:12px;color:var(--t1)}
+.tuneToggle span{display:block;font-size:10px;color:var(--t2);margin-top:2px}
+#tuneResonancePrompt{width:100%;min-height:132px;margin-top:11px;padding:10px 11px;resize:vertical;border:1px solid var(--line);border-radius:10px;background:var(--ink);color:var(--t1);font-size:12px;line-height:1.5;outline:none}
+#tuneResonancePrompt:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(143,121,232,.1)}
+
+.tuneSaveRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+#tunePresetName{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--ink);color:var(--t1);outline:none}
+#tunePresetName:focus{border-color:var(--violet)}
+
+.tuneFoot{display:flex;align-items:center;gap:8px;padding:13px 20px;border-top:1px solid var(--line);background:rgba(8,11,18,.98)}
+#tuneStatus{font-family:var(--mono);font-size:9.5px;color:var(--t2);margin-right:auto}
+.tuneAction{padding:7px 12px;border:1px solid var(--line);border-radius:10px;font-family:var(--mono);font-size:10.5px;color:var(--t1)}
+.tuneAction:hover{color:var(--t0);border-color:var(--line-lit)}
+.tuneAction.primary{background:rgba(143,121,232,.14);border-color:rgba(143,121,232,.45);color:var(--t0)}
+
+@media(max-width:819px){
+  #modelTune{flex:none}
+}
+
+@media(max-width:620px){
+  #modelSettingsDialog{width:calc(100vw - 18px);max-height:94dvh}
+  .tuneShell{max-height:94dvh}
+  .tuneHead,.tuneBody,.tuneFoot{padding-left:14px;padding-right:14px}
+  .tuneGrid{grid-template-columns:1fr}
+  .tuneFoot{flex-wrap:wrap}
+  #tuneStatus{width:100%;margin:0 0 3px}
+}

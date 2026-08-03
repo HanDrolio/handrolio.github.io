@@ -1,0 +1,50 @@
+{
+  "name": "cosmos-desktop",
+  "version": "0.7.0",
+  "private": true,
+  "description": "Private Windows desktop edition of COSM.OS with minimalist local Ollama conversation.",
+  "main": "desktop/main.js",
+  "author": "HanDrolio",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "dist:portable": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^36.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "io.handrolio.cosmos",
+    "productName": "COSM.OS",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "manifest.webmanifest",
+      "sw.js",
+      "css/**/*",
+      "js/**/*",
+      "desktop/**/*"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "COSM.OS-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "COSM.OS"
+    }
+  }
+}
