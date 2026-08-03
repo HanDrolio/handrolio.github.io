@@ -1,8 +1,8 @@
 {
   "name": "cosmos-desktop",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
-  "description": "Private Windows desktop edition of COSM.OS with local Ollama support.",
+  "description": "Private Windows desktop edition of COSM.OS with minimalist local Ollama conversation.",
   "main": "desktop/main.js",
   "author": "HanDrolio",
   "license": "UNLICENSED",
