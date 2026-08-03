@@ -1,73 +1,108 @@
 # COSM.OS for Windows
 
-This branch packages the existing COSM.OS site as a private Electron desktop app and connects it to a local Ollama model.
+This branch packages COSM.OS as a private Electron desktop app connected to a local Ollama model.
 
-See [`CHANGELOG.md`](./CHANGELOG.md) for the complete version-by-version record of the Windows build session, response-engine experiments, sidebar, persona prompts, model selection, and Model Lab.
+See [`CHANGELOG.md`](./CHANGELOG.md) for the version history.
 
-## What stays the same
+## v0.7 response architecture
 
-- Existing chat and journal interface
-- Deterministic persona router and safety overrides
-- LocalStorage archive
-- Import and export
-- Browser/WebLLM fallback for the GitHub Pages edition
+COSM.OS 0.7 removes the prompt machinery that made small models overthink.
 
-## What the desktop edition adds
+### Chat mode
+
+```text
+selected persona prompt
+      ↓
+last three raw exchanges
+      ↓
+current user message
+      ↓
+selected local Ollama model
+```
+
+No starter banks, curated examples, hidden JSON schema, automatic memory injection, persona scoring, or response rewriting are added to the request.
+
+When no persona is selected, chat defaults to **Flux**.
+
+### Log mode
+
+```text
+selected persona prompt
+      ↓
+current log entry only
+      ↓
+selected local Ollama model
+```
+
+Log mode receives no chat history and no retrieved memories. When no persona is selected, log defaults to **Ripple**.
+
+### Explicit commands
+
+Commands run deterministic local code only when the entire message begins with the command name or slash form:
+
+```text
+remember <exact note>
+summary
+plan <goal>
+```
+
+- `remember` stores the exact note in the local journal.
+- `summary` creates an extractive logical bookmark from the recent chat.
+- `plan` returns a fixed three-step test plan.
+
+Ordinary uses of those words inside sentences do not trigger commands.
+
+## Desktop features
 
 - Native Windows window
-- Safe Electron bridge to Ollama at `127.0.0.1:11434`
-- Automatic model detection
-- Preference for the largest installed Qwen model in auto mode
-- Manual model selection and model refresh
+- Secure preload bridge to Ollama at `127.0.0.1:11434`
+- Automatic installed-model discovery
+- **auto · largest Qwen** selection
+- Manual model selection and refresh
 - Multi-chat local sidebar
-- Persistent persona prompts
-- Relevant persona starter sparks and curated examples
-- Natural hidden `yes_and`, `no_but`, and `maybe_so` conversation moves
-- Model Lab tuning controls, resonance filtering, and saved presets
-- Deterministic fallback when Ollama is unavailable
-- Installer and portable build commands
+- Nine compact persona prompts
+- One-shot journal reflections
+- Generation-only Model Lab with saved presets
+- JSON import and export
+- Deterministic local commands
+- LocalStorage archive
 
 ## Requirements
 
 1. Windows 10 or newer
-2. Node.js installed
-3. Ollama installed and running
-4. At least one Ollama model visible in:
+2. Ollama installed and running
+3. At least one model visible in:
 
 ```powershell
 ollama list
 ```
 
-## Run the app from source
+Recommended target for the current ThinkCentre:
 
-Open PowerShell in the repository folder:
+```powershell
+ollama pull qwen2.5:3b
+```
+
+## Run from source
 
 ```powershell
 npm install
 npm start
 ```
 
-The desktop adapter defaults to **auto · largest Qwen**. Use the model dropdown to select a specific installed model or press `↻` to rescan Ollama after downloading a new one.
-
-## Build a Windows installer
+## Build the installer
 
 ```powershell
 npm run dist
 ```
 
-The installer will appear in the `dist` folder with a name similar to:
+Output:
 
 ```text
-COSM.OS-Setup-0.6.0.exe
+dist/COSM.OS-Setup-0.7.0.exe
 ```
 
-## Build a portable executable
-
-```powershell
-npm run dist:portable
-```
-
-## Architecture
+## Security boundary
 
 ```text
 COSM.OS renderer
@@ -79,48 +114,28 @@ Ollama API
 installed local model
 ```
 
-The renderer never receives Node.js or shell access. Ollama calls are validated and performed inside the Electron main process.
-
-The response path is:
-
-```text
-deterministic route + safety
-      ↓
-persona prompt + optional resonance filter
-      ↓
-relevant starters + examples + clean same-persona context
-      ↓
-local Ollama generation
-      ↓
-validation + visible word cap
-      ↓
-local chat or journal archive
-```
+The renderer has no Node.js or shell access. External navigation is blocked inside the app.
 
 ## Troubleshooting
 
-### The app says Ollama is unavailable
+### Ollama is unavailable
 
-Confirm Ollama is running:
+Run:
 
 ```powershell
 ollama list
 ```
 
-Then restart COSM.OS or press the model refresh button.
+Then restart COSM.OS or press `↻`.
 
-### A newly downloaded model is missing
+### A new model is missing
 
-Press `↻` in the model bar. Auto mode will select the largest installed Qwen. You can also choose the model manually from the dropdown.
-
-### The app uses deterministic responses
-
-This is the intended fallback when Ollama is stopped, no model is installed, or generation fails.
+Press `↻`. Auto mode selects the largest installed Qwen, or choose a model manually.
 
 ### The first answer is slow
 
-Ollama may be loading the model into memory. Later responses are usually quicker while the model remains loaded.
+Ollama may be loading the model into memory. Later answers are usually faster while it stays loaded.
 
-### Responses feel generic or too rigid
+### The response still sounds generic
 
-Open the `⚙` Model Lab and adjust the active preset, temperature, top-p, repetition penalty, context depth, starter count, example count, visible word cap, or Resonance Filter prompt.
+Try the **Precise** or **Calm** generation preset. The prompt path is intentionally minimal; further fixes should begin with the persona prompt or model choice rather than adding hidden prompt layers.
