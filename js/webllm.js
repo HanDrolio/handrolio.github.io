@@ -3,6 +3,8 @@
    available as an instant fallback when WebGPU or the model is unavailable. */
 
 (() => {
+  if (window.COSMOS_AI) return;
+
   const scriptURL = document.currentScript?.src || new URL('./js/webllm.js', location.href).href;
   const workerURL = new URL('./webllm-worker.js', scriptURL);
   const MODULE_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.84';
