@@ -11,6 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%2306080f'/><circle cx='22' cy='32' r='9' fill='%234a8dff'/><circle cx='42' cy='32' r='9' fill='%23f0c060'/></svg>">
 <link rel="stylesheet" href="./css/style.css">
+<link rel="stylesheet" href="./css/model-settings.css">
 </head>
 <body class="sidebar-open">
 
@@ -54,6 +55,7 @@
       <select id="modelSelect" aria-label="local model">
         <option value="auto">auto · largest Qwen</option>
       </select>
+      <button class="util" id="modelTune" title="model tuning and presets" aria-label="open model settings">⚙</button>
       <button class="util" id="modelRefresh" title="scan Ollama models" aria-label="refresh models">↻</button>
       <button class="util" id="modelBtn">load local ai</button>
     </div>
@@ -71,9 +73,127 @@
   </section>
 </div>
 
+<dialog id="modelSettingsDialog" aria-labelledby="modelSettingsTitle">
+  <div class="tuneShell">
+    <div class="tuneHead">
+      <div class="tuneHeadText">
+        <div class="tuneEyebrow">local model lab</div>
+        <h2 id="modelSettingsTitle">Tune the voice</h2>
+        <p>Dial the generation, prompt context, and resonance filter. Everything saves on this machine.</p>
+      </div>
+      <button id="tuneClose" aria-label="close model settings">×</button>
+    </div>
+
+    <div class="tuneBody">
+      <section class="tuneSection">
+        <div class="tuneSectionTitle"><h3>Preset</h3><span>switch instantly</span></div>
+        <div class="tunePresetRow">
+          <select id="tunePreset" aria-label="tuning preset"></select>
+          <button class="tuneMini" id="tuneDeletePreset">delete</button>
+        </div>
+      </section>
+
+      <section class="tuneSection">
+        <div class="tuneSectionTitle"><h3>Generation</h3><span>how Qwen moves</span></div>
+        <div class="tuneGrid">
+          <div class="tuneField">
+            <label for="tuneTemperature">temperature</label>
+            <output class="tuneValue" data-value-for="temperature"></output>
+            <input id="tuneTemperature" type="range" min="0" max="1.5" step="0.05">
+            <div class="tuneHint">lower = steadier · higher = stranger</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneTopP">top‑p</label>
+            <output class="tuneValue" data-value-for="topP"></output>
+            <input id="tuneTopP" type="range" min="0.05" max="1" step="0.05">
+            <div class="tuneHint">smaller = narrower word choices</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneRepeatPenalty">repeat penalty</label>
+            <output class="tuneValue" data-value-for="repeatPenalty"></output>
+            <input id="tuneRepeatPenalty" type="range" min="0.8" max="1.5" step="0.02">
+            <div class="tuneHint">higher reduces loops and recycled phrases</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneMaxTokens">token cap</label>
+            <output class="tuneValue" data-value-for="maxTokens"></output>
+            <input id="tuneMaxTokens" type="range" min="64" max="768" step="16">
+            <div class="tuneHint">hard ceiling for generated text</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneNumCtx">context window</label>
+            <output class="tuneValue" data-value-for="numCtx"></output>
+            <select id="tuneNumCtx">
+              <option value="2048">2048</option>
+              <option value="4096">4096</option>
+              <option value="8192">8192</option>
+              <option value="16384">16384</option>
+            </select>
+            <div class="tuneHint">larger remembers more but costs RAM and speed</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneMaxWords">visible word cap</label>
+            <output class="tuneValue" data-value-for="maxWords"></output>
+            <input id="tuneMaxWords" type="range" min="20" max="240" step="10">
+            <div class="tuneHint">client-side limit after generation</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tuneSection">
+        <div class="tuneSectionTitle"><h3>Prompt context</h3><span>what it sees</span></div>
+        <div class="tuneGrid">
+          <div class="tuneField">
+            <label for="tuneContextTurns">past persona turns</label>
+            <output class="tuneValue" data-value-for="contextTurns"></output>
+            <input id="tuneContextTurns" type="range" min="0" max="10" step="1">
+            <div class="tuneHint">same-persona exchanges carried forward</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneStarterCount">starter sparks</label>
+            <output class="tuneValue" data-value-for="starterCount"></output>
+            <input id="tuneStarterCount" type="range" min="1" max="5" step="1">
+            <div class="tuneHint">static persona lines used as seeds</div>
+          </div>
+          <div class="tuneField">
+            <label for="tuneExampleCount">conversation examples</label>
+            <output class="tuneValue" data-value-for="exampleCount"></output>
+            <input id="tuneExampleCount" type="range" min="0" max="4" step="1">
+            <div class="tuneHint">few-shot examples selected by relevance</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tuneSection">
+        <div class="tuneSectionTitle"><h3>Resonance filter</h3><span>anti-sludge pass</span></div>
+        <label class="tuneToggle" for="tuneResonance">
+          <input id="tuneResonance" type="checkbox">
+          <span><strong>filter generic AI language</strong><span>Injected after the persona prompt before every generated reply.</span></span>
+        </label>
+        <textarea id="tuneResonancePrompt" aria-label="resonance filter prompt"></textarea>
+      </section>
+
+      <section class="tuneSection">
+        <div class="tuneSectionTitle"><h3>Save this mix</h3><span>custom preset</span></div>
+        <div class="tuneSaveRow">
+          <input id="tunePresetName" maxlength="48" placeholder="preset name…">
+          <button class="tuneMini" id="tuneSavePreset">save preset</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="tuneFoot">
+      <span id="tuneStatus">active · Balanced conversation</span>
+      <button class="tuneAction" id="tuneReset">reset balanced</button>
+      <button class="tuneAction primary" id="tuneDone">done</button>
+    </div>
+  </div>
+</dialog>
+
 <script src="./js/personas.js"></script>
 <script src="./js/persona-prompts.js"></script>
 <script src="./js/voice-training.js"></script>
+<script src="./js/model-settings.js"></script>
 <script src="./js/engine.js"></script>
 <script src="./js/threads.js"></script>
 <script src="./js/desktop-ai.js"></script>
