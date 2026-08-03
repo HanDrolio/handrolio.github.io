@@ -79,18 +79,24 @@ ipcMain.handle('ollama:chat', async (_event, payload = {}) => {
   if (!model) throw new Error('No Ollama model is selected.');
   if (!messages.length) throw new Error('No chat messages were provided.');
 
+  const requestBody = {
+    model,
+    messages,
+    stream: false,
+    options: {
+      temperature: Number.isFinite(payload.temperature) ? payload.temperature : 0.72,
+      top_p: Number.isFinite(payload.topP) ? payload.topP : 0.9,
+      num_predict: Number.isFinite(payload.maxTokens) ? payload.maxTokens : 220
+    }
+  };
+
+  if (payload.format && typeof payload.format === 'object') {
+    requestBody.format = payload.format;
+  }
+
   const data = await ollamaRequest('/api/chat', {
     method: 'POST',
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: false,
-      options: {
-        temperature: Number.isFinite(payload.temperature) ? payload.temperature : 0.72,
-        top_p: Number.isFinite(payload.topP) ? payload.topP : 0.9,
-        num_predict: Number.isFinite(payload.maxTokens) ? payload.maxTokens : 220
-      }
-    })
+    body: JSON.stringify(requestBody)
   });
 
   return {
