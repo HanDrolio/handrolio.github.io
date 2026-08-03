@@ -25,6 +25,17 @@ jobs:
         with:
           node-version: 22
 
+      - name: Check JavaScript syntax
+        shell: pwsh
+        run: |
+          node --check js/app.js
+          node --check js/desktop-ai.js
+          node --check js/voice-controller.js
+          node --check js/persona-prompts.js
+          node --check js/voice-training.js
+          node --check desktop/main.js
+          node --check desktop/preload.js
+
       - name: Install dependencies
         run: npm install
 
