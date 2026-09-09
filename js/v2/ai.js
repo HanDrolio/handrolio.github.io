@@ -1,18 +1,15 @@
 const MODULE_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.84';
 const META_KEY = 'cosmos_webllm_meta_v2';
 
-const DESKTOP_PREFERENCES = [
-  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
-  'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+// Reliability first. Start with the smallest verified chat models instead of
+// making low-resource desktops chew through 1B+ models before falling back.
+const SAFE_PREFERENCES = [
+  'SmolLM2-360M-Instruct-q4f16_1-MLC',
+  'SmolLM2-360M-Instruct-q4f32_1-MLC',
+  'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+  'Qwen2.5-0.5B-Instruct-q4f32_1-MLC',
   'Qwen3-0.6B-q4f16_1-MLC',
-  'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
-  'Qwen2-0.5B-Instruct-q4f16_1-MLC'
-];
-
-const MOBILE_PREFERENCES = [
-  'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
-  'Qwen2-0.5B-Instruct-q4f16_1-MLC',
-  'Qwen3-0.6B-q4f16_1-MLC'
+  'Llama-3.2-1B-Instruct-q4f16_1-MLC'
 ];
 
 function isAppleMobile() {
@@ -48,29 +45,36 @@ function vramMB(record) {
 
 function chooseCandidates(webllm, adapter, rememberedModelId = null) {
   const mobile = isAppleMobile();
-  const preference = mobile ? MOBILE_PREFERENCES : DESKTOP_PREFERENCES;
   const maxMobileVRAM = 900;
 
   const records = webllm.prebuiltAppConfig.model_list
     .filter(record => featureCompatible(record, adapter))
     .filter(record => !/(vision|vlm|embedding|coder|math)/i.test(record.model_id || ''))
+    .filter(record => /instruct|chat/i.test(record.model_id || ''))
     .filter(record => !mobile || vramMB(record) <= maxMobileVRAM);
 
   const available = new Map(records.map(record => [record.model_id, record]));
   const ordered = [];
 
-  if (rememberedModelId && available.has(rememberedModelId)) ordered.push(rememberedModelId);
-  for (const id of preference) if (available.has(id) && !ordered.includes(id)) ordered.push(id);
+  // Small known-good models always go first. A remembered model is useful, but
+  // it should never trap the app into retrying a huge model before a tiny one.
+  for (const id of SAFE_PREFERENCES) {
+    if (available.has(id) && !ordered.includes(id)) ordered.push(id);
+  }
 
-  if (!ordered.length) {
-    const fallback = records
-      .filter(record => /instruct|chat/i.test(record.model_id || ''))
-      .sort((a, b) => vramMB(a) - vramMB(b))[0];
-    if (fallback) ordered.push(fallback.model_id);
+  if (rememberedModelId && available.has(rememberedModelId) && !ordered.includes(rememberedModelId)) {
+    ordered.push(rememberedModelId);
+  }
+
+  // Always append every other compatible chat model from smallest to largest.
+  // The previous loader only used this fallback when NONE of the preferred
+  // model IDs existed, which meant SmolLM2 was never reached on desktop.
+  for (const record of [...records].sort((a, b) => vramMB(a) - vramMB(b))) {
+    if (!ordered.includes(record.model_id)) ordered.push(record.model_id);
   }
 
   if (!ordered.length) throw new Error('No compatible low-resource chat model was found for this device.');
-  return ordered;
+  return { ordered, available };
 }
 
 export function createAIService() {
@@ -138,19 +142,29 @@ export function createAIService() {
     if (!supported()) throw new Error('WebGPU is unavailable on this browser.');
 
     loadPromise = (async () => {
+      publish({ phase: 'loading', progress: 0, text: 'loading WebLLM runtime…', error: null });
       const webllm = await import(MODULE_URL);
       const adapter = await navigator.gpu.requestAdapter();
       if (!adapter) throw new Error('No WebGPU adapter is available.');
 
       const meta = readMeta();
       const remembered = meta?.state === 'ready' ? meta.modelId : null;
-      const candidates = chooseCandidates(webllm, adapter, remembered);
+      const { ordered: candidates, available } = chooseCandidates(webllm, adapter, remembered);
       let lastError = null;
 
       for (const candidate of candidates) {
         modelId = candidate;
+        const record = available.get(candidate);
+        const memory = Number.isFinite(vramMB(record)) ? ` · ~${Math.round(vramMB(record))} MB VRAM` : '';
+
         writeMeta({ state: 'loading', modelId: candidate, startedAt: Date.now() });
-        publish({ phase: 'loading', progress: 0, text: `preparing ${candidate}…`, modelId: candidate, error: null });
+        publish({
+          phase: 'loading',
+          progress: 0,
+          text: `trying ${candidate}${memory}…`,
+          modelId: candidate,
+          error: null
+        });
 
         try {
           engine = await webllm.CreateMLCEngine(candidate, {
@@ -160,7 +174,7 @@ export function createAIService() {
               publish({
                 phase: 'loading',
                 progress,
-                text: report.text || `loading local model ${Math.round(progress * 100)}%`,
+                text: report.text || `loading ${candidate}`,
                 modelId: candidate,
                 error: null
               });
@@ -173,10 +187,11 @@ export function createAIService() {
         } catch (error) {
           lastError = error;
           engine = null;
+          console.warn(`COSM.OS could not load ${candidate}`, error);
           publish({
             phase: 'loading',
             progress: 0,
-            text: 'trying a lighter compatible model…',
+            text: 'that model failed · trying the next compatible one…',
             modelId: candidate,
             error: error instanceof Error ? error.message : String(error)
           });
@@ -187,11 +202,12 @@ export function createAIService() {
       throw lastError || new Error('No local model could be initialized.');
     })().catch(error => {
       engine = null;
+      const message = error instanceof Error ? error.message : String(error);
       publish({
         phase: 'error',
         progress: 0,
         text: 'local ai failed · deterministic mode active',
-        error: error instanceof Error ? error.message : String(error)
+        error: message
       });
       throw error;
     }).finally(() => {
