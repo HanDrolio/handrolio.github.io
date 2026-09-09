@@ -211,8 +211,7 @@ export function createAIService() {
         stream: true,
         temperature: 0.72,
         top_p: 0.9,
-        max_tokens: 220,
-        enable_thinking: false
+        max_tokens: 220
       });
 
       for await (const chunk of stream) {
