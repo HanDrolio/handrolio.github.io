@@ -383,6 +383,7 @@ render();
 if (window.COSMOS_AI) {
   window.COSMOS_AI.subscribe(paintModelStatus);
   $('#modelBtn').addEventListener('click', loadLocalAI);
+  window.COSMOS_AI.restore?.();
 } else {
   paintModelStatus({ phase: 'error', text: 'model layer unavailable', error: 'webllm.js did not load' });
 }
