@@ -1,7 +1,11 @@
-/* COSM.OS service worker v2
-   Online: network-first so chat-driven GitHub changes appear immediately.
-   Offline: fall back to the cached app shell. WebLLM manages its own model cache. */
-const CACHE = 'cosmos-v7-modular';
+/* COSM.OS service worker v3
+   Goal: updates should be boring.
+   Online: always prefer the network so GitHub Pages changes show up quickly.
+   Offline: fall back to the cached app shell.
+   Chat data is NOT stored here and is never deleted by this worker. */
+
+const APP_VERSION = '2026-09-09.1';
+const CACHE = `cosmos-shell-${APP_VERSION}`;
 const SHELL = [
   './',
   './index.html',
@@ -31,22 +35,31 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+      .then(keys => Promise.all(
+        keys
+          .filter(key => key.startsWith('cosmos-shell-') && key !== CACHE)
+          .map(key => caches.delete(key))
+      ))
       .then(() => self.clients.claim())
   );
 });
 
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 async function networkFirst(request) {
   const cache = await caches.open(CACHE);
+
   try {
     const response = await fetch(request, { cache: 'no-store' });
     if (response.ok) cache.put(request, response.clone()).catch(() => {});
     return response;
-  } catch {
+  } catch (error) {
     const cached = await cache.match(request);
     if (cached) return cached;
     if (request.mode === 'navigate') return cache.match('./index.html');
-    throw new Error('Offline and no cached response is available.');
+    throw error;
   }
 }
 
