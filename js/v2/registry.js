@@ -1,16 +1,19 @@
-const PERSONAS = globalThis.__COSMOS_PERSONAS__;
-const ORDER = globalThis.__COSMOS_ORDER__;
+const ALL_PERSONAS = globalThis.__COSMOS_PERSONAS__;
 
-if (!PERSONAS || !Array.isArray(ORDER)) {
-  throw new Error('COSM.OS persona registry did not initialize.');
+if (!ALL_PERSONAS?.astro) {
+  throw new Error('COSM.OS Astro persona did not initialize.');
 }
+
+// COSM.OS is intentionally a single-voice creative companion now.
+const PERSONAS = { astro: ALL_PERSONAS.astro };
+const ORDER = ['astro'];
 
 export { PERSONAS, ORDER };
 
-export function getPersona(id) {
-  return PERSONAS[id] || PERSONAS.flux;
+export function getPersona() {
+  return PERSONAS.astro;
 }
 
 export function isPersona(id) {
-  return Boolean(id && PERSONAS[id]);
+  return id === 'astro';
 }
