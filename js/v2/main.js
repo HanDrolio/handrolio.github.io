@@ -242,7 +242,32 @@ if (navigator.storage?.persist) {
 }
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.warn));
+  window.addEventListener('load', async () => {
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    let reloading = false;
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloading) return;
+      reloading = true;
+      window.location.reload();
+    });
+
+    try {
+      const registration = await navigator.serviceWorker.register('./sw.js', {
+        updateViaCache: 'none'
+      });
+
+      registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+      await registration.update().catch(() => {});
+
+      const checkForUpdate = () => registration.update().catch(() => {});
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate();
+      });
+    } catch (error) {
+      console.warn('COSM.OS service worker registration failed', error);
+    }
+  });
 }
 
 window.COSMOS_DEBUG = {
