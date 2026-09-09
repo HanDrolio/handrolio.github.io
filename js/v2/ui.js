@@ -23,6 +23,12 @@ function compactModelName(id = '') {
     .trim();
 }
 
+function compactError(error = '') {
+  const text = String(error || '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  return text.length > 92 ? `${text.slice(0, 89)}…` : text;
+}
+
 function threadMarkup(thread) {
   if (!thread) return '';
   const moments = thread.entries.map(item => `
@@ -216,6 +222,7 @@ export function createUI(handlers) {
     refs.modelBtn.disabled = false;
 
     const modelName = compactModelName(modelState.modelId);
+    const error = compactError(modelState.error);
 
     if (modelState.phase === 'loading') {
       const percent = Math.max(0, Math.min(100, Math.round((modelState.progress || 0) * 100)));
@@ -230,14 +237,14 @@ export function createUI(handlers) {
       refs.modelStatus.textContent = `cached · ${modelName || 'local model'} · tap restore`;
       refs.modelBtn.textContent = 'restore ai';
     } else if (modelState.phase === 'interrupted') {
-      refs.modelStatus.textContent = 'previous load interrupted · mobile-safe retry available';
+      refs.modelStatus.textContent = 'previous load interrupted · safe retry available';
       refs.modelBtn.textContent = 'retry';
     } else if (modelState.phase === 'unsupported') {
       refs.modelStatus.textContent = 'WebGPU unavailable · deterministic mode active';
       refs.modelBtn.textContent = 'unsupported';
       refs.modelBtn.disabled = true;
     } else if (modelState.phase === 'error') {
-      refs.modelStatus.textContent = 'local ai failed · deterministic mode active';
+      refs.modelStatus.textContent = error ? `failed · ${error}` : 'local ai failed · deterministic mode active';
       refs.modelBtn.textContent = 'retry';
     } else {
       refs.modelStatus.textContent = 'deterministic mode · no local model active';
