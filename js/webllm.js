@@ -6,13 +6,24 @@
   const scriptURL = document.currentScript?.src || new URL('./js/webllm.js', location.href).href;
   const workerURL = new URL('./webllm-worker.js', scriptURL);
   const MODULE_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.84';
-  const MODEL_STATE_KEY = 'cosmos_webllm_model_v1';
-  const MODEL_PREFERENCES = [
+  const MODEL_STATE_KEY = 'cosmos_webllm_model_v2';
+
+  const DESKTOP_MODEL_PREFERENCES = [
     'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
     'Llama-3.2-1B-Instruct-q4f16_1-MLC',
     'Qwen3-0.6B-q4f16_1-MLC',
     'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
     'Qwen2-0.5B-Instruct-q4f16_1-MLC'
+  ];
+
+  // Mobile Safari is much more likely to kill/reload the tab while a 1B–1.5B
+  // model is being initialized. Prefer the smallest useful models there.
+  const MOBILE_MODEL_PREFERENCES = [
+    'Qwen3-0.6B-q4f16_1-MLC',
+    'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+    'Qwen2-0.5B-Instruct-q4f16_1-MLC',
+    'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+    'Qwen2.5-1.5B-Instruct-q4f16_1-MLC'
   ];
 
   const listeners = new Set();
@@ -28,9 +39,7 @@
     error: null
   };
 
-  function snapshot() {
-    return { ...status };
-  }
+  function snapshot() { return { ...status }; }
 
   function publish(patch) {
     status = { ...status, ...patch };
@@ -49,9 +58,24 @@
     return window.isSecureContext && 'gpu' in navigator;
   }
 
-  function rememberLoadedModel(id) {
+  function isMobileApple() {
+    const ua = navigator.userAgent || '';
+    const iOS = /iPhone|iPad|iPod/i.test(ua);
+    const iPadOSDesktopUA = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    return iOS || iPadOSDesktopUA;
+  }
+
+  function preferences() {
+    return isMobileApple() ? MOBILE_MODEL_PREFERENCES : DESKTOP_MODEL_PREFERENCES;
+  }
+
+  function persistModelState(id, phase = 'selected') {
     try {
-      localStorage.setItem(MODEL_STATE_KEY, JSON.stringify({ modelId: id, loadedAt: Date.now() }));
+      localStorage.setItem(MODEL_STATE_KEY, JSON.stringify({
+        modelId: id,
+        phase,
+        updatedAt: Date.now()
+      }));
     } catch (error) {
       console.warn('Could not persist WebLLM model state', error);
     }
@@ -78,7 +102,8 @@
 
   function modelRank(record) {
     const id = record.model_id || '';
-    const preferredIndex = MODEL_PREFERENCES.indexOf(id);
+    const prefs = preferences();
+    const preferredIndex = prefs.indexOf(id);
     if (preferredIndex !== -1) return preferredIndex;
 
     const vram = Number.isFinite(record.vram_required_MB) ? record.vram_required_MB : 99999;
@@ -92,12 +117,15 @@
       .filter(record => !/(vision|vlm|embedding|coder|math)/i.test(record.model_id || ''));
 
     const ids = records.map(record => record.model_id);
-    if (preferredModelId && ids.includes(preferredModelId)) {
-      return [preferredModelId, ...ids.filter(id => id !== preferredModelId)];
+    const prefs = preferences();
+
+    // A remembered model stays first only if it is appropriate for this device.
+    if (preferredModelId && ids.includes(preferredModelId) && prefs.includes(preferredModelId)) {
+      return [preferredModelId, ...prefs.filter(id => id !== preferredModelId && ids.includes(id))];
     }
 
     const preferred = records
-      .filter(record => MODEL_PREFERENCES.includes(record.model_id))
+      .filter(record => prefs.includes(record.model_id))
       .sort((a, b) => modelRank(a) - modelRank(b));
 
     if (preferred.length) return preferred.map(record => record.model_id);
@@ -144,6 +172,12 @@
 
       for (let index = 0; index < candidates.length; index += 1) {
         modelId = candidates[index];
+
+        // IMPORTANT: write this before the expensive engine initialization.
+        // If Safari kills/reloads the tab during GPU allocation, the next boot
+        // still knows which cached model to restore.
+        persistModelState(modelId, 'initializing');
+
         publish({
           phase: 'loading',
           progress: 0,
@@ -172,13 +206,19 @@
             }
           });
 
-          rememberLoadedModel(modelId);
+          persistModelState(modelId, 'ready');
           publish({ phase: 'ready', progress: 1, text: 'local ai ready', modelId, error: null });
           return modelId;
         } catch (error) {
           lastError = error;
           resetWorker();
-          if (cachedModelId === modelId) clearRememberedModel();
+          // Keep the marker for the first crash/reload recovery attempt. If the
+          // engine actually throws normally, move to the next lighter model.
+          if (index < candidates.length - 1) {
+            persistModelState(candidates[index + 1], 'selected');
+          } else {
+            clearRememberedModel();
+          }
         }
       }
 
@@ -244,9 +284,15 @@
     }
   }
 
-  function isReady() {
-    return Boolean(engine);
-  }
+  function isReady() { return Boolean(engine); }
 
-  window.COSMOS_AI = { load, restore, complete, isReady, subscribe, supportsWebGPU, getStatus: snapshot };
+  window.COSMOS_AI = {
+    load,
+    restore,
+    complete,
+    isReady,
+    subscribe,
+    supportsWebGPU,
+    getStatus: snapshot
+  };
 })();
