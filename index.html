@@ -31,7 +31,7 @@
 <div id="lockNote"></div>
 <div id="modelBar" data-phase="idle">
   <span class="modelDot" aria-hidden="true"></span>
-  <span id="modelStatus" role="status" aria-live="polite">deterministic mode · no download yet</span>
+  <span id="modelStatus" role="status" aria-live="polite">deterministic mode · local model optional</span>
   <button class="util" id="modelBtn">load local ai</button>
 </div>
 
@@ -46,10 +46,12 @@
   </div>
 </div>
 
+<!-- Persona content stays data-driven and can be expanded without touching app logic. -->
 <script src="./js/personas.js"></script>
-<script src="./js/engine.js"></script>
-<script src="./js/threads.js"></script>
-<script src="./js/webllm.js"></script>
-<script src="./js/app.js"></script>
+<script>
+  globalThis.__COSMOS_PERSONAS__ = PERSONAS;
+  globalThis.__COSMOS_ORDER__ = ORDER;
+</script>
+<script type="module" src="./js/v2/main.js"></script>
 </body>
 </html>
