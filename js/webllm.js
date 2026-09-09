@@ -6,6 +6,7 @@
   const scriptURL = document.currentScript?.src || new URL('./js/webllm.js', location.href).href;
   const workerURL = new URL('./webllm-worker.js', scriptURL);
   const MODULE_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.84';
+  const MODEL_STATE_KEY = 'cosmos_webllm_model_v1';
   const MODEL_PREFERENCES = [
     'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
     'Llama-3.2-1B-Instruct-q4f16_1-MLC',
@@ -48,6 +49,29 @@
     return window.isSecureContext && 'gpu' in navigator;
   }
 
+  function rememberLoadedModel(id) {
+    try {
+      localStorage.setItem(MODEL_STATE_KEY, JSON.stringify({ modelId: id, loadedAt: Date.now() }));
+    } catch (error) {
+      console.warn('Could not persist WebLLM model state', error);
+    }
+  }
+
+  function rememberedModel() {
+    try {
+      const raw = localStorage.getItem(MODEL_STATE_KEY);
+      if (!raw) return null;
+      const saved = JSON.parse(raw);
+      return typeof saved?.modelId === 'string' ? saved.modelId : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function clearRememberedModel() {
+    try { localStorage.removeItem(MODEL_STATE_KEY); } catch (error) {}
+  }
+
   function requiredFeaturesSupported(record, adapter) {
     return (record.required_features || []).every(feature => adapter.features.has(feature));
   }
@@ -62,10 +86,15 @@
     return 1000 + quantPenalty + vram;
   }
 
-  function selectModels(webllm, adapter) {
+  function selectModels(webllm, adapter, preferredModelId = null) {
     const records = webllm.prebuiltAppConfig.model_list
       .filter(record => requiredFeaturesSupported(record, adapter))
       .filter(record => !/(vision|vlm|embedding|coder|math)/i.test(record.model_id || ''));
+
+    const ids = records.map(record => record.model_id);
+    if (preferredModelId && ids.includes(preferredModelId)) {
+      return [preferredModelId, ...ids.filter(id => id !== preferredModelId)];
+    }
 
     const preferred = records
       .filter(record => MODEL_PREFERENCES.includes(record.model_id))
@@ -87,7 +116,8 @@
     worker = null;
   }
 
-  async function load() {
+  async function load(options = {}) {
+    const { auto = false } = options;
     if (engine) return modelId;
     if (loadPromise) return loadPromise;
 
@@ -97,12 +127,19 @@
         throw new Error('WebGPU is unavailable. Use a current browser on a supported device.');
       }
 
-      publish({ phase: 'loading', progress: 0, text: 'loading WebLLM…', error: null });
+      const cachedModelId = rememberedModel();
+      publish({
+        phase: 'loading',
+        progress: 0,
+        text: auto && cachedModelId ? 'restoring cached local ai…' : 'loading WebLLM…',
+        error: null
+      });
+
       const webllm = await import(MODULE_URL);
       const adapter = await navigator.gpu.requestAdapter();
       if (!adapter) throw new Error('No WebGPU adapter is available.');
 
-      const candidates = selectModels(webllm, adapter);
+      const candidates = selectModels(webllm, adapter, cachedModelId);
       let lastError = null;
 
       for (let index = 0; index < candidates.length; index += 1) {
@@ -110,7 +147,9 @@
         publish({
           phase: 'loading',
           progress: 0,
-          text: index === 0 ? `preparing ${modelId}…` : `trying lighter fallback ${modelId}…`,
+          text: cachedModelId === modelId
+            ? `restoring ${modelId} from cache…`
+            : index === 0 ? `preparing ${modelId}…` : `trying lighter fallback ${modelId}…`,
           modelId,
           error: lastError ? (lastError instanceof Error ? lastError.message : String(lastError)) : null
         });
@@ -133,11 +172,13 @@
             }
           });
 
+          rememberLoadedModel(modelId);
           publish({ phase: 'ready', progress: 1, text: 'local ai ready', modelId, error: null });
           return modelId;
         } catch (error) {
           lastError = error;
           resetWorker();
+          if (cachedModelId === modelId) clearRememberedModel();
         }
       }
 
@@ -155,6 +196,17 @@
     });
 
     return loadPromise;
+  }
+
+  async function restore() {
+    const saved = rememberedModel();
+    if (!saved || !supportsWebGPU() || engine || loadPromise) return null;
+    try {
+      return await load({ auto: true });
+    } catch (error) {
+      console.warn('Cached WebLLM restore failed', error);
+      return null;
+    }
   }
 
   async function complete(messages, onUpdate) {
@@ -196,5 +248,5 @@
     return Boolean(engine);
   }
 
-  window.COSMOS_AI = { load, complete, isReady, subscribe, supportsWebGPU, getStatus: snapshot };
+  window.COSMOS_AI = { load, restore, complete, isReady, subscribe, supportsWebGPU, getStatus: snapshot };
 })();
