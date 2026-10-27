@@ -22,7 +22,7 @@
 <div id="controls"><label for="file">♫ LOAD MP3<input id="file" type="file" accept="audio/*,.mp3"></label><button id="play" type="button">▶ PLAY</button></div>
 <audio id="audio" playsinline preload="metadata"></audio>
 <script id="vshader" type="x-shader/x-vertex">
-attribute vec3 color;attribute float phase;attribute float radius;attribute float sparkle;
+attribute float phase;attribute float radius;attribute float sparkle;
 uniform float time;uniform float bass;uniform float mid;uniform float treble;uniform float beat;uniform float dpr;
 varying vec3 vColor;varying float vOpacity;
 void main(){
