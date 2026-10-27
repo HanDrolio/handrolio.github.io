@@ -1,154 +1,253 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#050613"><title>COSM.OS // FREQUENCY ENGINE</title>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#02040f">
+<title>COSM.OS · LIVE UNIVERSE</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050613;color:#eef4ff;font-family:system-ui,-apple-system,sans-serif}body{overscroll-behavior:none}#stage{position:fixed;inset:0;touch-action:none}#stage canvas{display:block;width:100%;height:100%}#top{position:fixed;top:max(12px,env(safe-area-inset-top));left:16px;right:16px;pointer-events:none;text-shadow:0 2px 12px #000;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}#brand{font-weight:950;letter-spacing:.13em;font-size:clamp(15px,4vw,23px)}#brand small{display:block;font-size:9px;color:#9cb0c9;letter-spacing:.28em;margin-top:5px}#meter{font:700 11px ui-monospace,monospace;text-align:right;color:#9cf5e5}#panel{position:fixed;bottom:max(12px,env(safe-area-inset-bottom));left:10px;right:10px;border:1px solid #9bb4ef55;border-radius:20px;padding:13px;background:linear-gradient(145deg,#131a32ec,#0a1027ed);box-shadow:0 8px 50px #0009;backdrop-filter:blur(18px);max-width:680px;margin:auto;transition:transform .25s,opacity .25s}#panel.hidden{transform:translateY(calc(100% + 40px));opacity:0;pointer-events:none}select{background:#263153;border:1px solid #748bd67a;color:#f4f8ff;border-radius:10px;padding:9px;font-size:12px;font-weight:700;min-width:0}.mode-row{display:flex;align-items:center;gap:6px;margin-bottom:10px}.mode-row select{flex:1}.mode-row button{padding:9px 10px;flex:none}.stage-label{font-size:9px;letter-spacing:.18em;color:#aa9bff;margin-bottom:5px}button,.file{background:#263153;color:#f4f8ff;border:1px solid #748bd67a;border-radius:11px;padding:10px 12px;font-size:12px;font-weight:800;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}button:active,.file:active{transform:scale(.96)}button.recording{background:#9d223d;border-color:#ff7f8c;color:white;animation:recBlink 1.4s infinite}@keyframes recBlink{50%{box-shadow:0 0 18px #ff506388}}#exportStatus{font-size:10px;color:#c5e8ff;line-height:1.4;margin-top:5px;min-height:13px}button.primary,.file{background:linear-gradient(130deg,#3b7da9,#7149bb);border-color:#b9b9ff}.row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.row>*{flex:1}#file{display:none}#name{font-size:12px;color:#d8e1ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 9px}#seek{width:100%;accent-color:#8cefff;touch-action:pan-x}#times{display:flex;justify-content:space-between;color:#94a9c4;font:11px ui-monospace,monospace;margin-bottom:9px}.settings{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.setting{display:flex;flex-direction:column;gap:3px;font-size:10px;color:#acbed7}.setting input{width:100%;accent-color:#b398ff}.foot{font-size:10px;color:#8194b4;text-align:center;margin:9px 0 0}#toggle{position:fixed;right:12px;top:max(70px,env(safe-area-inset-top) + 58px);z-index:4;padding:9px 12px;background:#17203bc9}#status{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);pointer-events:none;color:#b7c5e7;text-align:center;font-size:13px;text-shadow:0 2px 8px #000;opacity:.9;max-width:85vw}#status.hide{display:none}@media(max-height:550px){#panel{padding:9px}.settings{display:none}.foot{display:none}#top{top:6px}#toggle{top:40px}}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040f;color:#eef5ff;font-family:system-ui,-apple-system,sans-serif;overscroll-behavior:none}
+#space{position:fixed;inset:0;touch-action:none}#space canvas{display:block;width:100%;height:100%;touch-action:none}
+#brand{position:fixed;z-index:2;top:max(16px,env(safe-area-inset-top));left:17px;pointer-events:none;text-shadow:0 2px 12px #000;font-size:18px;font-weight:950;letter-spacing:.16em}
+#brand small{display:block;font-size:9px;font-weight:700;color:#a9c5e6;letter-spacing:.16em;margin-top:5px;max-width:72vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#brand b{color:#bbabff}
+#controls{position:fixed;z-index:5;bottom:max(15px,env(safe-area-inset-bottom) + 13px);left:12px;right:12px;max-width:550px;margin:auto;display:flex;gap:12px}
+#controls label,#controls button{flex:1;display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:17px;border:1px solid #aabfff88;background:#141d37e8;color:#fff;font-weight:900;font-size:14px;letter-spacing:.05em;box-shadow:0 5px 24px #000b;backdrop-filter:blur(16px);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#controls label{background:linear-gradient(120deg,#3277b1df,#7851b9ec);border-color:#aed1ff}#controls button:active,#controls label:active{transform:scale(.96)}
+#file{display:none}
+#hint{position:fixed;bottom:max(83px,env(safe-area-inset-bottom) + 83px);left:12px;right:12px;text-align:center;z-index:3;color:#bed9ff;pointer-events:none;text-shadow:0 2px 10px #000;font-size:11px;letter-spacing:.06em;min-height:14px}
+@media(max-height:440px){#controls{bottom:6px;gap:6px}#controls label,#controls button{min-height:38px}#hint{bottom:51px}}
 </style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script></head>
-<body><div id="stage"></div><div id="top"><div id="brand">COSM.OS <span style="color:#a59aff">✦</span><small>FREQUENCY ENGINE // GALAXY</small></div><div id="meter">BASS <span id="bass">00</span>%<br>ENERGY <span id="energy">00</span>%<br>BEAT <span id="tempo">--</span> BPM</div></div><button id="toggle">☷ HIDE UI</button><div id="status">✦ Drag to orbit · Pinch to zoom<br>Load an MP3 to wake the galaxy</div>
-<div id="panel"><div class="stage-label">STAGE I · VISUAL ENGINE</div><div class="mode-row"><select id="mode" aria-label="Visual mode"><option value="galaxy">🌌 Spiral Galaxy</option><option value="tunnel">🌀 Hyperspace Tunnel</option><option value="nebula">☁️ Nebula Cloud</option><option value="orbitals">🪐 Orbital Rings</option><option value="supernova">💥 Supernova</option><option value="vortex">🌪️ Vortex</option></select><select id="preset" aria-label="Color preset"><option value="cosmic">COSMIC</option><option value="inferno">INFERNO</option><option value="ocean">OCEAN</option><option value="toxic">TOXIC</option><option value="sunset">SUNSET</option><option value="mono">MONOCHROME</option></select><button id="autoPreset">↻ AUTO</button></div><div id="name">NO TRACK LOADED · IDLE COSMOS</div><input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek through song"><div id="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div><div class="row"><label class="file" for="file">♫ LOAD MP3<input id="file" type="file" accept="audio/*,.mp3"></label><button class="primary" id="play">▶ PLAY</button><button id="shuffle">✧ RESEED</button><button id="full">⛶ FULL</button></div><div class="row" style="margin-top:8px"><button id="record">● RECORD CLIP</button><button id="snap">▣ SNAPSHOT</button></div><div id="exportStatus">STAGE III · RECORD VIDEO WITH AUDIO WHERE SUPPORTED · SNAPSHOT WORKS ON IOS</div><div class="settings"><label class="setting">SENSITIVITY <span id="sensVal">1.5×</span><input id="sens" type="range" min=".5" max="3.5" step=".1" value="1.5"></label><label class="setting">GALAXY SPEED <span id="speedVal">1.0×</span><input id="speed" type="range" min=".2" max="3" step=".1" value="1"></label><label class="setting">PARTICLE GLOW <span id="glowVal">1.0×</span><input id="glow" type="range" min=".3" max="2" step=".1" value="1"></label><label class="setting">HUE SHIFT <span id="hueVal">0°</span><input id="hue" type="range" min="0" max="360" step="1" value="0"></label></div><div class="foot">6 VISUAL MODES · YOUR MUSIC STAYS ON YOUR DEVICE · <a href="https://github.com/jasonulbright/wavescope" target="_blank" rel="noopener" style="color:#a7c8ff">WAVESCOPE</a> MIT ENGINE INSPIRATION · <a href="/WAVESCOPE-LICENSE.txt" style="color:#a7c8ff">LICENSE</a></div></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
+</head><body>
+<div id="space"></div><div id="brand">COSM.OS <b>✦</b><small id="track">LIVE UNIVERSE · DRAG TO ORBIT · PINCH TO ZOOM</small></div>
+<div id="hint">LOAD AN MP3 TO WAKE THE UNIVERSE</div>
+<div id="controls"><label for="file">♫ LOAD MP3<input id="file" type="file" accept="audio/*,.mp3"></label><button id="play" type="button">▶ PLAY</button></div>
 <audio id="audio" playsinline preload="metadata"></audio>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec3 color;attribute float phase;attribute float radius;attribute float sparkle;
+uniform float time;uniform float bass;uniform float mid;uniform float treble;uniform float beat;uniform float dpr;
+varying vec3 vColor;varying float vOpacity;
+void main(){
+ vec3 p=position;float a=time*(.055+.18/(radius+3.));float s=sin(a),c=cos(a);
+ p.xz=mat2(c,-s,s,c)*p.xz;
+ p.xz*=1.+bass*.95+beat*.48;
+ p.y+=sin(time*3.+phase+radius*.75)*(.09+mid*2.);
+ p.y+=sin(time*7.+phase*2.)*treble*.75;
+ p+=normalize(p+vec3(.001))*(beat*(.35+sparkle));
+ vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;
+ gl_PointSize=clamp((4.9+bass*10.+treble*7.+beat*10.)*dpr*(30./max(5.,-mv.z)),2.6*dpr,22.*dpr);
+ vColor=color*(1.+bass*.8+beat*.7+treble*.5);vOpacity=.65+.35*sparkle;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+varying vec3 vColor;varying float vOpacity;
+void main(){vec2 d=gl_PointCoord-vec2(.5);float r=length(d);
+float a=(1.-smoothstep(.05,.49,r))*.68+exp(-r*r*65.)*.65;
+gl_FragColor=vec4(vColor*(1.+exp(-r*r*24.)*.7),min(1.,a*vOpacity));}
+</script>
 <script type="module">
 import * as THREE from 'three';
-const $=id=>document.getElementById(id),stage=$('stage'),audio=$('audio');
-let renderer,scene,camera,galaxy,material,geometry,stars,starGeo,starMat,core,halo,ring;
-let count=innerWidth<700?6500:11500,positions,colors,original,phases,radii;
-let yaw=.1,pitch=.22,dist=25,drag=null,touches=new Map(),lastPinch=0;
-let ctx=null,analyser=null,source=null,bins=null,waves=null,level=0,bass=0,mids=0,treble=0,beat=0,prevBass=0,bassAvg=0,lastOnset=-10,tempoHistory=[],bpm=0,clock=new THREE.Clock(),url=null,playing=false,seed=Math.random()*99999;
-let recorder=null,recordStream=null,recordTap=null,recordChunks=[],recordStart=0,recordMime='',recordTimer=null,recordBusy=false;
-let sensitivity=1.5,speed=1,glow=1,hue=0,seekDrag=false,mode="galaxy",colorPreset="cosmic",autoPreset=false,lastPresetTime=0;
-const fmt=t=>{if(!Number.isFinite(t))return '0:00';return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')};
-const rng=(s)=>{let n=s>>>0;return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296}};
-function init(){
-renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6));renderer.setSize(innerWidth,innerHeight);renderer.setClearColor(0x030511,1);
-renderer.outputColorSpace=THREE.SRGBColorSpace;stage.appendChild(renderer.domElement);
-scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x050616,.009);
-camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,250);
-camera.position.set(0,6,25);
-makeGalaxy();makeStars();makeCore();
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6))});
-animate();
-}
-function makeGalaxy(){
-if(galaxy){scene.remove(galaxy);geometry.dispose();material.dispose()}
-const rand=rng(Math.floor(seed)),arms=5;positions=new Float32Array(count*3);original=new Float32Array(count*3);colors=new Float32Array(count*3);phases=new Float32Array(count);radii=new Float32Array(count);
-const palettes={cosmic:['#67e8ff','#a57dff','#ff6bb6'],inferno:['#ffdf7a','#ff3a18','#c00267'],ocean:['#a2fffa','#149de9','#3442b9'],toxic:['#e9ff8d','#51ff87','#11aab2'],sunset:['#ffbb78','#ff568f','#8c63f7'],mono:['#ffffff','#9cbbf9','#426197']};
-const palette=palettes[colorPreset]||palettes.cosmic,inner=new THREE.Color(palette[0]),outer=new THREE.Color(palette[1]),warm=new THREE.Color(palette[2]),color=new THREE.Color();
-for(let i=0;i<count;i++){
-const radius=Math.pow(rand(),.72)*12.5+.2,arm=i%arms,angle=arm/arms*Math.PI*2+radius*.56+(rand()-.5)*(.24+radius*.038),scatter=(rand()-.5)*(.12+radius*.085);
-let x=Math.cos(angle)*radius+scatter,z=Math.sin(angle)*radius+(rand()-.5)*(.12+radius*.08),y=(rand()-.5)*(.2+radius*.17);
-if(mode==='tunnel'){const a=rand()*Math.PI*2,rr=4+rand()*8,depth=(rand()-.5)*44;x=Math.cos(a)*rr;y=Math.sin(a)*rr;z=depth}
-else if(mode==='nebula'){const a=rand()*6.283,v=rand()*2-1,rr=Math.pow(rand(),.63)*14,rad=Math.sqrt(1-v*v);x=rr*rad*Math.cos(a);y=rr*v*.73;z=rr*rad*Math.sin(a)}
-else if(mode==='orbitals'){const shell=i%9,rr=2+shell*1.3+(rand()-.5)*.8,a=rand()*6.283,tilt=shell*.33;x=Math.cos(a)*rr;y=Math.sin(a)*rr*Math.sin(tilt);z=Math.sin(a)*rr*Math.cos(tilt)}
-else if(mode==='supernova'){const a=rand()*6.283,v=rand()*2-1,rr=2+Math.pow(rand(),.47)*10,rad=Math.sqrt(1-v*v);x=rr*rad*Math.cos(a);y=rr*v;z=rr*rad*Math.sin(a)}
-else if(mode==='vortex'){const a=rand()*6.283,depth=(rand()-.5)*24,rr=2+(depth+12)*.48;x=Math.cos(a+depth*.28)*rr;y=depth*.7;z=Math.sin(a+depth*.28)*rr}
-const k=i*3;original[k]=x;original[k+1]=y;original[k+2]=z;positions[k]=x;positions[k+1]=y;positions[k+2]=z;
-phases[i]=rand()*Math.PI*2;radii[i]=radius;
-color.copy(inner).lerp(outer,Math.min(1,radius/12.5));if(rand()<.22)color.lerp(warm,.55);
-colors[k]=color.r;colors[k+1]=color.g;colors[k+2]=color.b;
-}
-geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
-material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,vertexColors:true,uniforms:{uSize:{value:Math.min(devicePixelRatio||1,1.6)*2.6},uGlow:{value:1},uHue:{value:0},uPulse:{value:0}},vertexShader:`
-attribute vec3 color;varying vec3 vColor;uniform float uSize;uniform float uGlow;uniform float uHue;uniform float uPulse;
-vec3 hueShift(vec3 c,float a){vec3 axis=normalize(vec3(1.0));return c*cos(a)+cross(axis,c)*sin(a)+axis*dot(axis,c)*(1.0-cos(a));}
-void main(){vColor=max(vec3(0.0),hueShift(color,uHue));vec4 mv=modelViewMatrix*vec4(position,1.0);gl_Position=projectionMatrix*mv;gl_PointSize=clamp(uSize*(1.0+uPulse*.9)*uGlow*(30.0/max(4.0,-mv.z)),1.0,14.0);}
-`,fragmentShader:`varying vec3 vColor;void main(){float r=length(gl_PointCoord-.5);float a=smoothstep(.5,.03,r);float hot=exp(-r*r*32.0);gl_FragColor=vec4(vColor*(1.0+hot*.8),a*.85);}`});
-galaxy=new THREE.Points(geometry,material);scene.add(galaxy);
-}
-function makeStars(){const rand=rng(9012),p=new Float32Array(2400*3);for(let i=0;i<2400;i++){const theta=rand()*Math.PI*2,v=rand()*2-1,r=55+rand()*75,t=Math.sqrt(1-v*v);p[i*3]=r*t*Math.cos(theta);p[i*3+1]=r*v;p[i*3+2]=r*t*Math.sin(theta)}starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.BufferAttribute(p,3));starMat=new THREE.PointsMaterial({color:0x7f99cb,size:.12,transparent:true,opacity:.65,depthWrite:false});stars=new THREE.Points(starGeo,starMat);scene.add(stars)}
-function makeCore(){core=new THREE.Mesh(new THREE.IcosahedronGeometry(.62,3),new THREE.MeshBasicMaterial({color:0xc3f9ff,transparent:true,opacity:.9}));scene.add(core);halo=new THREE.Sprite(new THREE.SpriteMaterial({map:makeGlow(),color:0x68aaff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));halo.scale.set(9,9,1);scene.add(halo);ring=new THREE.Mesh(new THREE.TorusGeometry(4.5,.018,4,120),new THREE.MeshBasicMaterial({color:0x8d75ff,transparent:true,opacity:.5}));ring.rotation.x=Math.PI/2.6;scene.add(ring)}
-function makeGlow(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),grad=g.createRadialGradient(64,64,0,64,64,64);grad.addColorStop(0,'rgba(255,255,255,1)');grad.addColorStop(.15,'rgba(160,220,255,.55)');grad.addColorStop(.45,'rgba(70,80,255,.15)');grad.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=grad;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
-function connectAudio(){try{ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();ctx.resume();if(!source){source=ctx.createMediaElementSource(audio);analyser=ctx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.72;bins=new Uint8Array(analyser.frequencyBinCount);waves=new Uint8Array(analyser.fftSize);source.connect(analyser);analyser.connect(ctx.destination)}}catch(e){$('name').textContent='Audio analyzer error: '+e.message}}
-// Analysis adapted from WaveScope's MIT-licensed analyze.ts (Signal Ridge Labs, 2026).
-// Use true sample rate for Hz ranges; RMS level and bass-relative onset envelope.
-// https://github.com/jasonulbright/wavescope/blob/main/app/src/lib/viz/analyze.ts
-function spectrum(dt,t){
-if(analyser&&!audio.paused){
-analyser.getByteFrequencyData(bins);analyser.getByteTimeDomainData(waves);
-const hzPerBin=ctx.sampleRate/2/bins.length;
-const band=(low,high)=>{let a=Math.max(0,Math.floor(low/hzPerBin)),b=Math.min(bins.length-1,Math.ceil(high/hzPerBin)),sum=0;for(let i=a;i<=b;i++)sum+=bins[i];return sum/Math.max(1,(b-a+1)*255)};
-const bb=band(20,250),mm=band(250,4000),tt=band(4000,16000);
-bass+=(bb-bass)*Math.min(1,dt*13);mids+=(mm-mids)*Math.min(1,dt*13);treble+=(tt-treble)*Math.min(1,dt*13);
-let rms=0;for(let i=0;i<waves.length;i+=4){const v=(waves[i]-128)/128;rms+=v*v}rms=Math.sqrt(rms/(waves.length/4));
-level+=(rms-level)*.2;
-// WaveScope onset logic: bass > rolling average ×1.35, minimum floor .08.
-bassAvg+=(bb-bassAvg)*.04;
-const onset=bb>Math.max(.08,bassAvg*1.35)&&t-lastOnset>.24;
-if(onset){
-beat=1;
-if(lastOnset>=0){const interval=t-lastOnset;if(interval>.28&&interval<1.3){tempoHistory.push(interval);if(tempoHistory.length>12)tempoHistory.shift();const sorted=[...tempoHistory].sort((a,b)=>a-b);const median=sorted[Math.floor(sorted.length/2)];bpm=Math.round(60/median);while(bpm>190)bpm=Math.round(bpm/2);while(bpm>0&&bpm<65)bpm*=2}}
-lastOnset=t;
-}
-beat*=Math.exp(-6*dt);
-}else{bass+=(0-bass)*Math.min(1,dt*3);mids+=(0-mids)*Math.min(1,dt*3);treble+=(0-treble)*Math.min(1,dt*3);level+=(0-level)*Math.min(1,dt*3);beat*=Math.exp(-6*dt)}
-$('bass').textContent=String(Math.min(999,Math.round(bass*100*sensitivity))).padStart(2,'0');
-$('energy').textContent=String(Math.min(999,Math.round(level*100*sensitivity))).padStart(2,'0');
-$('tempo').textContent=bpm||'--';
-}
-function animate(){requestAnimationFrame(animate);const dt=Math.min(.05,clock.getDelta()),t=clock.elapsedTime;spectrum(dt,t);
-if(autoPreset&&analyser&&!audio.paused&&t-lastPresetTime>22){const modes=['galaxy','tunnel','nebula','orbitals','supernova','vortex'];mode=modes[(modes.indexOf(mode)+1)%modes.length];$('mode').value=mode;lastPresetTime=t;makeGalaxy()}
-const pulse=Math.min(2.5,(bass*2.1+mids*.8+beat*.7)*sensitivity);
-const pos=geometry.attributes.position.array;
-for(let i=0;i<count;i++){const k=i*3,r=radii[i],phase=phases[i],a=t*(.07+1/(r+4)*.3)*speed;const cs=Math.cos(a),sn=Math.sin(a),x=original[k],z=original[k+2],wave=Math.sin(t*1.8+phase+r*.7);
-pos[k]=(x*cs-z*sn)*(1+pulse*(mode==="supernova"?.38:.11));
-pos[k+2]=(x*sn+z*cs)*(1+pulse*(mode==="supernova"?.38:.11));
-pos[k+1]=original[k+1]*(1+pulse*(mode==="supernova"?.38:.06))+wave*(.05+treble*sensitivity*.7)+Math.sin(t*1.2+r*.9+phase)*mids*sensitivity*.8;
-}
-geometry.attributes.position.needsUpdate=true;
-material.uniforms.uGlow.value=glow;material.uniforms.uHue.value=hue*Math.PI/180;material.uniforms.uPulse.value=pulse;
-core.scale.setScalar(1+pulse*.55);core.rotation.y+=dt*.35;halo.scale.setScalar(8+pulse*5);halo.material.opacity=.55+Math.min(.45,level*sensitivity);ring.scale.setScalar(1+pulse*.13);ring.rotation.z+=dt*.12*speed;
-galaxy.rotation.y+=dt*.025*speed;stars.rotation.y+=dt*.002;
-if(!drag&&touches.size===0)yaw+=dt*.035*speed;
-pitch=THREE.MathUtils.clamp(pitch,-1.42,1.42);
-camera.position.set(dist*Math.cos(pitch)*Math.sin(yaw),dist*Math.sin(pitch),dist*Math.cos(pitch)*Math.cos(yaw));camera.lookAt(0,0,0);
-renderer.render(scene,camera);
-if(!seekDrag&&Number.isFinite(audio.duration)&&audio.duration>0){$('seek').value=String(Math.round(audio.currentTime/audio.duration*1000))}$('elapsed').textContent=fmt(audio.currentTime);$('duration').textContent=fmt(audio.duration)}
-function pointerDown(e){if(e.target!==renderer.domElement)return;e.preventDefault();stage.setPointerCapture(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});drag={x:e.clientX,y:e.clientY};lastPinch=0}
-function pointerMove(e){if(!touches.has(e.pointerId))return;e.preventDefault();const prev=touches.get(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touches.size===1){yaw-=(e.clientX-prev.x)*.007;pitch+=(e.clientY-prev.y)*.007}else if(touches.size>=2){const pts=[...touches.values()],d=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);if(lastPinch)dist=THREE.MathUtils.clamp(dist*lastPinch/Math.max(1,d),8,75);lastPinch=d}}
-function pointerUp(e){touches.delete(e.pointerId);lastPinch=0;if(!touches.size)drag=null}
-stage.addEventListener('pointerdown',pointerDown);stage.addEventListener('pointermove',pointerMove);stage.addEventListener('pointerup',pointerUp);stage.addEventListener('pointercancel',pointerUp);stage.addEventListener('lostpointercapture',pointerUp);stage.addEventListener('wheel',e=>{dist=THREE.MathUtils.clamp(dist+e.deltaY*.025,8,75)},{passive:true});
-$('file').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(f);audio.src=url;audio.load();bassAvg=0;lastOnset=-10;tempoHistory=[];bpm=0;$('name').textContent='♫ '+f.name;$('status').classList.add('hide');connectAudio();audio.play().then(()=>{$('play').textContent='Ⅱ PAUSE'}).catch(()=>{$('play').textContent='▶ PLAY'})});
-$('play').onclick=()=>{if(!audio.src){$('name').textContent='LOAD AN MP3 FIRST';return}connectAudio();if(audio.paused)audio.play().then(()=>{$('play').textContent='Ⅱ PAUSE'}).catch(()=>{});else{audio.pause();$('play').textContent='▶ PLAY'}};
-audio.addEventListener('ended',()=>{$('play').textContent='▶ PLAY'});
-$('seek').addEventListener('pointerdown',()=>seekDrag=true);$('seek').addEventListener('input',()=>{if(Number.isFinite(audio.duration))audio.currentTime=+$('seek').value/1000*audio.duration});$('seek').addEventListener('change',()=>seekDrag=false);addEventListener('pointerup',()=>seekDrag=false);
-// Recording approach adapted from WaveScope's MIT-licensed ClipRecorder
-// https://github.com/jasonulbright/wavescope/blob/main/app/src/lib/viz/record.ts
-function noteExport(message){$('exportStatus').textContent=message}
-function downloadBlob(blob,filename){const link=document.createElement('a'),linkUrl=URL.createObjectURL(blob);link.href=linkUrl;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(linkUrl),60000)}
-function releaseRecording(){if(recordStream){recordStream.getTracks().forEach(t=>t.stop());recordStream=null}if(recordTap){try{analyser.disconnect(recordTap)}catch(e){}recordTap=null}if(recordTimer){clearInterval(recordTimer);recordTimer=null}}
-function stopRecording(){if(!recorder||recorder.state==='inactive')return;try{recorder.stop();noteExport('ENCODING CLIP…')}catch(e){noteExport('RECORDER ERROR: '+e.message);releaseRecording()}}
-function beginRecording(){
-if(recordBusy)return;
-if(!renderer?.domElement?.captureStream){noteExport('THIS SAFARI VERSION CANNOT RECORD CANVAS VIDEO. USE IOS SCREEN RECORDING OR SNAPSHOT.');return}
-if(typeof MediaRecorder==='undefined'){noteExport('MEDIARECORDER NOT AVAILABLE. TRY SAFARI SCREEN RECORDING OR SNAPSHOT.');return}
-const types=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
-const mime=types.find(m=>MediaRecorder.isTypeSupported(m))||'';
-try{
-const stream=renderer.domElement.captureStream(30);
-if(analyser&&ctx&&!audio.paused){const dest=ctx.createMediaStreamDestination();analyser.connect(dest);recordTap=dest;dest.stream.getAudioTracks().forEach(track=>stream.addTrack(track))}
-const opts=mime?{mimeType:mime,videoBitsPerSecond:4500000}:{videoBitsPerSecond:4500000};
-const rec=new MediaRecorder(stream,opts);recordStream=stream;recorder=rec;recordChunks=[];recordBusy=true;recordStart=performance.now();recordMime=mime||rec.mimeType||'video/webm';
-rec.ondataavailable=e=>{if(e.data&&e.data.size)recordChunks.push(e.data)};
-rec.onerror=e=>{noteExport('RECORDING ERROR');$('record').classList.remove('recording');$('record').textContent='● RECORD CLIP';releaseRecording();recordBusy=false};
-rec.onstop=()=>{
-const blob=recordChunks.length?new Blob(recordChunks,{type:rec.mimeType||recordMime}):null;
-releaseRecording();recordBusy=false;recorder=null;recordChunks=[];$('record').textContent='● RECORD CLIP';$('record').classList.remove('recording');
-if(blob&&blob.size){const ext=(blob.type.includes('mp4')?'mp4':'webm');downloadBlob(blob,'COSMOS-FREQUENCY-'+Date.now()+'.'+ext);noteExport('SAVED '+ext.toUpperCase()+' CLIP · '+Math.round(blob.size/1024/1024*10)/10+' MB')}else noteExport('NO VIDEO DATA RECEIVED. TRY IOS SCREEN RECORDING.')
+const $=id=>document.getElementById(id),audio=$('audio'),host=$('space');
+const mobile=innerWidth<700,clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const rngInit=seed=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+let renderer,scene,camera,world,galaxy,galaxyMat,stars,core,coreGlow,light,texture;
+let planets=[],comets=[],sats=[],craft=[],rings=[],touches=new Map(),pinch=0,yaw=.2,pitch=.21,distance=31;
+let ctx=null,analyser=null,source=null,fft=null,wave=null,bass=0,mid=0,treble=0,level=0,beat=0,averageBass=0,lastBeat=-20,url=null,prev=performance.now(),hintUntil=0;
+const glowTexture=()=>{
+ const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),grad=g.createRadialGradient(64,64,0,64,64,64);
+ grad.addColorStop(0,'rgba(255,255,255,1)');grad.addColorStop(.13,'rgba(210,238,255,.95)');grad.addColorStop(.32,'rgba(130,180,255,.35)');grad.addColorStop(1,'rgba(0,0,0,0)');
+ g.fillStyle=grad;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);
 };
-rec.start(1000);$('record').textContent='■ STOP RECORDING';$('record').classList.add('recording');
-noteExport('RECORDING VISUALS'+(recordTap?' + MUSIC':' (NO AUDIO SOURCE)')+' · MAX 60 SECONDS');
-recordTimer=setInterval(()=>{if(recorder&&recorder.state==='recording'&&performance.now()-recordStart>=60000)stopRecording()},800);
-}catch(err){releaseRecording();recordBusy=false;recorder=null;$('record').classList.remove('recording');$('record').textContent='● RECORD CLIP';noteExport('RECORDING UNSUPPORTED: '+err.message)}
+function halo(color,size,opacity=.5){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,color,transparent:true,opacity,blending:THREE.AdditiveBlending,depthWrite:false}));s.scale.set(size,size,1);return s}
+function say(txt,duration=3){$('hint').textContent=txt;hintUntil=performance.now()+duration*1000}
+function galaxyMesh(){
+ const n=mobile?8500:17000,rand=rngInit(4568),pos=new Float32Array(n*3),col=new Float32Array(n*3),phase=new Float32Array(n),radii=new Float32Array(n),spark=new Float32Array(n);
+ const hues=['#66eaff','#6588ff','#bd76ff','#ff85cf','#ffd3a6'].map(x=>new THREE.Color(x));
+ for(let i=0;i<n;i++){
+  const arm=i%5,r=Math.pow(rand(),.72)*12.8+.2,ang=arm*Math.PI*2/5+r*.51+(rand()-.5)*(.18+r*.04),j=i*3;
+  pos[j]=Math.cos(ang)*r+(rand()-.5)*r*.11;
+  pos[j+1]=(rand()-.5)*(.25+r*.22);
+  pos[j+2]=Math.sin(ang)*r+(rand()-.5)*r*.11;
+  const color=hues[arm].clone().lerp(hues[(arm+1)%5],r/26);
+  col[j]=color.r;col[j+1]=color.g;col[j+2]=color.b;phase[i]=rand()*6.28;radii[i]=r;spark[i]=rand();
+ }
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+ geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+ geo.setAttribute('phase',new THREE.BufferAttribute(phase,1));
+ geo.setAttribute('radius',new THREE.BufferAttribute(radii,1));
+ geo.setAttribute('sparkle',new THREE.BufferAttribute(spark,1));
+ galaxyMat=new THREE.ShaderMaterial({vertexShader:$('vshader').textContent,fragmentShader:$('fshader').textContent,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,vertexColors:true,uniforms:{time:{value:0},bass:{value:0},mid:{value:0},treble:{value:0},beat:{value:0},dpr:{value:Math.min(devicePixelRatio||1,1.5)}}});
+ galaxy=new THREE.Points(geo,galaxyMat);world.add(galaxy);
 }
-$('record').onclick=()=>{if(recorder&&recorder.state==='recording')stopRecording();else beginRecording()};
-$('snap').onclick=()=>{try{renderer.render(scene,camera);renderer.domElement.toBlob(blob=>{if(blob){downloadBlob(blob,'COSMOS-GALAXY-'+Date.now()+'.png');noteExport('PNG SNAPSHOT SAVED')}else noteExport('SNAPSHOT UNAVAILABLE')},'image/png')}catch(e){noteExport('SNAPSHOT FAILED: '+e.message)}};
-$('shuffle').onclick=()=>{seed=Math.random()*1e9;makeGalaxy()};
-$('mode').onchange=()=>{mode=$('mode').value;makeGalaxy()};
-$('preset').onchange=()=>{colorPreset=$('preset').value;makeGalaxy()};
-$('autoPreset').onclick=()=>{autoPreset=!autoPreset;$('autoPreset').textContent=autoPreset?'↻ ON':'↻ AUTO';$('autoPreset').classList.toggle('primary',autoPreset);lastPresetTime=clock.elapsedTime};
-$('full').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else{$('panel').classList.add('hidden');$('toggle').textContent='☷ SHOW UI'}}catch(e){$('panel').classList.add('hidden');$('toggle').textContent='☷ SHOW UI'}};
-$('toggle').onclick=()=>{const hidden=$('panel').classList.toggle('hidden');$('toggle').textContent=hidden?'☷ SHOW UI':'☷ HIDE UI'};
-for(const id of ['sens','speed','glow','hue'])$(id).addEventListener('input',()=>{sensitivity=+$('sens').value;speed=+$('speed').value;glow=+$('glow').value;hue=+$('hue').value;$('sensVal').textContent=sensitivity.toFixed(1)+'×';$('speedVal').textContent=speed.toFixed(1)+'×';$('glowVal').textContent=glow.toFixed(1)+'×';$('hueVal').textContent=hue+'°'});
+function starfield(){
+ const rand=rngInit(903),n=2200,pos=new Float32Array(n*3),color=new Float32Array(n*3);
+ for(let i=0;i<n;i++){let a=rand()*6.283,v=rand()*2-1,r=45+rand()*105,m=Math.sqrt(1-v*v);pos[i*3]=Math.cos(a)*m*r;pos[i*3+1]=v*r;pos[i*3+2]=Math.sin(a)*m*r;let brightness=.6+rand()*.4;color[i*3]=brightness*.75;color[i*3+1]=brightness*.83;color[i*3+2]=brightness}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(color,3));
+ stars=new THREE.Points(g,new THREE.PointsMaterial({size:.55,vertexColors:true,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));scene.add(stars)
+}
+function planetMap(colors,kind,index){
+ const c=document.createElement('canvas');c.width=256;c.height=128;const g=c.getContext('2d'),rand=rngInit(700+index*172),gr=g.createLinearGradient(0,0,0,128);
+ colors.forEach((x,i)=>gr.addColorStop(i/(colors.length-1),x));g.fillStyle=gr;g.fillRect(0,0,256,128);
+ for(let i=0;i<135;i++){g.globalAlpha=.08+rand()*.22;g.fillStyle=colors[Math.floor(rand()*colors.length)];g.beginPath();g.ellipse(rand()*256,rand()*128,7+rand()*100,1+rand()*(kind==='gas'?10:5),rand()*.12,0,Math.PI*2);g.fill()}
+ if(kind==='earth')for(let i=0;i<75;i++){g.fillStyle=rand()>.5?'#50d4a4':'#bafaff';g.globalAlpha=.12+rand()*.7;g.beginPath();g.ellipse(rand()*256,rand()*128,3+rand()*30,2+rand()*13,rand(),0,Math.PI*2);g.fill()}
+ if(kind==='lava')for(let i=0;i<80;i++){g.globalAlpha=.25+rand()*.65;g.fillStyle='#ffb750';g.fillRect(rand()*256,rand()*128,1+rand()*23,.3+rand()*1.6)}
+ g.globalAlpha=1;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+function planetsCreate(){
+ const definitions=[
+  {kind:'earth',colors:['#061f68','#1c8dd2','#a1fff5'],orb:5.2,size:1.1,angle:.27},
+  {kind:'gas',colors:['#32165b','#896ac1','#d0b0fc'],orb:8,size:1.42,angle:2.55},
+  {kind:'lava',colors:['#35070f','#c32d1a','#ff963f'],orb:10.3,size:.83,angle:4.7},
+  {kind:'ice',colors:['#163b69','#53b5da','#d3f5ff'],orb:12.5,size:1.05,angle:5.48}
+ ];
+ for(let i=0;i<definitions.length;i++){
+  const d=definitions[i],g=new THREE.Group();world.add(g);
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,32,24),new THREE.MeshStandardMaterial({map:planetMap(d.colors,d.kind,i),roughness:.8,metalness:.08,emissive:new THREE.Color(d.colors[1]),emissiveIntensity:.14}));
+  g.add(mesh);const aura=halo(d.colors[1],3.6,.18);g.add(aura);
+  const moon=new THREE.Mesh(new THREE.SphereGeometry(.16,12,10),new THREE.MeshStandardMaterial({color:0xb7cbdc,roughness:1}));g.add(moon);
+  if(d.kind==='gas'){for(const [r1,r2,a] of [[1.48,2.11,.49],[2.15,2.32,.38]]){const rm=new THREE.Mesh(new THREE.RingGeometry(r1,r2,100),new THREE.MeshBasicMaterial({color:0xc3aaff,transparent:true,opacity:a,side:THREE.DoubleSide,depthWrite:false}));rm.rotation.x=1.1;rm.rotation.y=.4;g.add(rm)}}
+  planets.push({g,mesh,aura,moon,...d});
+ }
+}
+function createCore(){
+ core=new THREE.Mesh(new THREE.IcosahedronGeometry(.52,3),new THREE.MeshStandardMaterial({color:0xbceeff,emissive:0x72a5ff,emissiveIntensity:1.8,metalness:.25,roughness:.15}));world.add(core);
+ coreGlow=halo(0x579eff,5.8,.48);world.add(coreGlow);
+ light=new THREE.PointLight(0xc4c2ff,5,70);world.add(light);
+ for(let i=0;i<5;i++){const mesh=new THREE.Mesh(new THREE.TorusGeometry(1,.037,4,96),new THREE.MeshBasicMaterial({color:i%2?0xb880ff:0x80faff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));mesh.rotation.set(.3*i,.7*i,.2*i);world.add(mesh);rings.push({mesh,age:10})}
+}
+function createSatellite(i){
+ const g=new THREE.Group(),silver=new THREE.MeshStandardMaterial({color:0xb8cbe2,metalness:.75,roughness:.25}),blue=new THREE.MeshStandardMaterial({color:0x1769bb,emissive:0x084678,emissiveIntensity:.7,metalness:.45});
+ g.add(new THREE.Mesh(new THREE.BoxGeometry(.48,.42,.55),silver));
+ for(const side of [-1,1]){const panel=new THREE.Mesh(new THREE.BoxGeometry(1.0,.07,.65),blue);panel.position.x=side*1.02;g.add(panel);const arm=new THREE.Mesh(new THREE.BoxGeometry(.47,.06,.08),silver);arm.position.x=side*.5;g.add(arm);for(let k=-1;k<=1;k++){const stripe=new THREE.Mesh(new THREE.BoxGeometry(.02,.076,.64),new THREE.MeshBasicMaterial({color:0x92e9ff}));stripe.position.x=side*1.02+k*.24;g.add(stripe)}}
+ const antenna=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.65,6),silver);antenna.position.y=.52;g.add(antenna);
+ const beacon=halo(0x67eeff,.85,.8);beacon.position.y=.8;g.add(beacon);world.add(g);sats.push({g,beacon,orb:4.4+i*2.3,angle:i*2.1,scale:.65+i*.04});
+}
+function createShip(i){
+ const g=new THREE.Group(),steel=new THREE.MeshStandardMaterial({color:i%2?0xf0a6df:0x9bccff,metalness:.8,roughness:.23,emissive:0x244b72,emissiveIntensity:.3});
+ const fuselage=new THREE.Mesh(new THREE.ConeGeometry(.42,1.8,3),steel);fuselage.rotation.x=Math.PI/2;g.add(fuselage);
+ const wings=new THREE.Mesh(new THREE.BoxGeometry(2.05,.09,.52),steel);wings.position.z=.2;g.add(wings);
+ const canopy=new THREE.Mesh(new THREE.SphereGeometry(.23,12,9),new THREE.MeshBasicMaterial({color:0x60eeff}));canopy.position.set(0,.19,-.21);g.add(canopy);
+ const engines=[];for(let side of [-1,1]){const e=halo(i%2?0xff76dd:0x5cdfff,1.15,.75);e.position.set(side*.47,0,.85);g.add(e);engines.push(e)}
+ world.add(g);craft.push({g,engines,orb:7.5+i*2.5,angle:i*2.5+.7,speed:.22+i*.045});
+}
+function cometPoint(c,t,result){
+ const a=t*c.speed+c.angle;return result.set(Math.cos(a)*c.orb,Math.sin(a*1.4+c.angle)*c.height,Math.sin(a)*c.orb);
+}
+function createComet(i){
+ const n=23,geometry=new THREE.BufferGeometry(),positions=new Float32Array(n*3);geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
+ const color=[0x85eaff,0xff8cdd,0xffd18d,0xc5a8ff][i%4];
+ const tail=new THREE.Line(geometry,new THREE.LineBasicMaterial({color,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false}));tail.frustumCulled=false;
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.13,8,6),new THREE.MeshBasicMaterial({color})),glow=halo(color,1.4,.9);world.add(tail,head,glow);
+ comets.push({tail,head,glow,n,orb:4+i*1.7,height:1.5+i*.28,angle:i*2.4,speed:.29+i*.047});
+}
+function init(){
+ renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.setClearColor(0x02040f);renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(renderer.domElement);
+ scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x03051a,.004);
+ world=new THREE.Group();scene.add(world);camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,230);
+ scene.add(new THREE.AmbientLight(0x9bafff,1));const sun=new THREE.DirectionalLight(0xaecbff,2.2);sun.position.set(10,12,15);scene.add(sun);
+ texture=glowTexture();galaxyMesh();starfield();createCore();planetsCreate();
+ for(let i=0;i<4;i++)createSatellite(i);for(let i=0;i<3;i++)createShip(i);for(let i=0;i<8;i++)createComet(i);
+ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));galaxyMat.uniforms.dpr.value=Math.min(devicePixelRatio||1,1.5)});
+ requestAnimationFrame(frame);
+}
+function connectSound(){
+ try{
+  if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();
+  if(!analyser){
+   analyser=ctx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.67;
+   fft=new Uint8Array(analyser.frequencyBinCount);wave=new Uint8Array(analyser.fftSize);
+   source=ctx.createMediaElementSource(audio);source.connect(analyser);analyser.connect(ctx.destination);
+  }
+  if(ctx.state!=='running')ctx.resume().catch(()=>{});
+ }catch(e){say('AUDIO VISUALIZATION ERROR: '+e.message,6)}
+}
+function band(low,high){
+ const step=ctx.sampleRate/2048,a=clamp(Math.floor(low/step),0,fft.length-1),b=clamp(Math.ceil(high/step),a,fft.length-1);let sum=0;
+ for(let i=a;i<=b;i++)sum+=fft[i];return sum/((b-a+1)*255);
+}
+function analyze(dt,t){
+ if(!analyser||audio.paused){const f=Math.exp(-dt*3);bass*=f;mid*=f;treble*=f;level*=f;beat*=Math.exp(-dt*4);return}
+ analyser.getByteFrequencyData(fft);analyser.getByteTimeDomainData(wave);
+ const b=band(25,190),m=band(190,2500),h=band(2500,13000);
+ let rms=0;for(let i=0;i<wave.length;i+=4){let p=(wave[i]-128)/128;rms+=p*p}rms=Math.sqrt(rms/(wave.length/4));
+ const k=1-Math.exp(-dt*15);bass+=(b-bass)*k;mid+=(m-mid)*k;treble+=(h-treble)*k;level+=(rms-level)*(1-Math.exp(-dt*12));
+ averageBass+=(b-averageBass)*(1-Math.exp(-dt*.65));
+ // WaveScope MIT-inspired band-relative onset envelope; make bursts conspicuous.
+ if(b>Math.max(.085,averageBass*1.3)&&t-lastBeat>.25){
+  beat=1;lastBeat=t;
+  const slot=rings.find(x=>x.age>1.3);if(slot)slot.age=0;
+ }
+ beat*=Math.exp(-dt*4.2);
+}
+function update(dt,t){
+ const b=clamp(bass*3.1,0,2.4),m=clamp(mid*3.7,0,2.2),h=clamp(treble*5,0,2.5),p=clamp(b*.8+beat*.8,0,2.5);
+ Object.assign(galaxyMat.uniforms.time,{value:t});
+ galaxyMat.uniforms.bass.value=b;galaxyMat.uniforms.mid.value=m;galaxyMat.uniforms.treble.value=h;galaxyMat.uniforms.beat.value=beat;
+ core.scale.setScalar(1+p*.55);core.material.emissiveIntensity=1.5+p*3.6;
+ coreGlow.scale.setScalar(4.8+p*7.2);coreGlow.material.opacity=.28+clamp(p*.24,0,.55);
+ light.intensity=4+p*6;
+ for(const item of rings){item.age+=dt;if(item.age<1.3){item.mesh.scale.setScalar(1+item.age*(5+p*2));item.mesh.material.opacity=.43*(1-item.age/1.3)}else item.mesh.material.opacity=0}
+ for(let i=0;i<planets.length;i++){
+  const o=planets[i],angle=o.angle+t*.062/Math.sqrt(o.orb/5)*(1+m*.45),radius=o.orb*(1+p*.09);
+  o.g.position.set(Math.cos(angle)*radius,Math.sin(angle*1.4)*(1+i*.15),Math.sin(angle)*radius);
+  o.g.scale.setScalar(o.size*(1+b*.2+beat*.3));o.mesh.rotation.y+=dt*(.23+m*.35);o.mesh.material.emissiveIntensity=.1+b*.26+beat*.55;
+  o.aura.material.opacity=.14+clamp(p*.18,0,.5);o.aura.scale.setScalar(3.2+beat*1.1);
+  const moonAngle=t*(.35+i*.08);o.moon.position.set(Math.cos(moonAngle)*2.2,Math.sin(moonAngle*1.4)*.65,Math.sin(moonAngle)*2.2);
+ }
+ for(let i=0;i<sats.length;i++){
+  const s=sats[i],a=t*(.16+i*.03)*(1+m*.85)+s.angle;
+  s.g.position.set(Math.cos(a)*s.orb,Math.sin(a*1.7)*1.8,Math.sin(a)*s.orb);
+  s.g.rotation.set(.1,a+.2,t*.3);s.g.scale.setScalar(s.scale*(1+beat*.23));
+  s.beacon.material.opacity=.4+clamp(h*.25+beat*.4,0,.6);s.beacon.scale.setScalar(.7+h*.6+beat*.8);
+ }
+ for(let i=0;i<craft.length;i++){
+  const s=craft[i],a=t*s.speed*(1+m*.7)+s.angle;
+  s.g.position.set(Math.cos(a)*s.orb,Math.sin(a*1.8+i)*1.9,Math.sin(a)*s.orb);
+  s.g.rotation.set(.1,a+Math.PI/2,t*.25);s.g.scale.setScalar(.9+beat*.25);
+  for(const e of s.engines){e.scale.setScalar(.8+h*1.6+beat*2);e.material.opacity=.55+clamp(h*.2+beat*.35,0,.45)}
+ }
+ const v=new THREE.Vector3();
+ for(const c of comets){
+  const attr=c.tail.geometry.attributes.position,speed=1+b*.7+beat*.4;
+  for(let j=0;j<c.n;j++){
+   cometPoint(c,t*speed-j*.04*(1+beat*1.3),v);attr.setXYZ(j,v.x,v.y,v.z);
+   if(j===0){c.head.position.copy(v);c.glow.position.copy(v)}
+  }
+  attr.needsUpdate=true;c.glow.scale.setScalar(1.1+p*1.2);c.glow.material.opacity=.4+clamp(p*.25,0,.55);
+ }
+ stars.rotation.y+=dt*.004;
+ const camDist=distance*(1-clamp(p*.045,0,.12));
+ camera.position.set(camDist*Math.cos(pitch)*Math.sin(yaw),camDist*Math.sin(pitch),camDist*Math.cos(pitch)*Math.cos(yaw));camera.lookAt(0,0,0);
+}
+function frame(now){
+ requestAnimationFrame(frame);const dt=clamp((now-prev)/1000,.001,.05);prev=now,t=now/1000;
+ analyze(dt,t);if(!touches.size)yaw+=dt*.035;update(dt,t);renderer.render(scene,camera);
+ if(hintUntil&&now>hintUntil){$('hint').textContent=audio.paused?'DRAG TO ORBIT · PINCH TO ZOOM':'THE UNIVERSE IS LISTENING ✦';hintUntil=0}
+}
+host.addEventListener('pointerdown',e=>{e.preventDefault();host.setPointerCapture(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});pinch=0});
+host.addEventListener('pointermove',e=>{
+ if(!touches.has(e.pointerId))return;e.preventDefault();
+ const p=touches.get(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(touches.size===1){yaw-=(e.clientX-p.x)*.007;pitch=clamp(pitch+(e.clientY-p.y)*.007,-1.43,1.43)}
+ else{const pts=[...touches.values()],d=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);if(pinch)distance=clamp(distance*pinch/Math.max(1,d),12,70);pinch=d}
+});
+const release=e=>{touches.delete(e.pointerId);pinch=0};
+host.addEventListener('pointerup',release);host.addEventListener('pointercancel',release);host.addEventListener('lostpointercapture',release);
+$('file').addEventListener('change',async e=>{
+ const f=e.target.files?.[0];if(!f)return;
+ if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(f);
+ audio.src=url;audio.load();$('track').textContent='♫ '+f.name;$('play').textContent='▶ PLAY';averageBass=0;lastBeat=-20;
+ connectSound();
+ try{await audio.play();$('play').textContent='Ⅱ PAUSE';say('THE UNIVERSE IS LISTENING ✦',3)}catch(err){say('MP3 LOADED · TAP PLAY',5)}
+});
+$('play').addEventListener('click',async()=>{
+ if(!audio.src){say('LOAD AN MP3 FIRST',4);return}
+ connectSound();
+ if(audio.paused){try{await audio.play();$('play').textContent='Ⅱ PAUSE';say('THE UNIVERSE IS LISTENING ✦',2)}catch(e){say('PLAYBACK FAILED: '+e.message,4)}}
+ else{audio.pause();$('play').textContent='▶ PLAY';say('PAUSED',2)}
+});
+audio.addEventListener('ended',()=>{$('play').textContent='▶ PLAY';say('TRACK ENDED',4)});
+audio.addEventListener('error',()=>{say('AUDIO FORMAT NOT SUPPORTED',5);$('play').textContent='▶ PLAY'});
 addEventListener('pagehide',()=>{if(url)URL.revokeObjectURL(url)});
-try{init()}catch(e){$('status').textContent='3D graphics unavailable: '+e.message;console.error(e)}
+try{init()}catch(e){console.error(e);say('3D ERROR: '+e.message,25)}
 </script></body></html>
