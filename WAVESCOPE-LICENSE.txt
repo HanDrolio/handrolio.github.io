@@ -1,0 +1,35 @@
+COSM.OS Frequency Engine — open-source notices
+
+This website contains modified/adapted code based on portions of WaveScope:
+https://github.com/jasonulbright/wavescope
+
+Source files consulted and adapted:
+- app/src/lib/viz/analyze.ts — sample-rate-correct frequency bands, waveform RMS smoothing, relative bass onset / beat envelope
+- app/src/lib/viz/record.ts — local canvas and audio graph capture using MediaRecorder, stop/cleanup, and browser-file download
+
+Original WaveScope project copyright (c) 2026 Signal Ridge Labs.
+WaveScope is licensed under the MIT License.
+Modifications: adapted to single-file Three.js HTML visualizer, added BPM estimate, 3D presets, mobile UI and recording fallback.
+This site is NOT a GitHub fork and is not affiliated with WaveScope.
+
+MIT License
+
+Copyright (c) 2026 Signal Ridge Labs
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
