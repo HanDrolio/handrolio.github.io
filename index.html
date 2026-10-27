@@ -50,7 +50,7 @@ const mobile=innerWidth<700,clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const rngInit=seed=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
 let renderer,scene,camera,world,galaxy,galaxyMat,stars,core,coreGlow,light,texture;
 let planets=[],comets=[],sats=[],craft=[],rings=[],touches=new Map(),pinch=0,yaw=.2,pitch=.21,distance=31;
-let ctx=null,analyser=null,source=null,fft=null,wave=null,bass=0,mid=0,treble=0,level=0,beat=0,averageBass=0,lastBeat=-20,url=null,prev=performance.now(),hintUntil=0;
+let ctx=null,analyser=null,source=null,fft=null,wave=null,bass=0,mid=0,treble=0,level=0,beat=0,averageBass=0,lastBeat=-20,url=null,prev=performance.now(),hintUntil=0,orbitClock=0,cometClock=0;
 const glowTexture=()=>{
  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),grad=g.createRadialGradient(64,64,0,64,64,64);
  grad.addColorStop(0,'rgba(255,255,255,1)');grad.addColorStop(.13,'rgba(210,238,255,.95)');grad.addColorStop(.32,'rgba(130,180,255,.35)');grad.addColorStop(1,'rgba(0,0,0,0)');
@@ -181,6 +181,7 @@ function analyze(dt,t){
 }
 function update(dt,t){
  const b=clamp(bass*3.1,0,2.4),m=clamp(mid*3.7,0,2.2),h=clamp(treble*5,0,2.5),p=clamp(b*.8+beat*.8,0,2.5);
+ orbitClock+=dt*(1+m*.5);cometClock+=dt*(1+b*.7+beat*.4);
  Object.assign(galaxyMat.uniforms.time,{value:t});
  galaxyMat.uniforms.bass.value=b;galaxyMat.uniforms.mid.value=m;galaxyMat.uniforms.treble.value=h;galaxyMat.uniforms.beat.value=beat;
  core.scale.setScalar(1+p*.55);core.material.emissiveIntensity=1.5+p*3.6;
@@ -188,29 +189,29 @@ function update(dt,t){
  light.intensity=4+p*6;
  for(const item of rings){item.age+=dt;if(item.age<1.3){item.mesh.scale.setScalar(1+item.age*(5+p*2));item.mesh.material.opacity=.43*(1-item.age/1.3)}else item.mesh.material.opacity=0}
  for(let i=0;i<planets.length;i++){
-  const o=planets[i],angle=o.angle+t*.062/Math.sqrt(o.orb/5)*(1+m*.45),radius=o.orb*(1+p*.09);
+  const o=planets[i],angle=o.angle+orbitClock*.062/Math.sqrt(o.orb/5),radius=o.orb*(1+p*.09);
   o.g.position.set(Math.cos(angle)*radius,Math.sin(angle*1.4)*(1+i*.15),Math.sin(angle)*radius);
   o.g.scale.setScalar(o.size*(1+b*.2+beat*.3));o.mesh.rotation.y+=dt*(.23+m*.35);o.mesh.material.emissiveIntensity=.1+b*.26+beat*.55;
   o.aura.material.opacity=.14+clamp(p*.18,0,.5);o.aura.scale.setScalar(3.2+beat*1.1);
   const moonAngle=t*(.35+i*.08);o.moon.position.set(Math.cos(moonAngle)*2.2,Math.sin(moonAngle*1.4)*.65,Math.sin(moonAngle)*2.2);
  }
  for(let i=0;i<sats.length;i++){
-  const s=sats[i],a=t*(.16+i*.03)*(1+m*.85)+s.angle;
+  const s=sats[i],a=orbitClock*(.16+i*.03)+s.angle;
   s.g.position.set(Math.cos(a)*s.orb,Math.sin(a*1.7)*1.8,Math.sin(a)*s.orb);
   s.g.rotation.set(.1,a+.2,t*.3);s.g.scale.setScalar(s.scale*(1+beat*.23));
   s.beacon.material.opacity=.4+clamp(h*.25+beat*.4,0,.6);s.beacon.scale.setScalar(.7+h*.6+beat*.8);
  }
  for(let i=0;i<craft.length;i++){
-  const s=craft[i],a=t*s.speed*(1+m*.7)+s.angle;
+  const s=craft[i],a=orbitClock*s.speed+s.angle;
   s.g.position.set(Math.cos(a)*s.orb,Math.sin(a*1.8+i)*1.9,Math.sin(a)*s.orb);
   s.g.rotation.set(.1,a+Math.PI/2,t*.25);s.g.scale.setScalar(.9+beat*.25);
   for(const e of s.engines){e.scale.setScalar(.8+h*1.6+beat*2);e.material.opacity=.55+clamp(h*.2+beat*.35,0,.45)}
  }
  const v=new THREE.Vector3();
  for(const c of comets){
-  const attr=c.tail.geometry.attributes.position,speed=1+b*.7+beat*.4;
+  const attr=c.tail.geometry.attributes.position;
   for(let j=0;j<c.n;j++){
-   cometPoint(c,t*speed-j*.04*(1+beat*1.3),v);attr.setXYZ(j,v.x,v.y,v.z);
+   cometPoint(c,cometClock-j*.04*(1+beat*1.3),v);attr.setXYZ(j,v.x,v.y,v.z);
    if(j===0){c.head.position.copy(v);c.glow.position.copy(v)}
   }
   attr.needsUpdate=true;c.glow.scale.setScalar(1.1+p*1.2);c.glow.material.opacity=.4+clamp(p*.25,0,.55);
