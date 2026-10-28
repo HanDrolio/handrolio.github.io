@@ -4,7 +4,7 @@
 <title>COSM.OS · LIVE UNIVERSE</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040f;color:#eef5ff;font-family:system-ui,-apple-system,sans-serif;overscroll-behavior:none}
-#space{position:fixed;inset:0;touch-action:none}#space canvas{display:block;width:100%;height:100%;touch-action:none}
+#space{position:fixed;inset:0;touch-action:none}#space>canvas{position:absolute;inset:0}#fallback{z-index:0}#space>canvas:not(#fallback){z-index:1}#space canvas{display:block;width:100%;height:100%;touch-action:none}
 #brand{position:fixed;z-index:2;top:max(16px,env(safe-area-inset-top));left:17px;pointer-events:none;text-shadow:0 2px 12px #000;font-size:18px;font-weight:950;letter-spacing:.16em}
 #brand small{display:block;font-size:9px;font-weight:700;color:#a9c5e6;letter-spacing:.16em;margin-top:5px;max-width:72vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #brand b{color:#bbabff}
@@ -17,10 +17,90 @@
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
 </head><body>
-<div id="space"></div><div id="brand">COSM.OS <b>✦</b><small id="track">LIVE UNIVERSE · DRAG TO ORBIT · PINCH TO ZOOM</small></div>
+<div id="space"><canvas id="fallback" aria-hidden="true"></canvas></div><div id="brand">COSM.OS <b>✦</b><small id="track">LIVE UNIVERSE · DRAG TO ORBIT · PINCH TO ZOOM</small></div>
 <div id="hint">LOAD AN MP3 TO WAKE THE UNIVERSE</div>
 <div id="controls"><label for="file">♫ LOAD MP3<input id="file" type="file" accept="audio/*,.mp3"></label><button id="play" type="button">▶ PLAY</button></div>
 <audio id="audio" playsinline preload="metadata"></audio>
+<script>
+// Independent 2D starfield fallback: runs even when the 3D module or CDN fails.
+// Uses the same MP3 file locally; no external network assets or dependencies.
+(()=>{
+'use strict';
+const canvas=document.getElementById('fallback'),g=canvas.getContext('2d',{alpha:false});
+const audio=document.getElementById('audio'),load=document.getElementById('file'),play=document.getElementById('play'),hint=document.getElementById('hint'),track=document.getElementById('track');
+const random=(()=>{let x=1747;return()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296}})();
+const points=Array.from({length:1000},()=>({angle:random()*6.283,r:Math.pow(random(),.72),arm:Math.floor(random()*5),z:random(),star:random()}));
+const far=Array.from({length:210},()=>({x:random(),y:random(),size:.4+random()*1.5,phase:random()*7}));
+let w=1,h=1,scale=1,turn=0,last=performance.now(),bass=0,mid=0,high=0,beat=0,mean=0,prevBeat=-10,context=null,analyser=null,frequency=null,wave=null,src=null,url=null;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function resize(){const d=Math.min(devicePixelRatio||1,1.5);w=canvas.clientWidth||innerWidth;h=canvas.clientHeight||innerHeight;canvas.width=Math.ceil(w*d);canvas.height=Math.ceil(h*d);scale=d;g.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',resize);resize();
+function connect(){
+try{
+if(!context)context=new(window.AudioContext||window.webkitAudioContext)();
+if(!analyser){
+analyser=context.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.65;
+frequency=new Uint8Array(analyser.frequencyBinCount);wave=new Uint8Array(analyser.fftSize);
+src=context.createMediaElementSource(audio);src.connect(analyser);analyser.connect(context.destination);
+}
+context.resume().catch(()=>{});
+window.cosmosFallbackAudio={ctx:context,analyser,fft:frequency,wave};
+}catch(err){hint.textContent='AUDIO ERROR: '+err.message}
+}
+function band(lo,hi){const step=context.sampleRate/2048,a=clamp(Math.floor(lo/step),0,frequency.length-1),b=clamp(Math.ceil(hi/step),a,frequency.length-1);let v=0;for(let i=a;i<=b;i++)v+=frequency[i];return v/((b-a+1)*255)}
+function analyze(dt,t){
+if(!analyser||audio.paused){const fade=Math.exp(-dt*3);bass*=fade;mid*=fade;high*=fade;beat*=Math.exp(-dt*4.5);return}
+analyser.getByteFrequencyData(frequency);const k=1-Math.exp(-dt*15);
+const b=band(25,190);bass+=(b-bass)*k;mid+=(band(190,2500)-mid)*k;high+=(band(2500,13000)-high)*k;
+mean+=(b-mean)*(1-Math.exp(-dt*.8));
+if(b>Math.max(.08,mean*1.3)&&t-prevBeat>.24){beat=1;prevBeat=t}beat*=Math.exp(-dt*4);
+}
+const colors=['#64eeff','#6b90ff','#ba83ff','#ff85c7','#ffd09b'];
+function draw(now){
+requestAnimationFrame(draw);if(window.cosmos3DReady)return;
+const dt=clamp((now-last)/1000,.001,.05);last=now;turn+=dt*.16;
+analyze(dt,now/1000);
+const b=clamp(bass*3.5,0,3),m=clamp(mid*3.5,0,3),v=clamp(high*5,0,3),pulse=b*.6+beat*.75;
+g.setTransform(scale,0,0,scale);g.fillStyle='#020411';g.fillRect(0,0,w,h);
+for(const p of far){g.globalAlpha=.25+.7*(.5+.5*Math.sin(now*.0007+p.phase));g.fillStyle='#c3dfff';g.fillRect(p.x*w,p.y*h,p.size,p.size)}g.globalAlpha=1;
+const centerX=w*.5,centerY=h*.43,rad=Math.min(w*.46,h*.29),rotation=turn;
+g.globalCompositeOperation='lighter';
+for(let i=0;i<points.length;i++){
+const p=points[i],r=(.08+p.r*.95)*rad*(1+pulse*.7),a=p.arm*6.283/5+p.r*3.1+p.angle*.28+rotation;
+const px=centerX+Math.cos(a)*r,py=centerY+Math.sin(a)*r*.62+Math.sin(now*.002+p.z*7)*(1+m*9);
+if(px<0||px>w||py<0||py>h)continue;
+g.globalAlpha=.38+clamp(v*.12+beat*.3,0,.56);g.fillStyle=colors[p.arm];g.beginPath();g.arc(px,py,(p.star>.92?2.1:1.1)*(1+b*.85+beat*.45),0,6.283);g.fill();
+}
+g.globalAlpha=1;
+for(let i=0;i<4;i++){const r=rad*(.36+i*.2),a=turn*(.5+i*.12)+i*1.7,x=centerX+Math.cos(a)*r,y=centerY+Math.sin(a)*r*.62,sz=(4+i*1.2)*(1+pulse*.25);
+const gradient=g.createRadialGradient(x-sz*.3,y-sz*.3,0,x,y,sz*2.4);
+gradient.addColorStop(0,'#f9fbff');gradient.addColorStop(.2,['#43b7e5','#a68bff','#ff7938','#b6fbff'][i]);gradient.addColorStop(1,'#00000000');
+g.fillStyle=gradient;g.beginPath();g.arc(x,y,sz*2.5,0,6.283);g.fill();}
+for(let i=0;i<5;i++){const a=now*.00034*(1+pulse*.45)+i*1.3,r=rad*.85;
+const x=centerX+Math.cos(a)*r,y=centerY+Math.sin(a*1.32)*rad*.5;
+g.strokeStyle=['#6ae9ff','#e597ff','#ffd38d'][i%3];g.lineWidth=1.2+beat*2;g.globalAlpha=.4+.3*b;
+g.beginPath();g.moveTo(x-Math.cos(a)*18*(1+pulse),y-Math.sin(a)*18*(1+pulse));g.lineTo(x,y);g.stroke();}
+g.globalAlpha=.8;const sz=9+pulse*21,halo=g.createRadialGradient(centerX,centerY,0,centerX,centerY,sz*3);
+halo.addColorStop(0,'#f6f7ff');halo.addColorStop(.18,'#9cd5ffcc');halo.addColorStop(.55,'#5254dc44');halo.addColorStop(1,'#00000000');
+g.fillStyle=halo;g.beginPath();g.arc(centerX,centerY,sz*3,0,6.283);g.fill();
+g.globalCompositeOperation='source-over';g.globalAlpha=1;
+}
+requestAnimationFrame(draw);
+load.addEventListener('change',async e=>{
+if(window.cosmos3DReady)return;
+const file=e.target.files&&e.target.files[0];if(!file)return;
+if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);
+audio.src=url;audio.load();track.textContent='♫ '+file.name;connect();
+try{await audio.play();play.textContent='Ⅱ PAUSE';hint.textContent='THE UNIVERSE IS LISTENING ✦'}catch(err){hint.textContent='MP3 LOADED · TAP PLAY'}
+});
+play.addEventListener('click',async()=>{
+if(window.cosmos3DReady)return;
+if(!audio.src){hint.textContent='LOAD AN MP3 FIRST';return}
+connect();
+if(audio.paused){try{await audio.play();play.textContent='Ⅱ PAUSE';hint.textContent='THE UNIVERSE IS LISTENING ✦'}catch(e){hint.textContent='PLAYBACK UNAVAILABLE'}}else{audio.pause();play.textContent='▶ PLAY';hint.textContent='PAUSED'}
+});
+})();
+</script>
 <script id="vshader" type="x-shader/x-vertex">
 attribute float phase;attribute float radius;attribute float sparkle;
 uniform float time;uniform float bass;uniform float mid;uniform float treble;uniform float beat;uniform float dpr;
@@ -153,6 +233,7 @@ function init(){
 function connectSound(){
  try{
   if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();
+  if(window.cosmosFallbackAudio){ctx=window.cosmosFallbackAudio.ctx;analyser=window.cosmosFallbackAudio.analyser;fft=window.cosmosFallbackAudio.fft;wave=window.cosmosFallbackAudio.wave;return}
   if(!analyser){
    analyser=ctx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.67;
    fft=new Uint8Array(analyser.frequencyBinCount);wave=new Uint8Array(analyser.fftSize);
@@ -223,6 +304,7 @@ function update(dt,t){
 function frame(now){
  requestAnimationFrame(frame);const dt=clamp((now-prev)/1000,.001,.05);prev=now,t=now/1000;
  analyze(dt,t);if(!touches.size)yaw+=dt*.035;update(dt,t);renderer.render(scene,camera);
+ if(!window.cosmos3DReady){window.cosmos3DReady=true;document.getElementById('fallback').style.display='none'}
  if(hintUntil&&now>hintUntil){$('hint').textContent=audio.paused?'DRAG TO ORBIT · PINCH TO ZOOM':'THE UNIVERSE IS LISTENING ✦';hintUntil=0}
 }
 host.addEventListener('pointerdown',e=>{e.preventDefault();host.setPointerCapture(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});pinch=0});
@@ -235,6 +317,7 @@ host.addEventListener('pointermove',e=>{
 const release=e=>{touches.delete(e.pointerId);pinch=0};
 host.addEventListener('pointerup',release);host.addEventListener('pointercancel',release);host.addEventListener('lostpointercapture',release);
 $('file').addEventListener('change',async e=>{
+ if(!window.cosmos3DReady)return;
  const f=e.target.files?.[0];if(!f)return;
  if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(f);
  audio.src=url;audio.load();$('track').textContent='♫ '+f.name;$('play').textContent='▶ PLAY';averageBass=0;lastBeat=-20;
@@ -242,6 +325,7 @@ $('file').addEventListener('change',async e=>{
  try{await audio.play();$('play').textContent='Ⅱ PAUSE';say('THE UNIVERSE IS LISTENING ✦',3)}catch(err){say('MP3 LOADED · TAP PLAY',5)}
 });
 $('play').addEventListener('click',async()=>{
+ if(!window.cosmos3DReady)return;
  if(!audio.src){say('LOAD AN MP3 FIRST',4);return}
  connectSound();
  if(audio.paused){try{await audio.play();$('play').textContent='Ⅱ PAUSE';say('THE UNIVERSE IS LISTENING ✦',2)}catch(e){say('PLAYBACK FAILED: '+e.message,4)}}
@@ -250,5 +334,5 @@ $('play').addEventListener('click',async()=>{
 audio.addEventListener('ended',()=>{$('play').textContent='▶ PLAY';say('TRACK ENDED',4)});
 audio.addEventListener('error',()=>{say('AUDIO FORMAT NOT SUPPORTED',5);$('play').textContent='▶ PLAY'});
 addEventListener('pagehide',()=>{if(url)URL.revokeObjectURL(url)});
-try{init()}catch(e){console.error(e);say('3D ERROR: '+e.message,25)}
+try{init()}catch(e){console.error(e);say('3D UNAVAILABLE · FALLBACK VISUALIZER ACTIVE',15)}
 </script></body></html>
