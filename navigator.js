@@ -89,6 +89,7 @@ export function createNavigator({THREE,scene,camera,stage,planets,audio}){
  });
  function createCity(p,i){
   if(state.cities.has(p))return;
+  p.name=p.name||nameOf(p,i);
   const rand=rng(hash(nameOf(p,i))),colors=palettes[p.kind]||palettes.rebirth;
   const normals=[V(.38,.26,.87),V(-.37,.33,.85),V(.45,.48,.70),V(-.40,.21,.88)];
   const primary=normals[i%4].normalize();
@@ -127,7 +128,20 @@ export function createNavigator({THREE,scene,camera,stage,planets,audio}){
    new THREE.MeshBasicMaterial({color:colors[0],transparent:true,opacity:.072,side:THREE.DoubleSide,
      depthWrite:false,blending:THREE.AdditiveBlending}));
   group.add(atmosphere);
-  state.cities.set(p,{p,i,primary,districts,group,towers,rings,animals,cars,lights,atmosphere});
+  // Low-opacity procedural cloud bands, visible from inside during flybys.
+  const cloudCanvas=document.createElement("canvas");cloudCanvas.width=256;cloudCanvas.height=128;
+  const cloudCtx=cloudCanvas.getContext("2d");
+  for(let n=0;n<135;n++){
+   const x=rand()*256,y=rand()*128,rx=7+rand()*37,ry=2+rand()*9;
+   cloudCtx.fillStyle="rgba(225,245,255,"+(.025+rand()*.15).toFixed(3)+")";
+   cloudCtx.beginPath();cloudCtx.ellipse(x,y,rx,ry,rand()*.3,0,6.283);cloudCtx.fill();
+  }
+  const cloudMap=new THREE.CanvasTexture(cloudCanvas);
+  const clouds=new THREE.Mesh(new THREE.SphereGeometry(1.57,28,20),
+    new THREE.MeshBasicMaterial({map:cloudMap,side:THREE.DoubleSide,transparent:true,
+      opacity:.45,depthWrite:false,blending:THREE.AdditiveBlending}));
+  group.add(clouds);
+  state.cities.set(p,{p,i,primary,districts,group,towers,rings,animals,cars,lights,atmosphere,clouds});
  }
  function updateCity(t,beat){
   state.tick++;
@@ -162,6 +176,7 @@ export function createNavigator({THREE,scene,camera,stage,planets,audio}){
    c.lights.instanceMatrix.needsUpdate=true;
    for(const ring of c.rings)ring.material.opacity=.39+.16*Math.sin(t*1.6)+beat*.25;
    c.atmosphere.material.opacity=state.target===p&&state.mode==="flyby"?.13:.065;
+   c.clouds.rotation.y+=.0025;
   }
  }
  function populate(){planets.forEach((p,i)=>{if(!p.dead&&!p.colliding&&p.group.visible&&!state.cities.has(p))createCity(p,i)})}
@@ -212,7 +227,7 @@ export function createNavigator({THREE,scene,camera,stage,planets,audio}){
   if(!active)return;
   state.warpTime+=dt;const pos=state.warp.geometry.attributes.position.array;
   for(let i=0;i<pos.length;i+=6){
-   const n=i/6,a=n*2.399963,r=.4+(n%12)*.14,z=-2-((state.warpTime*19+n*.83)%28);
+   const n=i/6,a=n*2.399963,r=.4+(n%12)*.14,z=-2-(28-((state.warpTime*19+n*.83)%28));
    const x=Math.cos(a)*r,y=Math.sin(a)*r;
    pos[i]=x;pos[i+1]=y;pos[i+2]=z;pos[i+3]=x;pos[i+4]=y;pos[i+5]=z-3.5;
   }
