@@ -58,16 +58,16 @@ export function decoratePersonaWorld(p,THREE){
   RIPPLE:['#62ffe4','#70c3ff'],BRIX:['#ffd2a3','#c88d66'],DEMON:['#ff7461','#ffcd65'],
   HERMES:['#fef4e6','#9bc3ff'],ECHO:['#ffce80','#f0a04b']
  };
- const [primary,secondary]=accents[p.name]||[p.color,p.secondary];
+ const persona=p.personaName||p.name;const [primary,secondary]=accents[persona]||[p.color,p.secondary];
  const glow=(c,opacity=.53)=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
- if(['FLUX','HERMES','ECHO','RIPPLE'].includes(p.name)){
-  const rings=p.name==='FLUX'?3:2;
+ if(['FLUX','HERMES','ECHO','RIPPLE'].includes(persona)){
+  const rings=persona==='FLUX'?3:2;
   for(let j=0;j<rings;j++){
    const rad=R*(1.3+j*.25),band=new THREE.Mesh(new THREE.TorusGeometry(rad,R*(.009+j*.002),5,96),glow(j%2?secondary:primary,.33));
    band.rotation.set(.3+j*.47,.15+j*.69,.3+j*.67);g.add(band);
   }
  }
- if(p.name==='ORION'||p.name==='ECHO'){
+ if(persona==='ORION'||persona==='ECHO'){
   for(let i=0;i<7;i++){
    const a=i/7*Math.PI*2,u=new THREE.Vector3(Math.cos(a)*.16,.98,Math.sin(a)*.16).normalize();
    const mast=new THREE.Mesh(new THREE.CylinderGeometry(.012*R,.03*R,R*(.26+rand()*.2),6),new THREE.MeshStandardMaterial({color:p.color,metalness:.7,roughness:.22,emissive:primary,emissiveIntensity:.35}));
@@ -76,14 +76,14 @@ export function decoratePersonaWorld(p,THREE){
    beacon.position.copy(u).multiplyScalar(radius+R*.33);g.add(beacon);
   }
  }
- if(p.name==='DEMON'||p.name==='BRIX'){
+ if(persona==='DEMON'||persona==='BRIX'){
   for(let i=0;i<11;i++){
    const lon=i*2.399963,lat=(rand()-.5)*1.3,u=new THREE.Vector3(Math.cos(lon)*Math.cos(lat),Math.sin(lat),Math.sin(lon)*Math.cos(lat));
-   const peak=new THREE.Mesh(new THREE.ConeGeometry(R*(.05+rand()*.06),R*(.16+rand()*.22),5),new THREE.MeshStandardMaterial({color:p.name==='DEMON'?'#792837':'#8f6651',roughness:.9,emissive:primary,emissiveIntensity:p.name==='DEMON'?.19:.045}));
+   const peak=new THREE.Mesh(new THREE.ConeGeometry(R*(.05+rand()*.06),R*(.16+rand()*.22),5),new THREE.MeshStandardMaterial({color:persona==='DEMON'?'#792837':'#8f6651',roughness:.9,emissive:primary,emissiveIntensity:persona==='DEMON'?.19:.045}));
    peak.position.copy(u).multiplyScalar(radius+R*.09);peak.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),u);g.add(peak);
   }
  }
- if(p.name==='ASTRO'||p.name==='RIPPLE'){
+ if(persona==='ASTRO'||persona==='RIPPLE'){
   for(let i=0;i<15;i++){
    const lon=i*2.399963,lat=(rand()-.5)*1.2,u=new THREE.Vector3(Math.cos(lon)*Math.cos(lat),Math.sin(lat),Math.sin(lon)*Math.cos(lat));
    const bloom=new THREE.Mesh(new THREE.SphereGeometry(R*(.019+rand()*.026),8,6),glow(i%2?primary:secondary,.56));
