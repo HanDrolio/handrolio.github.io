@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#04091b">
-<meta name="description" content="COSM.OS Galactic Navigator HD Worlds: first-person planet flybys, living cities, 2K NASA-inspired surface textures, reactive music, radar navigation.">
-<title>COSM.OS • Galactic Navigator v1.6 Orbital Cinema</title>
+<meta name="description" content="COSM.OS Infinite Frequency: procedural galaxies, inhabited worlds, WAV/MP3 music, autopilot, cinematic 3D events.">
+<title>COSM.OS • Infinite Frequency v2.0</title>
 <style>
 :root{color-scheme:dark;--ice:#c9ecff;--muted:#a1b9d9;--stroke:#7190c888}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -14,7 +14,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030615;col
 #world canvas{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 #skyFallback{z-index:0;pointer-events:none}#world canvas:not(#skyFallback){z-index:1}
 #brand{position:fixed;top:max(16px,env(safe-area-inset-top));left:17px;z-index:5;pointer-events:none;text-shadow:0 2px 18px #000b}
-#brand strong{display:block;letter-spacing:.21em;font-size:17px;font-weight:950}#brand strong span{color:#b6a4ff}#brand small{display:block;max-width:65vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#b7cce8;font-size:9px;font-weight:750;letter-spacing:.16em;margin-top:5px}
+#brand strong{display:block;letter-spacing:.21em;font-size:17px;font-weight:950}#brand strong span{color:#b6a4ff}#brand small{display:block;max-width:65vw;white-space:normal;overflow:visible;text-overflow:clip;color:#b7cce8;font-size:9px;font-weight:750;letter-spacing:.1em;line-height:1.4;margin-top:5px}
 #version{position:fixed;z-index:5;top:max(18px,env(safe-area-inset-top));right:17px;font:900 13px ui-monospace,SFMono-Regular,monospace;color:#e6d6ff;text-shadow:0 0 12px #7f61eb88;pointer-events:none}
 #controls{position:fixed;z-index:8;bottom:max(16px,env(safe-area-inset-bottom) + 12px);left:12px;right:12px;max-width:560px;margin:auto;display:flex;gap:10px;transition:opacity .3s}
 #controls label,#controls button{display:flex;flex:1;min-width:0;justify-content:center;align-items:center;height:51px;border:1px solid #b0bfff80;border-radius:17px;background:#142343d9;color:#f3f8ff;font-size:14px;font-weight:850;letter-spacing:.055em;backdrop-filter:blur(17px);box-shadow:0 7px 27px #0009;cursor:pointer;touch-action:manipulation}
@@ -49,20 +49,20 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030615;col
 #cityDetail{font-size:9px;color:#91badb;text-align:center;letter-spacing:.06em;margin-top:5px;line-height:1.45}
 #cityDetail.ready{color:#8ff3da}
 #storyFX{position:fixed;inset:0;z-index:3;width:100%;height:100%;pointer-events:none}
-#storyCaption{position:fixed;z-index:7;top:22%;left:8px;right:8px;text-align:center;color:#f5eaff;letter-spacing:.13em;font-size:clamp(12px,3.5vw,19px);font-weight:950;text-shadow:0 0 18px #8d5dff,0 2px 18px #020414;pointer-events:none;opacity:0;transition:opacity .35s;padding:0 12px}
+#explorerTools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}#explorerTools button{min-height:37px;border-radius:11px;border:1px solid #6a92bf75;background:#172b47;color:#dcecff;font-size:10px;font-weight:850;cursor:pointer}#galaxyReadout{margin-top:11px;font:800 10px ui-monospace,monospace;color:#a8eeff;text-align:center;letter-spacing:.11em}#audioQueue{font-size:9px;color:#a9cbee;text-align:center;margin-top:6px}#controls #auto{flex:.84;font-size:11px;padding:0 4px}#controls label{font-size:12px}#storyCaption{position:fixed;z-index:7;top:22%;left:8px;right:8px;text-align:center;color:#f5eaff;letter-spacing:.13em;font-size:clamp(12px,3.5vw,19px);font-weight:950;text-shadow:0 0 18px #8d5dff,0 2px 18px #020414;pointer-events:none;opacity:0;transition:opacity .35s;padding:0 12px}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
 </head>
 <body>
 <div id="world"><canvas id="skyFallback"></canvas></div>
-<div id="brand"><strong>COSM.OS <span>✦</span></strong><small id="subtitle">FREE EXPLORE · DRAG ROTATE · PINCH PAN/ZOOM</small></div>
-<div id="version">v1.6</div>
+<div id="brand"><strong>COSM.OS <span>✦</span></strong><small id="subtitle">DRAG · ZOOM · WARP</small></div>
+<div id="version">v2.0</div>
 <div id="status"></div>
 <div id="flightHud"><div id="crosshair"></div><div id="flightLabel">AUTOPILOT ENGAGED</div><div id="flightData">ATMOSPHERIC FLIGHT</div></div>
 <div id="transition"><canvas id="warpCanvas"></canvas></div><canvas id="storyFX" aria-hidden="true"></canvas><div id="storyCaption" aria-live="polite"></div>
 <button id="return" type="button">↶ GALAXY</button>
-<div id="hint">TAP SPACE FOR RADAR · WARP TO A PLANET · ZOOM TO ITS SURFACE</div>
-<div id="controls"><label for="music">♫ LOAD MP3<input id="music" type="file" accept="audio/*,.mp3"></label><button id="play" type="button">▶ PLAY</button></div>
+<div id="hint">TAP SPACE: RADAR · PINCH: ZOOM</div>
+<div id="controls"><label for="music">♫ AUDIO<input id="music" type="file" multiple accept="audio/*,.mp3,.wav,.wave,.m4a,.aac,.flac,.ogg,.oga,.opus,.aif,.aiff,.webm"></label><button id="play" type="button">▶ PLAY</button><button id="auto" type="button" aria-pressed="false">◈ AUTO OFF</button></div>
 <audio id="audio" playsinline preload="metadata"></audio>
 <div id="radarShell" role="dialog" aria-modal="true" aria-label="Galaxy navigation radar">
  <div id="radarCard">
@@ -71,7 +71,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030615;col
   <div id="destination">TAP A WORLD TO OBSERVE IT FROM SPACE</div>
   <div id="textureStatus" aria-live="polite" style="text-align:center;color:#75bcd5;font-size:9px;letter-spacing:.10em;margin-top:7px">HD PLANETS + REAL 3D CITIES LOADING</div>
   <div id="cityDetail">STREAMING CC0 BUILDINGS + QUATERNIUS CITY KIT</div>
-  <div id="destinations"><button class="home" data-destination="galaxy">✦ RETURN TO GALAXY</button></div>
+  <div id="destinations"><button class="home" data-destination="galaxy">✦ RETURN TO GALAXY VIEW</button></div><div id="explorerTools"><button id="homeGalaxy" type="button">⌂ HOME SYSTEM</button><button id="nextGalaxy" type="button">✦ NEXT GALAXY</button><button id="nextAudio" type="button">♫ NEXT TRACK</button><button id="spotifyLink" type="button" title="Opens Spotify separately, not synchronized">↗ OPEN SPOTIFY</button></div><div id="galaxyReadout">HOME SYSTEM · ORIGINAL FOUR</div><div id="audioQueue">MP3 · WAV · M4A · FLAC · OGG (BROWSER-DEPENDENT)</div>
   <div style="margin-top:13px;text-align:center;font-size:9px;color:#81a0c1;line-height:1.45">SURFACES: <a href="https://play.solarsystemscope.com/textures/" target="_blank" rel="noopener noreferrer" style="color:#addcff">SOLAR SYSTEM SCOPE · CC BY 4.0</a><br>GLACIA: NASA / USGS · CLOUDS: MATTEASON (CC0)<br>3D BUILDINGS: <a href="https://kenney.nl/assets/city-kit-commercial" target="_blank" rel="noopener" style="color:#addcff">KENNEY CITY KITS · CC0</a></div>
  </div>
 </div>
@@ -93,23 +93,36 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030615;col
   const glow=x.createRadialGradient(cx,cy,0,cx,cy,36);glow.addColorStop(0,'#a9dcff9f');glow.addColorStop(.32,'#786df948');glow.addColorStop(1,'#00000000');x.fillStyle=glow;x.globalAlpha=.7;x.beginPath();x.arc(cx,cy,36,0,Math.PI*2);x.fill();x.globalCompositeOperation='source-over';x.globalAlpha=1;
  }
  resize();addEventListener('resize',resize);requestAnimationFrame(frame);
- const audio=document.getElementById('audio'),file=document.getElementById('music'),play=document.getElementById('play'),hint=document.getElementById('hint'),subtitle=document.getElementById('subtitle');let currentFileURL=null;
- file.addEventListener('change',async e=>{
-   const selected=e.target.files&&e.target.files[0];if(!selected)return;
-   if(currentFileURL)URL.revokeObjectURL(currentFileURL);
-   currentFileURL=URL.createObjectURL(selected);audio.src=currentFileURL;audio.load();
-   subtitle.textContent='♫ '+selected.name;play.textContent='▶ PLAY';
-   window.cosmosOnFile?.();window.cosmosConnectAudio?.();
-   try{await audio.play();play.textContent='Ⅱ PAUSE';hint.textContent='THE GALAXY IS LISTENING ✦'}
-   catch(err){hint.textContent='MP3 LOADED · TAP PLAY'}
+ const audio=document.getElementById('audio'),file=document.getElementById('music'),play=document.getElementById('play'),hint=document.getElementById('hint'),subtitle=document.getElementById('subtitle');let currentFileURL=null,tracks=[],trackIndex=-1;
+ const queueText=document.getElementById('audioQueue');
+ async function loadTrack(i,autoplay=true){
+  if(!tracks.length)return;
+  audio.pause();if(currentFileURL)URL.revokeObjectURL(currentFileURL);
+  trackIndex=(i+tracks.length)%tracks.length;
+  const selected=tracks[trackIndex];currentFileURL=URL.createObjectURL(selected);
+  audio.src=currentFileURL;audio.load();
+  subtitle.textContent='♫ '+selected.name.slice(0,26);
+  if(queueText)queueText.textContent=(trackIndex+1)+' / '+tracks.length+' · '+selected.name.slice(0,36);
+  play.textContent='▶ PLAY';window.cosmosOnFile?.();window.cosmosConnectAudio?.();
+  if(!autoplay){hint.textContent='AUDIO LOADED · TAP PLAY';return}
+  try{await audio.play();play.textContent='Ⅱ PAUSE';hint.textContent='GALAXY LISTENING · DRAG TO EXPLORE'}
+  catch(err){hint.textContent='CANNOT PLAY THIS FORMAT · TRY WAV/MP3/M4A'}
+ }
+ file.addEventListener('change',e=>{
+  const selected=Array.from(e.target.files||[]).filter(f=>f.type.startsWith('audio/')||/\.(mp3|wav|wave|m4a|aac|flac|ogg|oga|opus|aif|aiff|webm)$/i.test(f.name));
+  if(!selected.length){hint.textContent='NO AUDIO FILES SELECTED';return}
+  tracks=selected;loadTrack(0,true)
  });
+ window.cosmosNextTrack=()=>{if(tracks.length)loadTrack(trackIndex+1,true);else hint.textContent='LOAD MUSIC TO SKIP TRACKS'};
  play.addEventListener('click',async()=>{
-  if(!audio.src){hint.textContent='LOAD AN MP3 FIRST';return}
+  if(!audio.src){hint.textContent='LOAD AN AUDIO FILE FIRST';return}
   window.cosmosConnectAudio?.();
-  if(audio.paused){try{await audio.play();play.textContent='Ⅱ PAUSE'}catch(err){hint.textContent='PLAYBACK FAILED · TRY ANOTHER MP3'}}
+  if(audio.paused){try{await audio.play();play.textContent='Ⅱ PAUSE'}catch(err){hint.textContent='AUDIO NOT SUPPORTED IN THIS BROWSER'}}
   else{audio.pause();play.textContent='▶ PLAY'}
  });
- audio.addEventListener('ended',()=>play.textContent='▶ PLAY');
+ audio.addEventListener('ended',()=>{play.textContent='▶ PLAY';if(tracks.length>1)loadTrack(trackIndex+1,true)});
+ audio.addEventListener('error',()=>{if(audio.src){play.textContent='▶ PLAY';hint.textContent='AUDIO DECODE FAILED · TRY ANOTHER FORMAT'}});
+ document.getElementById('nextAudio')?.addEventListener('click',()=>window.cosmosNextTrack());
  addEventListener('pagehide',()=>{if(currentFileURL)URL.revokeObjectURL(currentFileURL)});
 })();
 </script>
@@ -142,7 +155,7 @@ const tmpV=new THREE.Vector3(),tmpW=new THREE.Vector3(),tmpQ=new THREE.Quaternio
 function say(text,seconds=2.5){const s=$('status');s.textContent=text;s.classList.add('visible');statusUntil=performance.now()+seconds*1000}
 function glowTexture(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,'#ffffff');gr.addColorStop(.1,'#fffefedb');gr.addColorStop(.3,'#9cc1ff7b');gr.addColorStop(1,'#00000000');g.fillStyle=gr;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
 function makeSprite(color,size,opacity=.75){const material=new THREE.SpriteMaterial({map:glowMap,color,opacity,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});const mesh=new THREE.Sprite(material);mesh.scale.set(size,size,1);return mesh}
-function drawPlanetMap(p){const c=document.createElement('canvas');c.width=512;c.height=256;const x=c.getContext('2d');let r=randSeed(p.seed),gr=x.createLinearGradient(0,0,0,256);const palettes={AZURA:['#082958','#155a9e','#1889b6','#2cc4c6','#17679e'],VESPER:['#200c57','#58339d','#af64cf','#6c39ba','#32165f'],EMBER:['#461520','#9c3529','#c86631','#f4a74f','#562c22'],GLACIA:['#1b4672','#438bb6','#9ccde8','#d7ebf7','#3b6b9e']};const colors=palettes[p.name];colors.forEach((col,i)=>gr.addColorStop(i/(colors.length-1),col));x.fillStyle=gr;x.fillRect(0,0,512,256);
+function drawPlanetMap(p){const c=document.createElement('canvas');c.width=512;c.height=256;const x=c.getContext('2d');let r=randSeed(p.seed),gr=x.createLinearGradient(0,0,0,256);const palettes={AZURA:['#082958','#155a9e','#1889b6','#2cc4c6','#17679e'],VESPER:['#200c57','#58339d','#af64cf','#6c39ba','#32165f'],EMBER:['#461520','#9c3529','#c86631','#f4a74f','#562c22'],GLACIA:['#1b4672','#438bb6','#9ccde8','#d7ebf7','#3b6b9e']};const colors=palettes[p.name]||[p.land,p.color,p.secondary,p.color,p.land];colors.forEach((col,i)=>gr.addColorStop(i/(colors.length-1),col));x.fillStyle=gr;x.fillRect(0,0,512,256);
 for(let i=0;i<540;i++){x.globalAlpha=.07+r()*.32;x.fillStyle=colors[Math.floor(r()*colors.length)];x.beginPath();x.ellipse(r()*512,r()*256,6+r()*120,1.2+r()*13,r()*.2,0,6.283);x.fill()}
 for(let i=0;i<155;i++){x.globalAlpha=.22+r()*.6;x.fillStyle=p.name==='EMBER'?'#ffb665':p.name==='GLACIA'?'#efffff':p.name==='VESPER'?'#fa9fff':'#70ffce';x.beginPath();x.ellipse(r()*512,r()*256,1+r()*17,1+r()*5,r()*6,0,6.283);x.fill()}
 x.globalAlpha=1;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
@@ -278,16 +291,18 @@ function statusCityAssets(){
 }
 function cityBlueprint(p){
  if(cityBlueprints.has(p.name))return cityBlueprints.get(p.name);
- const rand=randSeed(p.seed+citySessionSeed),placements=[],cityHubs=[.2,1.6,3.2,4.85];
+ const rand=randSeed(p.seed+(p.generated?91:citySessionSeed)),placements=[],cityHubs=[.2,1.6,3.2,4.85],occupied=[];
+ const reserve=(unit,radius)=>{if(occupied.some(o=>unit.distanceToSquared(o.unit)<(o.radius+radius)**2))return false;occupied.push({unit:unit.clone(),radius});return true};
  const towerIds=['sky-a','sky-b','sky-c','sky-d','sky-e','tower-i','tower-j','tower-k','tower-m','tower-n'];
  const residential=['house-a','house-e','tower-i','tower-k'];
  // Cluster city blocks on curved worlds, using a grid for recognizable streets.
- const count=(innerWidth<740?52:100);
+ const count=p.generated?(innerWidth<740?12:24):(innerWidth<740?52:100);
  for(let i=0;i<count;i++){
   const district=i%4,block=Math.floor(i/4),col=(block%7)-3,row=Math.floor(block/7)-2;
   const lon=cityHubs[district]+col*.105+(rand()-.5)*.024;
   const lat=.04+row*.115+(rand()-.5)*.035;
   const unit=placeOnSphere(new THREE.Vector3(),lon,lat);
+  if(!reserve(unit,.038))continue;
   let pool=towerIds;
   if(p.name==='AZURA'&&rand()<.17)pool=residential;
   if(p.name==='EMBER'&&rand()<.35)pool=['tower-i','tower-j','tower-m','tower-n','house-e'];
@@ -301,10 +316,11 @@ function cityBlueprint(p){
   placements.push({unit,modelId,spin:rand()*Math.PI*2,height:p.size*tall,kind:'building'});
  }
  // Trees create greenbelts and alien parks on habitable and icy worlds.
- const trees=p.name==='EMBER'?0:p.name==='VESPER'?8:innerWidth<740?19:31;
+ const trees=p.generated?(innerWidth<740?4:9):p.name==='EMBER'?0:p.name==='VESPER'?8:innerWidth<740?19:31;
  for(let i=0;i<trees;i++){
   const district=i%4,lon=cityHubs[district]+(rand()-.5)*.82,lat=.05+(rand()-.5)*.65;
   const unit=placeOnSphere(new THREE.Vector3(),lon,lat);
+  if(!reserve(unit,.023))continue;
   placements.push({unit,modelId:p.name==='AZURA'&&rand()<.5?'tree-palm':'tree-oak',spin:rand()*6.283,height:p.size*(.07+rand()*.08),kind:'tree'});
  }
  cityBlueprints.set(p.name,placements);return placements;
@@ -347,20 +363,20 @@ function prepareRealBuilding(p,asset){
   // Preserve original textured geometry, but instance whole city blocks into a small number of draw calls.
   const tintMaterial=original=>{
    const mat=original.clone();
-   if(mat.color)mat.color.multiply(new THREE.Color(CITY_TINTS[p.name]));
-   if(mat.emissive){mat.emissive.set(CITY_TINTS[p.name]);mat.emissiveIntensity=p.name==='VESPER'?.32:.18}
+   if(mat.color)mat.color.multiply(new THREE.Color(p.cityTint||CITY_TINTS[p.name]||p.color));
+   if(mat.emissive){mat.emissive.set(p.cityTint||CITY_TINTS[p.name]||p.color);mat.emissiveIntensity=p.name==='VESPER'?.32:.18}
    if('roughness' in mat)mat.roughness=Math.min(1,mat.roughness+.05);
    return mat;
   };
   const mats=Array.isArray(mesh.material)?mesh.material.map(tintMaterial):tintMaterial(mesh.material);
   const inst=new THREE.InstancedMesh(mesh.geometry,mats,plans.length);
-  inst.name=p.name+' / CC0 '+asset.id;inst.frustumCulled=false;
+  inst.name=p.name+' / CC0 '+asset.id;inst.frustumCulled=false;inst.visible=p.detailed!==false;
   for(let i=0;i<plans.length;i++){
    const plan=plans[i],surfaceHeight=p.size*1.008;
    pos.copy(plan.unit).multiplyScalar(surfaceHeight);
    face.setFromUnitVectors(unitY,plan.unit);
    spin.setFromAxisAngle(unitY,plan.spin);rotation.copy(face).multiply(spin);
-   scale.setScalar(plan.height);
+   scale.setScalar(Math.min(plan.height,(p.size*.072)/Math.max(size.x/size.y,size.z/size.y,.25)));
    placement.compose(pos,rotation,scale);
    combined.copy(placement).multiply(normalization).multiply(mesh.matrixWorld);
    inst.setMatrixAt(i,combined);
@@ -374,7 +390,7 @@ function prepareRealBuilding(p,asset){
  p.loadedTypes++;
  cityStructureCount+=plans.length;
  // Swap placeholder cylinders only once enough real asset types have arrived.
- if(p.loadedTypes>=4&&p.proceduralBuildings){for(const obj of p.proceduralBuildings)obj.visible=false}
+ if(p.loadedTypes>=1&&p.proceduralBuildings){for(const obj of p.proceduralBuildings)obj.visible=false}
  statusCityAssets();
 }
 function loadUrbanFile(loader,asset){
@@ -429,8 +445,8 @@ function addSurfacePopulation(p,parent){
  for(let i=0;i<180;i++){const car=i%5===0,lon=clusters[i%4]+(r()-.5)*.68,lat=(r()-.5)*.52,unit=placeOnSphere(new THREE.Vector3(),lon,lat),height=p.size*(car?.025:.017);
  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:car?cars:people,transparent:true,depthWrite:false,alphaTest:.15}));sprite.position.copy(unit).multiplyScalar(p.size+height*.6);sprite.scale.set(height*(car?2.2:.7),height*(car?1.1:1.4),1);parent.add(sprite);p.population.push({sprite,unit,lon,lat,car,speed:(.006+r()*.018)*(i%2?-1:1),height})}
 }
-function animatePopulation(dt){for(const p of planets)for(const a of p.population||[]){a.lon+=dt*a.speed*(a.car?2.8:1);placeOnSphere(a.unit,a.lon,a.lat);a.sprite.position.copy(a.unit).multiplyScalar(p.size+a.height*.6)}}
-function buildPlanet(spec,index){const planet={...spec,seed:190+index*239,group:new THREE.Group(),position:new THREE.Vector3(),cityGlow:[],life:[],shuttles:[],atmosphere:null,clouds:null,surface:null,beacon:null};scene.add(planet.group);
+function animatePopulation(dt){for(const p of planets)if(p.detailed!==false)for(const a of p.population||[]){a.lon+=dt*a.speed*(a.car?2.8:1);placeOnSphere(a.unit,a.lon,a.lat);a.sprite.position.copy(a.unit).multiplyScalar(p.size+a.height*.6)}}
+function buildPlanet(spec,index){const planet={...spec,seed:spec.seed??190+index*239,group:new THREE.Group(),position:new THREE.Vector3(),cityGlow:[],life:[],shuttles:[],atmosphere:null,clouds:null,surface:null,beacon:null};scene.add(planet.group);
 const bodyGroup=new THREE.Group();planet.group.add(bodyGroup);planet.bodyGroup=bodyGroup;addSurfacePopulation(planet,bodyGroup);
 const map=drawPlanetMap(planet),surface=new THREE.Mesh(
  new THREE.SphereGeometry(spec.size,innerWidth<700?72:96,innerWidth<700?48:64),
@@ -444,7 +460,7 @@ if(spec.name==='VESPER'){const ring=new THREE.Mesh(new THREE.RingGeometry(spec.s
 const rand=randSeed(planet.seed),towerMaterial=new THREE.MeshStandardMaterial({color:spec.color,emissive:spec.color,emissiveIntensity:.35,metalness:.6,roughness:.3}),town=new THREE.InstancedMesh(new THREE.CylinderGeometry(.075,.13,1,5),towerMaterial,spec.city);
 const lights=new THREE.InstancedMesh(new THREE.SphereGeometry(.075,5,4),new THREE.MeshBasicMaterial({color:spec.secondary}),spec.city);
 const cityClusters=[.2,1.6,3.2,4.85];
-for(let i=0;i<spec.city;i++){const lon=cityClusters[i%4]+(rand()-.5)*.55,lat=(rand()-.5)*.42,unit=placeOnSphere(new THREE.Vector3(),lon,lat),height=spec.size*(.08+rand()*.28),pos=unit.clone().multiplyScalar(spec.size+height*.5);
+for(let i=0;i<spec.city;i++){const block=Math.floor(i/4),lon=cityClusters[i%4]+((block%7)-3)*.11+(rand()-.5)*.011,lat=.04+(Math.floor(block/7)-2)*.12+(rand()-.5)*.01,unit=placeOnSphere(new THREE.Vector3(),lon,lat),height=spec.size*(.08+rand()*.28),pos=unit.clone().multiplyScalar(spec.size+height*.5);
  tmpQ.setFromUnitVectors(unitY,unit);tmpM.compose(pos,tmpQ,new THREE.Vector3(.6+rand()*.8,height,.6+rand()*.8));town.setMatrixAt(i,tmpM);
  tmpM.compose(unit.clone().multiplyScalar(spec.size+height+spec.size*.015),tmpQ,new THREE.Vector3(.58,.58,.58));lights.setMatrixAt(i,tmpM);
 }
@@ -556,8 +572,8 @@ function cinematicTransition(now,dt){
  $('transition').style.opacity=String(Math.sin(progress*Math.PI)*.88);renderWarpStreaks(progress);
  $('flightData').textContent=c.kind==='warp'?Math.round(progress*100)+'% · HYPERSPACE TRANSIT':Math.round(progress*100)+'% · RETURNING TO GALAXY';
  if(progress>=1){transition=null;$('transition').style.opacity='0';
-  if(dest){mode='observe';$('flightHud').classList.add('show','observe');$('return').classList.add('show');$('flightLabel').textContent='ORBITAL OBSERVATORY · '+dest.name;$('subtitle').textContent=dest.name+' · '+dest.kind;$('hint').textContent='STATIONARY CAMERA · DRAG TO ORBIT · PINCH TO ZOOM';say('✦ '+dest.name+' · OBSERVING FROM SPACE',2.8)}
-  else{mode='galaxy';flightTarget=null;$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');$('subtitle').textContent='GALACTIC NAVIGATOR · TAP SPACE FOR RADAR';$('hint').textContent='TAP SPACE FOR RADAR · SHIFT-DRAG TO PAN';say('✦ GALAXY VIEW RESTORED',2)}
+  if(dest){mode='observe';$('flightHud').classList.add('show','observe');$('return').classList.add('show');$('flightLabel').textContent='ORBITAL OBSERVATORY · '+dest.name;$('subtitle').textContent=dest.name+' · '+dest.kind;$('hint').textContent='DRAG: ORBIT · PINCH: ZOOM';say('✦ '+dest.name+' · OBSERVING FROM SPACE',2.8)}
+  else{mode='galaxy';flightTarget=null;$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');$('subtitle').textContent='DRAG · ZOOM · WARP';$('hint').textContent='TAP: RADAR · PINCH: ZOOM';say('✦ GALAXY VIEW RESTORED',2)}
  }
 }
 function updateObservation(){
@@ -567,7 +583,7 @@ function updateObservation(){
  $('flightData').textContent=(p.isHd?'HD SURFACE':'PROCEDURAL SURFACE')+' · '+Math.round(altitude)+'% ABOVE SURFACE · '+Math.round(detectedBPM)+' BPM';
 }
 function adjustControls(){if(mode==='galaxy'){$('return').classList.remove('show');$('flightHud').classList.remove('show')}else if(mode==='observe'){$('return').classList.add('show')}}
-function pointerDown(e){if(e.target.closest('#controls')||e.target.closest('#return'))return;e.preventDefault();host.setPointerCapture(e.pointerId);pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});pointerMotion=0;pinchDist=0;lastPinchCenter=null}
+function pointerDown(e){if(e.target.closest('#controls')||e.target.closest('#return'))return;galacticDirector?.manualOverride();e.preventDefault();host.setPointerCapture(e.pointerId);pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});pointerMotion=0;pinchDist=0;lastPinchCenter=null}
 function pointerMove(e){
  if(!pointerMap.has(e.pointerId))return;e.preventDefault();
  const old=pointerMap.get(e.pointerId);pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -602,6 +618,7 @@ function resetStory(announce=false){
  story.meteors.length=0;story.particles.length=0;story.waves.length=0;story.collision=null;
  story.blackHole=false;story.flash=0;story.starTimer=0;story.beatLatch=false;
  $('storyCaption').style.opacity='0';story.captionUntil=0;
+ galacticDirector?.resetStory();
  if(announce)storyCaption('✦ NEW UNIVERSE · A NEW FATE',2.8);
 }
 function storyFlash(hue=195,amount=.4){story.flash=Math.max(story.flash,amount);story.flashHue=hue}
@@ -623,15 +640,15 @@ function storyShower(count=9){
    color:['#9dfaff','#e3a4ff','#ffda9e'][i%3]});
  }
  for(let i=0;i<Math.min(count,5);i++)starShot();
- storyCaption('☄ METEOR SHOWER INCOMING');storyFlash(195,.21);
+ storyCaption(galacticDirector?.event('meteor',count)||'☄ METEOR SHOWER INCOMING');storyFlash(195,.21);
 }
 function storySupernova(){
  storyBurst(.5,.46,'#ffdbab',160,1.8);storyWave(.5,.46,'#ffe7ae',2.2);
- storyCaption('🌠 SUPERNOVA · THE SKY IS ON FIRE',3.2);storyFlash(40,.64);
+ storyCaption(galacticDirector?.event('supernova')||'🌠 SUPERNOVA · THE SKY IS ON FIRE',3.2);storyFlash(40,.64);
 }
 function storyCollision(){
- story.collision={age:0,life:2.9};
- storyCaption('⚠ COLLISION COURSE: NYX + QUASAR',3.1);
+ story.collision=null;
+ storyCaption(galacticDirector?.event('collision')||'⚠ PLANETARY COLLISION',3.1);
  storyShowerDebris();
 }
 function storyShowerDebris(){
@@ -640,23 +657,24 @@ function storyShowerDebris(){
 }
 function storyEruption(){
  storyBurst(.65,.49,'#ff8f64',145,1.3);storyWave(.65,.49,'#ffc06b',1.25);
- storyCaption('💥 A DISTANT WORLD HAS EXPLODED',3);
+ storyCaption(galacticDirector?.event('eruption')||'💥 PLANETARY ERUPTION',3);
  storyFlash(22,.6);
 }
 function storyBlackHole(){
- story.blackHole=true;
+ story.blackHole=false;
  storyBurst(.76,.32,'#ba78ff',125,1.15);
  storyWave(.76,.32,'#ae6eff',1.1);
- storyCaption('🕳 BLACK HOLE FORMED · SPACE IS BENDING',3.4);
+ storyCaption(galacticDirector?.event('blackhole')||'🕳 GRAVITATIONAL COLLAPSE',3.4);
  storyFlash(284,.38);
 }
 function storyRebirth(){
  if(story.finished)return;
  story.finished=true;story.collision=null;story.blackHole=false;
+ const rebirthLabel=galacticDirector?.event('rebirth');
  for(const p of [[.28,.48,'#b7eaff'],[.51,.4,'#ffbbef'],[.74,.5,'#ffe6a9']]){
   storyBurst(p[0],p[1],p[2],95,1.55);storyWave(p[0],p[1],p[2],1.4);
  }
- storyCaption('✦ THE OLD UNIVERSE IS GONE · A NEW ONE IS BORN',5);
+ storyCaption(rebirthLabel||'✦ THE OLD UNIVERSE IS GONE · A NEW ONE IS BORN',5);
  storyFlash(300,.72);
 }
 function playStoryStage(index){
@@ -750,24 +768,28 @@ function updateMusicStory(dt){
  drawStoryFX(dt);
 }
 
+let galacticDirector=null;
+let addonInstaller=null;
+try{addonInstaller=(await import('./cosmos-infinite.js')).installInfiniteFrequency}catch(err){console.warn('Infinite Frequency extension unavailable:',err)}
 function initialize(){renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'high-performance'});renderer.setClearColor(0x000000,0);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(renderer.domElement);
  scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.04,330);camera.position.set(9,9,38);
  const ambient=new THREE.AmbientLight(0xb5c8ff,1.45),sun=new THREE.DirectionalLight(0xffffff,2.9);sun.position.set(21,25,38);scene.add(ambient,sun);glowMap=glowTexture();initGalaxy();specs.forEach(buildPlanet);buildOrbitalTraffic();createDestinationButtons();initRealCityAssets();
+  if(addonInstaller){try{galacticDirector=addonInstaller({THREE,scene,camera,renderer,planets,buildPlanet,randSeed,makeSprite,prepareRealBuilding,urbanAssets,galaxyGeo:()=>galaxyGeo,cityBlueprint,clearCityBlueprints:()=>cityBlueprints.clear(),mode:()=>mode,target:()=>flightTarget,audio:()=>audio,say,navigateTo,resetStory,abortTravel:()=>{transition=null;mode='galaxy';flightTarget=null;$('transition').style.opacity='0';$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');galaxyFocus.set(0,0,0)},setGalaxyDistance:v=>{camDistance=v;galaxyFocus.set(0,0,0)},raiseObservationDistance:v=>{observeDistance=Math.max(observeDistance,v)},refreshDestinations:()=>{$('destinations').querySelectorAll('button:not(.home)').forEach(b=>b.remove());createDestinationButtons()}})}catch(err){console.warn('Infinite Frequency startup:',err);say('GALAXY EXTENSION UNAVAILABLE',3)}}
  host.addEventListener('contextmenu',e=>e.preventDefault());host.addEventListener('wheel',e=>{e.preventDefault();if(mode==='galaxy')camDistance=clamp(camDistance*Math.exp(e.deltaY*.0014),.045,220);else if(mode==='observe'&&flightTarget)observeDistance=clamp(observeDistance*Math.exp(e.deltaY*.0014),flightTarget.size*1.06,flightTarget.size*18)},{passive:false});host.addEventListener('pointerdown',pointerDown);host.addEventListener('pointermove',pointerMove);host.addEventListener('pointerup',pointerUp);host.addEventListener('pointercancel',e=>{pointerMap.delete(e.pointerId);pinchDist=0});host.addEventListener('lostpointercapture',e=>{pointerMap.delete(e.pointerId);pinchDist=0});
  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5))});
  requestAnimationFrame(frame)
 }
-function frame(now){requestAnimationFrame(frame);const dt=clamp((now-lastFrame)/1000,.002,.06);lastFrame=now;spaceTime+=dt;analyzeAudio(dt);setOrbit(dt);updateMeteors(dt,spaceTime);updateTraffic(dt);animatePopulation(dt);
+function frame(now){requestAnimationFrame(frame);const dt=clamp((now-lastFrame)/1000,.002,.06);lastFrame=now;spaceTime+=dt;analyzeAudio(dt);setOrbit(dt);updateMeteors(dt,spaceTime);updateTraffic(dt);animatePopulation(dt);galacticDirector?.tick(dt);
  if(mode==='galaxy'){const pos=new THREE.Vector3(),look=new THREE.Vector3();positionGalaxyCamera(pos,look);camera.position.copy(pos);camera.up.set(0,1,0);camera.lookAt(look);}
  else if(transition)cinematicTransition(now,dt);else if(mode==='observe')updateObservation();
  if(statusUntil&&now>statusUntil){$('status').classList.remove('visible');statusUntil=0}
- updateMusicStory(dt);renderer.render(scene,camera);window.cosmosThreeReady=true;
+ updateMusicStory(dt);galacticDirector?.preventCameraClip();renderer.render(scene,camera);window.cosmosThreeReady=true;
 }
 $('closeRadar').addEventListener('click',closeRadar);$('radarShell').addEventListener('click',e=>{if(e.target===$('radarShell'))closeRadar()});
 $('destinations').addEventListener('click',e=>{if(e.target.dataset.destination==='galaxy')navigateTo(null)});
 radar.addEventListener('click',e=>{const r=radar.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*620,y=(e.clientY-r.top)/r.height*620;let closest=null,best=32*32;for(const p of planets){const a=p.a+p.orbitAngle,px=310+Math.cos(a)*p.orbit*11.5,py=310+Math.sin(a)*p.orbit*11.5,dist=(x-px)**2+(y-py)**2;if(dist<best){best=dist;closest=p}}if(closest)navigateTo(closest);else if((x-310)**2+(y-310)**2<39*39)navigateTo(null)});
 $('return').addEventListener('click',()=>navigateTo(null));
-window.cosmosOnFile=()=>{history=[];lastOnset=-5;detectedBPM=110;bpmConfidence=0;targetSpeed=1;smoothSpeed=1;resetStory(false)};
+window.cosmosOnFile=()=>{history=[];lastOnset=-5;detectedBPM=110;bpmConfidence=0;targetSpeed=1;smoothSpeed=1;resetStory(false);galacticDirector?.onTrack()};
 window.cosmosConnectAudio=connectAudio;
 audio.addEventListener('loadstart',()=>resetStory(false));
 audio.addEventListener('ended',()=>{if(story.started&&!story.finished)storyRebirth()});
