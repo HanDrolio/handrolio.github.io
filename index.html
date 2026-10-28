@@ -291,7 +291,8 @@ function statusCityAssets(){
 }
 function cityBlueprint(p){
  if(cityBlueprints.has(p.name))return cityBlueprints.get(p.name);
- const rand=randSeed(p.seed+(p.generated?91:citySessionSeed)),placements=[],cityHubs=[.2,1.6,3.2,4.85];
+ const rand=randSeed(p.seed+(p.generated?91:citySessionSeed)),placements=[],cityHubs=[.2,1.6,3.2,4.85],occupied=[];
+ const reserve=(unit,radius)=>{if(occupied.some(o=>unit.distanceToSquared(o.unit)<(o.radius+radius)**2))return false;occupied.push({unit:unit.clone(),radius});return true};
  const towerIds=['sky-a','sky-b','sky-c','sky-d','sky-e','tower-i','tower-j','tower-k','tower-m','tower-n'];
  const residential=['house-a','house-e','tower-i','tower-k'];
  // Cluster city blocks on curved worlds, using a grid for recognizable streets.
@@ -301,6 +302,7 @@ function cityBlueprint(p){
   const lon=cityHubs[district]+col*.105+(rand()-.5)*.024;
   const lat=.04+row*.115+(rand()-.5)*.035;
   const unit=placeOnSphere(new THREE.Vector3(),lon,lat);
+  if(!reserve(unit,.038))continue;
   let pool=towerIds;
   if(p.name==='AZURA'&&rand()<.17)pool=residential;
   if(p.name==='EMBER'&&rand()<.35)pool=['tower-i','tower-j','tower-m','tower-n','house-e'];
@@ -318,6 +320,7 @@ function cityBlueprint(p){
  for(let i=0;i<trees;i++){
   const district=i%4,lon=cityHubs[district]+(rand()-.5)*.82,lat=.05+(rand()-.5)*.65;
   const unit=placeOnSphere(new THREE.Vector3(),lon,lat);
+  if(!reserve(unit,.023))continue;
   placements.push({unit,modelId:p.name==='AZURA'&&rand()<.5?'tree-palm':'tree-oak',spin:rand()*6.283,height:p.size*(.07+rand()*.08),kind:'tree'});
  }
  cityBlueprints.set(p.name,placements);return placements;
@@ -387,7 +390,7 @@ function prepareRealBuilding(p,asset){
  p.loadedTypes++;
  cityStructureCount+=plans.length;
  // Swap placeholder cylinders only once enough real asset types have arrived.
- if(p.loadedTypes>=4&&p.proceduralBuildings){for(const obj of p.proceduralBuildings)obj.visible=false}
+ if(p.loadedTypes>=1&&p.proceduralBuildings){for(const obj of p.proceduralBuildings)obj.visible=false}
  statusCityAssets();
 }
 function loadUrbanFile(loader,asset){
@@ -771,7 +774,7 @@ try{addonInstaller=(await import('./cosmos-infinite.js')).installInfiniteFrequen
 function initialize(){renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'high-performance'});renderer.setClearColor(0x000000,0);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(renderer.domElement);
  scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.04,330);camera.position.set(9,9,38);
  const ambient=new THREE.AmbientLight(0xb5c8ff,1.45),sun=new THREE.DirectionalLight(0xffffff,2.9);sun.position.set(21,25,38);scene.add(ambient,sun);glowMap=glowTexture();initGalaxy();specs.forEach(buildPlanet);buildOrbitalTraffic();createDestinationButtons();initRealCityAssets();
-  if(addonInstaller){try{galacticDirector=addonInstaller({THREE,scene,camera,renderer,planets,buildPlanet,randSeed,makeSprite,prepareRealBuilding,urbanAssets,galaxyGeo:()=>galaxyGeo,mode:()=>mode,target:()=>flightTarget,audio:()=>audio,say,navigateTo,resetStory,abortTravel:()=>{transition=null;mode='galaxy';flightTarget=null;$('transition').style.opacity='0';$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');galaxyFocus.set(0,0,0)},setGalaxyDistance:v=>{camDistance=v;galaxyFocus.set(0,0,0)},refreshDestinations:()=>{$('destinations').querySelectorAll('button:not(.home)').forEach(b=>b.remove());createDestinationButtons()}})}catch(err){console.warn('Infinite Frequency startup:',err);say('GALAXY EXTENSION UNAVAILABLE',3)}}
+  if(addonInstaller){try{galacticDirector=addonInstaller({THREE,scene,camera,renderer,planets,buildPlanet,randSeed,makeSprite,prepareRealBuilding,urbanAssets,galaxyGeo:()=>galaxyGeo,cityBlueprint,clearCityBlueprints:()=>cityBlueprints.clear(),mode:()=>mode,target:()=>flightTarget,audio:()=>audio,say,navigateTo,resetStory,abortTravel:()=>{transition=null;mode='galaxy';flightTarget=null;$('transition').style.opacity='0';$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');galaxyFocus.set(0,0,0)},setGalaxyDistance:v=>{camDistance=v;galaxyFocus.set(0,0,0)},refreshDestinations:()=>{$('destinations').querySelectorAll('button:not(.home)').forEach(b=>b.remove());createDestinationButtons()}})}catch(err){console.warn('Infinite Frequency startup:',err);say('GALAXY EXTENSION UNAVAILABLE',3)}}
  host.addEventListener('contextmenu',e=>e.preventDefault());host.addEventListener('wheel',e=>{e.preventDefault();if(mode==='galaxy')camDistance=clamp(camDistance*Math.exp(e.deltaY*.0014),.045,220);else if(mode==='observe'&&flightTarget)observeDistance=clamp(observeDistance*Math.exp(e.deltaY*.0014),flightTarget.size*1.06,flightTarget.size*18)},{passive:false});host.addEventListener('pointerdown',pointerDown);host.addEventListener('pointermove',pointerMove);host.addEventListener('pointerup',pointerUp);host.addEventListener('pointercancel',e=>{pointerMap.delete(e.pointerId);pinchDist=0});host.addEventListener('lostpointercapture',e=>{pointerMap.delete(e.pointerId);pinchDist=0});
  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5))});
  requestAnimationFrame(frame)
