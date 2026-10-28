@@ -12,6 +12,23 @@ ball(pet,dark,0,-.13,.72,.21,.09,.07);const shadow=new THREE.Mesh(new THREE.Circ
 let impulse=0, mood='idle', bubbleUntil=0;function say(s){$('bubble').textContent=s;bubbleUntil=performance.now()+2200}function save(){localStorage.setItem(storeKey,JSON.stringify(brain))}function ui(){for(const k of ['trust','energy','hunger'])$(k).value=brain[k]}ui();
 function act(a){const now=performance.now();if(now-lastAction<420)return;lastAction=now; if(a==='pet'){brain.trust=clamp(brain.trust+4,0,100);brain.energy=clamp(brain.energy+1,0,100);mood='happy';say(['PURRR.','MORE PLEASE!','YOU ARE ACCEPTABLE.'][Math.floor(Math.random()*3)])}else if(a==='poke'){brain.trust=clamp(brain.trust-3,0,100);brain.temper=clamp(brain.temper+5,0,100);mood='angry';impulse=1;say('HEY! PERSONAL SPACE!')}else if(a==='feed'){brain.hunger=clamp(brain.hunger-25,0,100);brain.trust=clamp(brain.trust+3,0,100);mood='happy';say('NOM NOM NOM 🍌')}save();ui()}
 document.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>act(b.dataset.act));
+let visionPromise=null;
+function loadVisionLibrary(){
+ if(visionPromise)return visionPromise;
+ visionPromise=new Promise((resolve,reject)=>{
+  const script=document.createElement('script');
+  script.src='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.js';
+  script.crossOrigin='anonymous';
+  script.onload=()=>{
+   const library=window.vision;
+   if(library?.FilesetResolver&&library?.HandLandmarker)resolve(library);
+   else reject(Error('MediaPipe bundle loaded without vision exports'));
+  };
+  script.onerror=()=>reject(Error('MediaPipe script blocked or unavailable from CDN'));
+  document.head.appendChild(script);
+ }).catch(e=>{visionPromise=null;throw e});
+ return visionPromise;
+}
 async function startCamera(){
  if(cameraOn){stream?.getTracks().forEach(t=>t.stop());cameraOn=false;video.style.display='none';$('cameraBtn').textContent='📷 START';$('status').textContent='Camera stopped. Buttons still work.';return}
  const status=$('status'),button=$('cameraBtn');button.disabled=true;
@@ -21,7 +38,7 @@ async function startCamera(){
   stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}});
   video.srcObject=stream;await video.play();video.style.display='block';cameraOn=true;button.textContent='⏹ STOP';
   status.textContent='Camera ready. Loading hand tracking…';
-  const mp=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
+  const mp=await loadVisionLibrary();
   const vision=await mp.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
   const options={baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'CPU'},runningMode:'VIDEO',numHands:1};
   try{landmarker=await mp.HandLandmarker.createFromOptions(vision,options);status.textContent='Hand tracking ready! Show your hand.'}
