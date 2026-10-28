@@ -273,6 +273,8 @@ export function installInfiniteFrequency(api){
   decorationClock=0;autoClock=0;autoLeg=0;
   if(auto)switchGalaxy(galaxyNumber+1,true);
  }
+ const roofRaycaster=new THREE.Raycaster();
+ let lastRoofSample=0,lastRoofPlanet=null,lastRoofClearance=0;
  function preventCameraClip(){
   // Protect the observer camera from intersecting planetary geometry.
   if(api.mode()==='warp'||api.mode()==='return')return;
@@ -286,6 +288,22 @@ export function installInfiniteFrequency(api){
       minimum=Math.max(minimum,p.size*1.008+plan.height*1.1);
      }
     }
+   }
+   // Mesh-accurate roof collision on a close-up planet, throttled for mobile GPUs.
+   // Unlike the old height proxy, this uses the actual loaded GLB city geometry.
+   if(api.mode()==='observe'&&api.target()===p&&p.realBuildings?.length&&v.lengthSq()<p.size*p.size*3.24){
+    const now=performance.now();
+    if(lastRoofPlanet!==p||now-lastRoofSample>120){
+     lastRoofPlanet=p;lastRoofSample=now;lastRoofClearance=0;
+     p.group.updateMatrixWorld(true);
+     roofRaycaster.set(p.position,v.clone().normalize());
+     roofRaycaster.near=p.size*.99;roofRaycaster.far=p.size*1.85;
+     const meshes=p.realBuildings.filter(o=>o.visible);
+     for(const hit of roofRaycaster.intersectObjects(meshes,false)){
+      lastRoofClearance=Math.max(lastRoofClearance,hit.distance+p.size*.019);
+     }
+    }
+    minimum=Math.max(minimum,lastRoofClearance);
    }
    if(v.lengthSq()<minimum*minimum){
     if(api.mode()==='observe'&&api.target()===p)api.raiseObservationDistance(minimum);
