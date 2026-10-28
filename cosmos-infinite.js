@@ -34,6 +34,7 @@ export function installInfiniteFrequency(api){
  function disposePlanet(p){
   scene.remove(p.group);
   const geometries=new Set(),materials=new Set(),textures=new Set();
+  for(const g of [p._highGeometry,p._lowGeometry])if(g)geometries.add(g);
   p.group.traverse(o=>{
    if(o.geometry&&!o.isInstancedMesh)geometries.add(o.geometry);
    if(o.isInstancedMesh&&typeof o.dispose==='function')o.dispose();
@@ -109,6 +110,7 @@ export function installInfiniteFrequency(api){
     buildPlanet(spec,i+1200+next*11);
     const p=planets[planets.length-1];
     p.detailed=false;
+    if(p._lowGeometry)p.surface.geometry=p._lowGeometry;
     for(const a of p.population||[])a.sprite.visible=false;
     for(const o of p.proceduralBuildings||[])o.visible=false;
     for(const o of p.shuttles||[])o.mesh.visible=false;
@@ -241,6 +243,7 @@ export function installInfiniteFrequency(api){
     const detailed=api.mode()==='observe'&&api.target()===p || dist<p.size*7.5;
     if(p.detailed!==detailed){
      p.detailed=detailed;
+     if(p._highGeometry&&p._lowGeometry)p.surface.geometry=detailed?p._highGeometry:p._lowGeometry;
      for(const a of p.population||[])a.sprite.visible=detailed;
      for(const o of p.realBuildings||[])o.visible=detailed;
      for(const o of p.proceduralBuildings||[])o.visible=detailed&&!(p.loadedTypes>=1);
