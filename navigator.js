@@ -123,7 +123,7 @@ export function createNavigator({THREE,scene,camera,stage,planets,audio}){
   const lights=new THREE.InstancedMesh(new THREE.SphereGeometry(.016,6,5),
    new THREE.MeshBasicMaterial({color:colors[0]}),30);
   for(const m of [animals,cars,lights]){m.frustumCulled=false;group.add(m)}
-  const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(1.21,32,24),
+  const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(1.68,32,24),
    new THREE.MeshBasicMaterial({color:colors[0],transparent:true,opacity:.072,side:THREE.DoubleSide,
      depthWrite:false,blending:THREE.AdditiveBlending}));
   group.add(atmosphere);
@@ -243,7 +243,7 @@ export function createNavigator({THREE,scene,camera,stage,planets,audio}){
   const normal=city.primary,tangent=V().crossVectors(UP,normal).normalize();
   if(state.mode==="flight"){
    state.elapsed+=dt;const u=clamp(state.elapsed/state.duration,0,1),e=ease(u);
-   const destination=world.clone().addScaledVector(normal,size*1.34);
+   const destination=world.clone().addScaledVector(normal,size*1.51);
    const pos=state.from.clone().lerp(destination,e);
    pos.y+=Math.sin(Math.PI*u)*2.2;
    const toward=world.clone().sub(pos).normalize();
@@ -263,7 +263,7 @@ export function createNavigator({THREE,scene,camera,stage,planets,audio}){
   }else{
    state.flyby+=dt*(.22+clamp(bass,0,.3)*.6);
    const radial=normal.clone().applyAxisAngle(UP,state.flyby*.24);
-   const pos=world.clone().addScaledVector(radial,size*(1.33+.09*Math.sin(state.flyby*.8)));
+   const pos=world.clone().addScaledVector(radial,size*(1.47+.045*Math.sin(state.flyby*.8)));
    const horizon=V().crossVectors(UP,radial).normalize().addScaledVector(radial,-.28);
    pose(pos,horizon);
    const fov=state.homeFov+18+Math.sin(state.flyby*.7)*2;
