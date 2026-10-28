@@ -12,7 +12,7 @@ export function installCosmicCinema(api) {
  const faiths=['KEEPERS OF FIRST LIGHT','ORDER OF THE TWIN MOONS','CHILDREN OF THE GREAT SPIRAL','PILGRIMS OF THE NINTH DAWN','THE ETERNAL TIDE','COVENANT OF THE GLASS SUN','SILENT STAR CHURCH','ARCHIVISTS OF THE LAST SIGNAL'];
  const philosophies=['reincarnation in starlight','communal memory','sacred silence','harmonic mathematics','the living ocean','ancestor constellations','the eternal migration','the first machine'];
  const scenes=[{name:'GENESIS',sub:'A UNIVERSE IS BORN',start:0,end:.2},{name:'ASCENSION',sub:'CIVILIZATIONS & FAITHS',start:.2,end:.45},{name:'THE LONG WAR',sub:'FLEETS CROSS THE VOID',start:.45,end:.75},{name:'AFTERMATH',sub:'EXODUS & RECONSTRUCTION',start:.75,end:.9},{name:'SINGULARITY',sub:'EVERYTHING BECOMES ONE',start:.9,end:1}];
- const civilizations=new Map(),ships=[],beacons=[],bolts=[],scaleBackup=new Map();
+ const civilizations=new Map(),ships=[],ufos=[],beacons=[],bolts=[],scaleBackup=new Map();
  const cluster=new THREE.Group(),singularity=new THREE.Group();scene.add(cluster);cluster.add(singularity);
  let random=seeded(437),universe=0,cycle=0,demo=0,lastT=0,lastP=-1,lastScene=-1,lastShot=-1,lastBar=-1,enabled=true,activeSrc='',blend=false,flash=0;
  const el=document.createElement('style');
@@ -48,6 +48,19 @@ export function installCosmicCinema(api) {
   const canopy=new THREE.Mesh(glassGeo,enemy?enemyMat:wingMat);canopy.position.set(0,.1,-.18);g.add(canopy);
   cluster.add(g);ships.push({g,i,source:i%8,dest:(i*3+3)%8,enemy});
  }
+ 
+ // Civilian saucers, each carrying a visible little alien pilot.
+ const saucerGeo=new THREE.SphereGeometry(.53,16,8),headGeo=new THREE.SphereGeometry(.17,10,7),eyeGeo=new THREE.SphereGeometry(.034,7,5);
+ const alienMat=new THREE.MeshStandardMaterial({color:0x95d9a0,emissive:0x2b7d59,emissiveIntensity:.38});
+ for(let i=0;i<(innerWidth<700?7:12);i++){
+  const craft=new THREE.Group(),saucer=new THREE.Mesh(saucerGeo,i%3?wingMat:enemyMat);
+  saucer.scale.set(1,.22,1);craft.add(saucer);
+  const dome=new THREE.Mesh(headGeo,alienMat);dome.position.y=.27;dome.scale.set(1,1.3,1);craft.add(dome);
+  for(const x of [-.075,.075]){const eye=new THREE.Mesh(eyeGeo,bhPreEye());eye.position.set(x,.30,.145);craft.add(eye)}
+  const antenna=new THREE.Mesh(new THREE.ConeGeometry(.035,.22,5),wingMat);antenna.position.y=.54;craft.add(antenna);
+  cluster.add(craft);ufos.push({craft,i,world:i%8});
+ }
+ function bhPreEye(){return new THREE.MeshBasicMaterial({color:0x10102c})}
  for(let i=0;i<12;i++){const mesh=new THREE.Mesh(beamGeo,i%2?enemyMat:wingMat);cluster.add(mesh);bolts.push(mesh)}
  for(let i=0;i<8;i++){const mesh=new THREE.Mesh(new THREE.TorusGeometry(1,.017,5,56),new THREE.MeshBasicMaterial({color:0x8ad4ff,transparent:true,opacity:.16}));cluster.add(mesh);beacons.push(mesh)}
  const bhMat=new THREE.MeshBasicMaterial({color:0x000005}),ringMat=new THREE.MeshBasicMaterial({color:0xb5aaff,transparent:true,opacity:.73,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
@@ -141,6 +154,15 @@ export function installCosmicCinema(api) {
    ship.g.quaternion.setFromUnitVectors(vec(0,0,-1),dir);
    ship.g.scale.setScalar(act===2?.9:.55+(i%4)*.1);
   });
+  ufos.forEach((u,i)=>{
+   const p=planets[u.world%planets.length],a=t*(.055+.012*(i%3))*velocity+i*1.72;
+   u.craft.visible=act!==4&&act!==0&&!!p;
+   if(!u.craft.visible)return;
+   const radius=p.size*(2.3+i%3*.45);
+   u.craft.position.set(p.position.x+Math.cos(a)*radius,
+     p.position.y+Math.sin(a*.8)*radius*.27,p.position.z+Math.sin(a)*radius);
+   u.craft.rotation.y=-a+Math.PI*.5;u.craft.rotation.z=Math.sin(t*.9+i)*.12;
+ });
   bolts.forEach((laser,i)=>{
    const a=ships[(i*3)%ships.length],b=ships[(i*3+7)%ships.length];
    const fire=act===2&&a.g.visible&&b.g.visible&&((t*velocity*.7+i*.31)%3)<.48;
