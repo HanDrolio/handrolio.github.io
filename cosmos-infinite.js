@@ -32,6 +32,7 @@ export function installInfiniteFrequency(api){
  function hashNumber(n){n=(n^0x9e3779b9)>>>0;n=Math.imul(n^(n>>>16),0x85ebca6b)>>>0;n=Math.imul(n^(n>>>13),0xc2b2ae35)>>>0;return (n^(n>>>16))>>>0}
  function clearTravel(){api.abortTravel();autoClock=0;autoLeg=0}
  function disposePlanet(p){
+  p.disposed=true;
   scene.remove(p.group);
   const geometries=new Set(),materials=new Set(),textures=new Set();
   for(const g of [p._highGeometry,p._lowGeometry])if(g)geometries.add(g);
@@ -43,6 +44,8 @@ export function installInfiniteFrequency(api){
     for(const key of ['map','bumpMap','alphaMap','emissiveMap'])if(m[key]&&m[key].isCanvasTexture)textures.add(m[key]);
    }
   });
+  // HD texture maps are per-planet, unlike shared source textures in GLB assets.
+  for(const tex of [p.surface?.material?.map,p.surface?.material?.bumpMap,p.cloudShell?.material?.map])if(tex&&tex.isTexture)textures.add(tex);
   for(const t of textures)t.dispose();
   for(const m of materials){
    // Shared source texture from GLB models belongs to the asset library.
