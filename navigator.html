@@ -181,7 +181,7 @@ camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,250);
 camera.position.set(0,6,25);
 makeGalaxy();makeStars();makeCore();createSpaceObjects();initializeCinematicUniverse();
 // Optional flight enhancement: never prevent the original working galaxy from rendering.
-import('./navigator.js?v=1.2a-28db52d').then(({createNavigator})=>{
+import('./navigator.js?v=1.2a-04e5924').then(({createNavigator})=>{
  try{navigatorEngine=createNavigator({THREE,scene,camera,stage,planets,audio});}
  catch(error){console.error('Navigator initialization failed; galaxy preserved',error);$('notice').textContent='GALAXY ACTIVE · NAVIGATOR UNAVAILABLE';}
 }).catch(error=>{console.error('Navigator module unavailable; galaxy preserved',error);});
