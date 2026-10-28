@@ -36,6 +36,7 @@ export function installInfiniteFrequency(api){
   const geometries=new Set(),materials=new Set(),textures=new Set();
   p.group.traverse(o=>{
    if(o.geometry&&!o.isInstancedMesh)geometries.add(o.geometry);
+   if(o.isInstancedMesh&&typeof o.dispose==='function')o.dispose();
    if(o.material)for(const m of (Array.isArray(o.material)?o.material:[o.material])){
     if(!m||materials.has(m))continue;materials.add(m);
     for(const key of ['map','bumpMap','alphaMap','emissiveMap'])if(m[key]&&m[key].isCanvasTexture)textures.add(m[key]);
@@ -99,7 +100,7 @@ export function installInfiniteFrequency(api){
  function switchGalaxy(number,fromAuto=false){
   const next=Math.max(0,Math.floor(number));
   if(next===galaxyNumber&&next===0)return;
-  resetVisuals();clearTravel();
+  resetVisuals();clearTravel();api.clearCityBlueprints();
   if(next===0)restoreHome();
   else{
    for(const p of planets.slice())if(p.generated)disposePlanet(p);else p.group.visible=false;
@@ -108,6 +109,10 @@ export function installInfiniteFrequency(api){
     buildPlanet(spec,i+1200+next*11);
     const p=planets[planets.length-1];
     p.detailed=false;
+    for(const a of p.population||[])a.sprite.visible=false;
+    for(const o of p.proceduralBuildings||[])o.visible=false;
+    for(const o of p.shuttles||[])o.mesh.visible=false;
+    for(const l of p.life||[])l.object.visible=false;
     for(const asset of urbanAssets.values())prepareRealBuilding(p,asset);
    }
   }
@@ -238,7 +243,7 @@ export function installInfiniteFrequency(api){
      p.detailed=detailed;
      for(const a of p.population||[])a.sprite.visible=detailed;
      for(const o of p.realBuildings||[])o.visible=detailed;
-     for(const o of p.proceduralBuildings||[])o.visible=detailed&&!(p.loadedTypes>=4);
+     for(const o of p.proceduralBuildings||[])o.visible=detailed&&!(p.loadedTypes>=1);
      for(const s of p.shuttles||[])s.mesh.visible=detailed;
      for(const l of p.life||[])l.object.visible=detailed;
     }
