@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#04091b">
 <meta name="description" content="COSM.OS Galactic Navigator HD Worlds: first-person planet flybys, living cities, 2K NASA-inspired surface textures, reactive music, radar navigation.">
-<title>COSM.OS • Galactic Navigator v1.4 Living Cities</title>
+<title>COSM.OS • Galactic Navigator v1.5 Free Explore</title>
 <style>
 :root{color-scheme:dark;--ice:#c9ecff;--muted:#a1b9d9;--stroke:#7190c888}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -53,7 +53,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030615;col
 </head>
 <body>
 <div id="world"><canvas id="skyFallback"></canvas></div>
-<div id="brand"><strong>COSM.OS <span>✦</span></strong><small id="subtitle">GALACTIC NAVIGATOR · TAP SPACE FOR RADAR</small></div>
+<div id="brand"><strong>COSM.OS <span>✦</span></strong><small id="subtitle">FREE EXPLORE · DRAG ROTATE · PINCH PAN/ZOOM</small></div>
 <div id="version">v1.4</div>
 <div id="status"></div>
 <div id="flightHud"><div id="crosshair"></div><div id="flightLabel">AUTOPILOT ENGAGED</div><div id="flightData">ATMOSPHERIC FLIGHT</div></div>
@@ -124,7 +124,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));const lerp=(a,b,t)=>a+(b-a)*t;
 let renderer,scene,camera,galaxy,galaxyGeo,galaxyPoints,galaxyBase,galaxyRandom,galaxyColors,stars,core,halo,glowMap,spaceTime=0;
 let cityModelsReady=0,cityModelsFailed=0,cityStructureCount=0;
 let yaw=.19,pitch=.25,camDistance=38,mode='galaxy',transition=null,flightTarget=null,flightAzimuth=0,flightLookYaw=0,flightLookPitch=0,flightSteer=0,flightAltitudeBias=0,flightClock=0;
-let pointerMap=new Map(),pointerMotion=0,pinchDist=0,radarOpenedAt=0;
+let pointerMap=new Map(),pointerMotion=0,pinchDist=0,radarOpenedAt=0,galaxyFocus=new THREE.Vector3(),lastPinchCenter=null;
 let audioCtx=null,analyser=null,source=null,freq=null,previousSpectrum=null,history=[],lastOnset=-5,fluxAverage=.017,detectedBPM=110,bpmConfidence=0,targetSpeed=1,smoothSpeed=1,beatStrength=0,bass=0,mids=0,highs=0,energy=0,avgBass=0,lastBeat=0;
 let lastFrame=performance.now(),statusUntil=0,fileURL=null;
 const randSeed=n=>()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296};
@@ -416,8 +416,20 @@ async function initRealCityAssets(){
  }
 }
 
+function surfaceSprite(car,color){
+ const c=document.createElement('canvas');c.width=64;c.height=96;const g=c.getContext('2d');g.lineCap='round';g.lineJoin='round';
+ if(car){g.fillStyle=color;g.beginPath();g.roundRect(5,34,54,30,9);g.fill();g.fillStyle='#b5eaff';g.fillRect(17,37,29,12);g.fillStyle='#101629';for(const x of [16,48]){g.beginPath();g.arc(x,67,8,0,7);g.fill()}}
+ else{g.fillStyle='#ffdbbc';g.beginPath();g.arc(32,17,10,0,7);g.fill();g.strokeStyle=color;g.lineWidth=12;g.beginPath();g.moveTo(32,34);g.lineTo(32,61);g.moveTo(32,42);g.lineTo(13,55);g.moveTo(32,42);g.lineTo(51,55);g.stroke();g.strokeStyle='#18213c';g.lineWidth=9;g.beginPath();g.moveTo(30,60);g.lineTo(18,86);g.moveTo(34,60);g.lineTo(47,86);g.stroke()}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+function addSurfacePopulation(p,parent){
+ const r=randSeed(p.seed+909),people=surfaceSprite(false,p.secondary),cars=surfaceSprite(true,p.color);p.population=[];const clusters=[.2,1.6,3.2,4.85];
+ for(let i=0;i<180;i++){const car=i%5===0,lon=clusters[i%4]+(r()-.5)*.68,lat=(r()-.5)*.52,unit=placeOnSphere(new THREE.Vector3(),lon,lat),height=p.size*(car?.025:.017);
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:car?cars:people,transparent:true,depthWrite:false,alphaTest:.15}));sprite.position.copy(unit).multiplyScalar(p.size+height*.6);sprite.scale.set(height*(car?2.2:.7),height*(car?1.1:1.4),1);parent.add(sprite);p.population.push({sprite,unit,lon,lat,car,speed:(.006+r()*.018)*(i%2?-1:1),height})}
+}
+function animatePopulation(dt){for(const p of planets)for(const a of p.population||[]){a.lon+=dt*a.speed*(a.car?2.8:1);placeOnSphere(a.unit,a.lon,a.lat);a.sprite.position.copy(a.unit).multiplyScalar(p.size+a.height*.6)}}
 function buildPlanet(spec,index){const planet={...spec,seed:190+index*239,group:new THREE.Group(),position:new THREE.Vector3(),cityGlow:[],life:[],shuttles:[],atmosphere:null,clouds:null,surface:null,beacon:null};scene.add(planet.group);
-const bodyGroup=new THREE.Group();planet.group.add(bodyGroup);planet.bodyGroup=bodyGroup;
+const bodyGroup=new THREE.Group();planet.group.add(bodyGroup);planet.bodyGroup=bodyGroup;addSurfacePopulation(planet,bodyGroup);
 const map=drawPlanetMap(planet),surface=new THREE.Mesh(
  new THREE.SphereGeometry(spec.size,innerWidth<700?72:96,innerWidth<700?48:64),
  new THREE.MeshStandardMaterial({map,roughness:.83,metalness:.08,emissive:new THREE.Color(spec.land),emissiveIntensity:.07})
@@ -501,7 +513,8 @@ let best=0,score=0;for(let i=65;i<=175;i++)if(hist[i]>score){score=hist[i];best=
 if(best&&score>2.6){bpmConfidence=clamp(score/Math.max(5,samples*.28),0,1);if(bpmConfidence>.28){detectedBPM=lerp(detectedBPM,best,.35);targetSpeed=clamp(detectedBPM/110,.58,1.62)}}
 }
 function planetCenter(p){const angle=p.a+p.orbitAngle;return p.position.set(Math.cos(angle)*p.orbit,Math.sin(angle*.7)*.8,Math.sin(angle)*p.orbit)}
-function positionGalaxyCamera(outPos,outLook){outPos.set(camDistance*Math.cos(pitch)*Math.sin(yaw),camDistance*Math.sin(pitch),camDistance*Math.cos(pitch)*Math.cos(yaw));outLook.set(0,0,0)}
+function positionGalaxyCamera(outPos,outLook){outPos.set(camDistance*Math.cos(pitch)*Math.sin(yaw),camDistance*Math.sin(pitch),camDistance*Math.cos(pitch)*Math.cos(yaw));outPos.add(galaxyFocus);outLook.copy(galaxyFocus)}
+function panGalaxy(dx,dy){const right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0),up=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1),scale=camDistance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*2/innerHeight;galaxyFocus.addScaledVector(right,-dx*scale).addScaledVector(up,dy*scale);galaxyFocus.clampLength(0,160)}
 function setOrbit(dt){smoothSpeed=lerp(smoothSpeed,targetSpeed,1-Math.exp(-dt*.5));for(const p of planets){p.orbitAngle=(p.orbitAngle||0)+dt*p.speed*smoothSpeed;planetCenter(p);p.group.position.copy(p.position);p.surface.material.emissiveIntensity=.11+beatStrength*.25+bass*.35;p.clouds.rotation.y+=dt*.025;if(p.cloudShell)p.cloudShell.rotation.y+=dt*(.014+energy*.009);p.atmosphere.material.uniforms.uPulse.value=beatStrength+energy*.4;
  for(const cr of p.life){cr.azimuth+=dt*cr.speed*smoothSpeed;const unit=placeOnSphere(tmpV,cr.azimuth,cr.lat+Math.sin(spaceTime*.5+cr.azimuth)*.06);cr.object.position.copy(unit.multiplyScalar(cr.radius));cr.object.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),tmpV.clone().normalize());cr.wing.scale.x=.65+Math.sin(spaceTime*5+cr.azimuth)*.14}
  for(const s of p.shuttles){const a=s.phase+spaceTime*s.speed*smoothSpeed,r=p.size*1.16;s.mesh.position.set(Math.cos(a)*r,Math.sin(a*1.2)*r*.35,Math.sin(a)*r);s.mesh.rotation.y=a+Math.PI/2}
@@ -537,7 +550,7 @@ function cinematicTransition(now,dt){const c=transition,p=clamp((now-c.start)/c.
  camera.lookAt(look);camera.rotation.z=Math.sin(p*Math.PI)*.085;
  $('transition').style.opacity=String(Math.sin(p*Math.PI)*.92);renderWarpStreaks(p);
  $('flightData').textContent=c.kind==='warp'?Math.round(p*100)+'% · HYPERSPACE TRANSIT':Math.round(p*100)+'% · RETURNING TO CORE';
- if(p>=1){transition=null;$('transition').style.opacity='0';if(dest){mode='flight';flightClock=0;$('flightHud').classList.add('show');$('return').classList.add('show');$('flightLabel').textContent='FIRST-PERSON · '+dest.name;$('subtitle').textContent=dest.name+' · '+dest.kind;say('WELCOME TO '+dest.name+' · LOOK AROUND',2.6)}else{mode='galaxy';$('flightHud').classList.remove('show');$('return').classList.remove('show');$('subtitle').textContent='GALACTIC NAVIGATOR · TAP SPACE FOR RADAR';say('✦ GALAXY VIEW RESTORED',2)}}
+ if(p>=1){transition=null;$('transition').style.opacity='0';if(dest){mode='flight';flightClock=0;$('flightHud').classList.add('show');$('return').classList.add('show');$('flightLabel').textContent='SURFACE EXPLORER · '+dest.name;$('subtitle').textContent=dest.name+' · '+dest.kind;say('WELCOME TO '+dest.name+' · ZOOM TO SURFACE',2.6)}else{mode='galaxy';$('flightHud').classList.remove('show');$('return').classList.remove('show');$('subtitle').textContent='GALACTIC NAVIGATOR · TAP SPACE FOR RADAR';say('✦ GALAXY VIEW RESTORED',2)}}
 }
 function updateFlight(dt){if(!flightTarget){mode='galaxy';return}const p=flightTarget;flightClock+=dt*(.17+smoothSpeed*.045);flightAzimuth+=dt*(.12+smoothSpeed*.065+flightSteer*.12);flightSteer*=Math.exp(-dt*.27);
 const r=p.size*(1.12+flightAltitudeBias),normal=new THREE.Vector3(Math.cos(flightAzimuth),Math.sin(flightClock*.5)*.10,Math.sin(flightAzimuth)).normalize(),tangent=new THREE.Vector3(-normal.z,.03,normal.x).normalize();
@@ -550,19 +563,19 @@ const up=new THREE.Vector3(0,1,0);const f=new THREE.Vector3().copy(tangent).mult
 function adjustControls(){if(mode==='galaxy'){$('return').classList.remove('show');$('flightHud').classList.remove('show')}else if(mode==='flight'){$('return').classList.add('show')}}
 function pointerDown(e){if(e.target.closest('#controls')||e.target.closest('#return'))return;e.preventDefault();host.setPointerCapture(e.pointerId);pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});pointerMotion=0;pinchDist=0}
 function pointerMove(e){if(!pointerMap.has(e.pointerId))return;e.preventDefault();const old=pointerMap.get(e.pointerId);pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});pointerMotion+=Math.hypot(old.x-e.clientX,old.y-e.clientY);
- if(pointerMap.size===1){if(mode==='galaxy'){yaw+=(old.x-e.clientX)*.007;pitch=clamp(pitch+(e.clientY-old.y)*.007,-1.2,1.2)}else if(mode==='flight'){flightLookYaw=clamp(flightLookYaw+(old.x-e.clientX)*.005,-1.3,1.3);flightLookPitch=clamp(flightLookPitch+(old.y-e.clientY)*.005,-.75,.75);flightSteer=clamp(flightSteer+(old.x-e.clientX)*.004,-1,1);flightAltitudeBias=clamp(flightAltitudeBias+(old.y-e.clientY)*.0005,-.01,.23)}}
- else if(pointerMap.size>=2&&mode==='galaxy'){const p=[...pointerMap.values()],d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);if(pinchDist)camDistance=clamp(camDistance*pinchDist/Math.max(1,d),24,85);pinchDist=d}
+ if(pointerMap.size===1){if(mode==='galaxy'){if(e.shiftKey||e.buttons===2)panGalaxy(e.clientX-old.x,e.clientY-old.y);else{yaw+=(old.x-e.clientX)*.007;pitch=clamp(pitch+(e.clientY-old.y)*.007,-1.5,1.5)}}else if(mode==='flight'){flightLookYaw=clamp(flightLookYaw+(old.x-e.clientX)*.005,-1.3,1.3);flightLookPitch=clamp(flightLookPitch+(old.y-e.clientY)*.005,-.75,.75);flightSteer=clamp(flightSteer+(old.x-e.clientX)*.004,-1,1);flightAltitudeBias=clamp(flightAltitudeBias+(old.y-e.clientY)*.0005,-.115,.8)}}
+ else if(pointerMap.size>=2&&mode==='galaxy'){const p=[...pointerMap.values()],d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);if(pinchDist)camDistance=clamp(camDistance*pinchDist/Math.max(1,d),.045,220);const center={x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2};if(lastPinchCenter)panGalaxy(center.x-lastPinchCenter.x,center.y-lastPinchCenter.y);lastPinchCenter=center;pinchDist=d}
 }
-function pointerUp(e){if(!pointerMap.has(e.pointerId))return;const didTap=pointerMap.size===1&&pointerMotion<12;pointerMap.delete(e.pointerId);pinchDist=0;if(didTap&&(mode==='galaxy'||mode==='flight'))openRadar()}
+function pointerUp(e){if(!pointerMap.has(e.pointerId))return;const didTap=pointerMap.size===1&&pointerMotion<12;pointerMap.delete(e.pointerId);pinchDist=0;lastPinchCenter=null;if(didTap&&(mode==='galaxy'||mode==='flight'))openRadar()}
 function initialize(){renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'high-performance'});renderer.setClearColor(0x000000,0);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(renderer.domElement);
  scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.04,330);camera.position.set(9,9,38);
  const ambient=new THREE.AmbientLight(0xb5c8ff,1.45),sun=new THREE.DirectionalLight(0xffffff,2.9);sun.position.set(21,25,38);scene.add(ambient,sun);glowMap=glowTexture();initGalaxy();specs.forEach(buildPlanet);buildOrbitalTraffic();createDestinationButtons();initRealCityAssets();
- host.addEventListener('pointerdown',pointerDown);host.addEventListener('pointermove',pointerMove);host.addEventListener('pointerup',pointerUp);host.addEventListener('pointercancel',e=>{pointerMap.delete(e.pointerId);pinchDist=0});host.addEventListener('lostpointercapture',e=>{pointerMap.delete(e.pointerId);pinchDist=0});
+ host.addEventListener('contextmenu',e=>e.preventDefault());host.addEventListener('wheel',e=>{e.preventDefault();if(mode==='galaxy')camDistance=clamp(camDistance*Math.exp(e.deltaY*.0014),.045,220);else if(mode==='flight')flightAltitudeBias=clamp(flightAltitudeBias+e.deltaY*.00016,-.115,.8)},{passive:false});host.addEventListener('pointerdown',pointerDown);host.addEventListener('pointermove',pointerMove);host.addEventListener('pointerup',pointerUp);host.addEventListener('pointercancel',e=>{pointerMap.delete(e.pointerId);pinchDist=0});host.addEventListener('lostpointercapture',e=>{pointerMap.delete(e.pointerId);pinchDist=0});
  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5))});
  requestAnimationFrame(frame)
 }
-function frame(now){requestAnimationFrame(frame);const dt=clamp((now-lastFrame)/1000,.002,.06);lastFrame=now;spaceTime+=dt;analyzeAudio(dt);setOrbit(dt);updateMeteors(dt,spaceTime);updateTraffic(dt);
- if(mode==='galaxy'){const pos=new THREE.Vector3(),look=new THREE.Vector3();positionGalaxyCamera(pos,look);camera.position.copy(pos);camera.up.set(0,1,0);camera.lookAt(look);yaw+=dt*.018*smoothSpeed}
+function frame(now){requestAnimationFrame(frame);const dt=clamp((now-lastFrame)/1000,.002,.06);lastFrame=now;spaceTime+=dt;analyzeAudio(dt);setOrbit(dt);updateMeteors(dt,spaceTime);updateTraffic(dt);animatePopulation(dt);
+ if(mode==='galaxy'){const pos=new THREE.Vector3(),look=new THREE.Vector3();positionGalaxyCamera(pos,look);camera.position.copy(pos);camera.up.set(0,1,0);camera.lookAt(look);}
  else if(transition)cinematicTransition(now,dt);else if(mode==='flight')updateFlight(dt);
  if(statusUntil&&now>statusUntil){$('status').classList.remove('visible');statusUntil=0}
  renderer.render(scene,camera);window.cosmosThreeReady=true;
