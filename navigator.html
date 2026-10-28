@@ -17,7 +17,7 @@
 #cosmic-flash{position:fixed;z-index:3;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,#fff1d4,transparent 65%);opacity:0}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script></head>
-<body><div id="stage"><canvas id="backdrop"></canvas></div><div id="version">v1.2α<small id="tempo" style="display:block;margin-top:4px;font-size:9px;color:#9beaff;text-align:right">BPM --</small></div><div id="cosmic-event"></div><div id="cosmic-flash"></div><div id="notice">LOAD AN MP3 TO WAKE THE GALAXY</div><div id="top"><div id="brand">COSM.OS <span style="color:#a59aff">✦</span><small>FREQUENCY ENGINE // GALAXY</small></div><div id="meter">BASS <span id="bass">00</span>%<br>ENERGY <span id="energy">00</span>%</div></div><button id="toggle">☷ HIDE UI</button><div id="status">✦ Drag to orbit · Pinch to zoom<br>Load an MP3 to wake the galaxy</div>
+<body><div id="stage"><canvas id="backdrop"></canvas></div><div id="version">v1.2α<small id="tempo" style="display:block;margin-top:4px;font-size:9px;color:#9beaff;text-align:right">BPM --</small></div><div id="cosmic-event"></div><div id="cosmic-flash"></div><div id="notice">TAP EMPTY SPACE FOR RADAR · LOAD MP3</div><div id="top"><div id="brand">COSM.OS <span style="color:#a59aff">✦</span><small>GALACTIC NAVIGATOR // TAP SPACE FOR RADAR</small></div><div id="meter">BASS <span id="bass">00</span>%<br>ENERGY <span id="energy">00</span>%</div></div><button id="toggle">☷ HIDE UI</button><div id="status">✦ Drag to orbit · Pinch to zoom<br>Load an MP3 to wake the galaxy</div>
 <div id="panel"><div id="name">NO TRACK LOADED · IDLE COSMOS</div><input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek through song"><div id="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div><div class="row"><label class="file" for="file">♫ LOAD MP3<input id="file" type="file" accept="audio/*,.mp3"></label><button class="primary" id="play">▶ PLAY</button><button id="shuffle">✧ RESEED</button><button id="full">⛶ FULL</button></div><div class="settings"><label class="setting">SENSITIVITY <span id="sensVal">1.5×</span><input id="sens" type="range" min=".5" max="3.5" step=".1" value="1.5"></label><label class="setting">GALAXY SPEED <span id="speedVal">1.0×</span><input id="speed" type="range" min=".2" max="3" step=".1" value="1"></label><label class="setting">PARTICLE GLOW <span id="glowVal">1.0×</span><input id="glow" type="range" min=".3" max="2" step=".1" value="1"></label><label class="setting">HUE SHIFT <span id="hueVal">0°</span><input id="hue" type="range" min="0" max="360" step="1" value="0"></label></div><div class="foot">3D PARTICLE GALAXY · TWO FINGERS TO ZOOM · YOUR MUSIC STAYS ON YOUR DEVICE</div></div>
 <audio id="audio" playsinline preload="metadata"></audio>
 <script>
@@ -164,7 +164,6 @@ if(audio.paused){try{await audio.play();play.textContent='Ⅱ PAUSE';hint.textCo
 </script>
 <script type="module">
 import * as THREE from 'three';
-import {createNavigator} from './navigator.js';
 const $=id=>document.getElementById(id),stage=$('stage'),audio=$('audio');
 let renderer,scene,camera,galaxy,material,geometry,stars,starGeo,starMat,core,halo,ring,navigatorEngine=null;
 let count=innerWidth<700?6500:11500,positions,colors,original,phases,radii;
@@ -181,7 +180,11 @@ scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x050616,.009);
 camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,250);
 camera.position.set(0,6,25);
 makeGalaxy();makeStars();makeCore();createSpaceObjects();initializeCinematicUniverse();
-navigatorEngine=createNavigator({THREE,scene,camera,stage,planets,audio});
+// Optional flight enhancement: never prevent the original working galaxy from rendering.
+import('./navigator.js?v=1.2a-28db52d').then(({createNavigator})=>{
+ try{navigatorEngine=createNavigator({THREE,scene,camera,stage,planets,audio});}
+ catch(error){console.error('Navigator initialization failed; galaxy preserved',error);$('notice').textContent='GALAXY ACTIVE · NAVIGATOR UNAVAILABLE';}
+}).catch(error=>{console.error('Navigator module unavailable; galaxy preserved',error);});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6))});
 animate();
 }
