@@ -120,6 +120,7 @@ export function installInfiniteFrequency(api){
   }
   galaxyNumber=next;colorGalaxy(next);api.refreshDestinations();updateUI();
   api.resetStory();
+  api.alignStoryWithAudio();
   api.setGalaxyDistance(35);
   notice(next===0?'✦ RETURNED TO FOUR HOMEWORLDS':'✦ DISCOVERED GALAXY '+next+' · '+planets.length+' WORLDS');
   if(fromAuto)autoClock=0;
@@ -294,12 +295,13 @@ export function installInfiniteFrequency(api){
   }
  }
  if(ui.auto)ui.auto.addEventListener('click',()=>setAuto(!auto));
- if(ui.next)ui.next.addEventListener('click',()=>switchGalaxy(galaxyNumber+1));
- if(ui.home)ui.home.addEventListener('click',()=>switchGalaxy(0));
+ if(ui.next)ui.next.addEventListener('click',()=>{manualOverride();switchGalaxy(galaxyNumber+1)});
+ if(ui.home)ui.home.addEventListener('click',()=>{manualOverride();switchGalaxy(0)});
  if(ui.spotify)ui.spotify.addEventListener('click',()=>window.open('https://open.spotify.com/','_blank','noopener,noreferrer'));
  document.getElementById('destinations')?.addEventListener('pointerdown',manualOverride);
+ document.getElementById('return')?.addEventListener('pointerdown',manualOverride);
  document.getElementById('radar')?.addEventListener('pointerdown',manualOverride);
- window.cosmosInfinite={nextGalaxy:()=>switchGalaxy(galaxyNumber+1),homeGalaxy:()=>switchGalaxy(0),setAutopilot:setAuto};
+ window.cosmosInfinite={nextGalaxy:()=>{manualOverride();switchGalaxy(galaxyNumber+1)},homeGalaxy:()=>{manualOverride();switchGalaxy(0)},setAutopilot:setAuto};
  updateUI();
  return {event,tick,onTrack,manualOverride,preventCameraClip,resetStory,resetVisuals,galaxyNumber:()=>galaxyNumber};
 }
