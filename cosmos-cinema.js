@@ -36,7 +36,7 @@ export function installCosmicCinema(api) {
  ].join('');
  document.head.appendChild(el);
  const u=document.createElement('div');u.id='epochUI';
- u.innerHTML='<div id="epochGlow"></div><div id="epochVortex"></div><button id="epochMode" class="on" aria-pressed="true">◉ CINEMA · ON</button><section id="epochIntel"><div class="ey">CIVILIZATION INTELLIGENCE</div><h3 id="epochWorld">THE EIGHTFOLD ATLAS</h3><p id="epochGov">Eight inhabited planets</p><p id="epochFaith"></p><div class="meta" id="epochStatus">AWAITING FIRST CONTACT</div><button id="epochExplore">◈ RETURN TO FREE EXPLORATION</button></section><div id="epochAct"><strong id="epochTitle">THE INFINITE EPOCH</strong><small id="epochSubtitle">ONE SONG · ONE UNIVERSE · INFINITE LIVES</small></div><section id="epochTimeline"><div class="row"><div id="epochStage">GENESIS · A UNIVERSE IS BORN</div><div id="epochClock">00:00 / DEMO</div></div><div id="epochBar"><div id="epochFill"></div></div><div id="epochMarkers"><span>GENESIS</span><span>ASCENSION</span><span>WAR</span><span>AFTERMATH</span><span>∞</span></div></section>';
+ u.innerHTML='<div id="epochGlow"></div><div id="epochVortex"></div><button id="epochMode" class="on" aria-pressed="true">◉ CINEMA · ON</button><section id="epochIntel"><div class="ey">CIVILIZATION INTELLIGENCE</div><h3 id="epochWorld">THE EIGHTFOLD ATLAS</h3><p id="epochGov">Eight inhabited planets</p><p id="epochFaith"></p><div class="meta" id="epochStatus">AWAITING FIRST CONTACT</div><button id="epochExplore">◈ RETURN TO FREE EXPLORATION</button><button id="epochNext">↻ GENERATE NEW UNIVERSE</button></section><div id="epochAct"><strong id="epochTitle">THE INFINITE EPOCH</strong><small id="epochSubtitle">ONE SONG · ONE UNIVERSE · INFINITE LIVES</small></div><section id="epochTimeline"><div class="row"><div id="epochStage">GENESIS · A UNIVERSE IS BORN</div><div id="epochClock">00:00 / DEMO</div></div><div id="epochBar"><div id="epochFill"></div></div><div id="epochMarkers"><span>GENESIS</span><span>ASCENSION</span><span>WAR</span><span>AFTERMATH</span><span>∞</span></div></section>';
  document.body.appendChild(u);const $=id=>document.getElementById(id);
  const hullGeo=new THREE.ConeGeometry(.17,.8,5),wingGeo=new THREE.BoxGeometry(.63,.03,.21),glassGeo=new THREE.SphereGeometry(.13,8,6),beamGeo=new THREE.CylinderGeometry(.025,.025,1,5);
  const hullMat=new THREE.MeshStandardMaterial({color:0xbcdce9,roughness:.18,metalness:.84,emissive:0x194d7f,emissiveIntensity:.35});
@@ -127,7 +127,9 @@ export function installCosmicCinema(api) {
   $('epochFill').style.width=(progress*100).toFixed(3)+'%';
   $('epochGlow').style.opacity=String(Math.min(.4,flash*.22));flash=Math.max(0,flash-dt*1.4);
   const phase=(progress-scenes[act].start)/(scenes[act].end-scenes[act].start),shots=act===0?3:act===2?7:act===4?1:5;
-  const shot=Math.min(shots-1,Math.floor(clamp(phase,0,.999)*shots));
+  const barsPerAct=Math.max(1,Math.ceil((scenes[act].end-scenes[act].start)*length*bpm/240));
+  const barsElapsed=Math.max(0,Math.floor((t-scenes[act].start*length)*bpm/240));
+  const shot=Math.min(shots-1,Math.floor((barsElapsed/barsPerAct)*shots));
   const p=planets[(act*3+shot+cycle)%Math.max(1,planets.length)];
   if(!p)return;
   if(shot!==lastShot){lastShot=shot;selectWorld(p,progress)}
@@ -181,7 +183,7 @@ export function installCosmicCinema(api) {
   });
   // Original Easter egg: little green portal near the fourth world, sector C-137.
   easterEgg.visible=act===1&&phase>.46&&phase<.91&&planets.length>3;
-  if(easterEgg.visible){easterEgg.position.copy(planets[3].position).add(vec(2.4,1.5,2));easterEgg.rotation.z+=dt*1.3;easterEgg.rotation.y+=dt*.7}
+  if(easterEgg.visible){easterEgg.position.copy(planets[3].position).add(vec(2.4,1.5,2));easterEgg.rotation.z+=dt*1.3;easterEgg.rotation.y+=dt*.7;$('epochSubtitle').textContent='SECTOR C-137 · UNAUTHORIZED PORTAL DETECTED'}
   singularity.visible=act===4;
   if(act===4){
    const x=smooth(phase);
@@ -197,6 +199,7 @@ export function installCosmicCinema(api) {
  }
  $('epochMode').addEventListener('click',()=>toggle(!enabled));
  $('epochExplore').addEventListener('click',()=>{toggle(false);say('TAP SPACE OR OPEN RADAR TO EXPLORE WORLDS',4)});
+ $('epochNext').addEventListener('click',()=>{if(audio.src&&Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=0;else demo=0;newUniverse(true);lastP=-1;lastT=0;say('THE NEXT UNIVERSE IS BORN',3)});
  document.body.classList.add('epochOn');spawnSocieties(1000);
  return {update,onTrack,toggle,get enabled(){return enabled},next:()=>{newUniverse(true);demo=0;lastP=-1}};
 }
