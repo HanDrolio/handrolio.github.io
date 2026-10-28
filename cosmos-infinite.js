@@ -272,8 +272,18 @@ export function installInfiniteFrequency(api){
   // Protect the observer camera from intersecting planetary geometry.
   if(api.mode()==='warp'||api.mode()==='return')return;
   for(const p of planets){
-   const v=camera.position.clone().sub(p.position),minimum=p.size*1.065;
+   const v=camera.position.clone().sub(p.position);let minimum=p.size*1.065;
+   if(v.lengthSq()<p.size*p.size*4&&p.bodyGroup){
+    const local=v.clone().normalize().applyAxisAngle(new THREE.Vector3(0,1,0),-(p.bodyGroup.rotation.y||0));
+    // A simple spherical collision field keeps the orbit camera above skyscraper roofs.
+    for(const plan of api.cityBlueprint(p)){
+     if(plan.kind==='building'&&local.dot(plan.unit)>.995){
+      minimum=Math.max(minimum,p.size*1.008+plan.height*1.1);
+     }
+    }
+   }
    if(v.lengthSq()<minimum*minimum){
+    if(api.mode()==='observe'&&api.target()===p)api.raiseObservationDistance(minimum);
     if(v.lengthSq()<.0001)v.set(0,0,1);
     camera.position.copy(p.position).add(v.normalize().multiplyScalar(minimum));
     if(api.mode()==='observe')camera.lookAt(p.position);
