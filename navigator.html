@@ -233,6 +233,7 @@ function addRealClouds(p){
  if(spec.biome==='ocean'){
   // Public, CORS-enabled, NASA-based 2K cloud layer. The procedural version remains if offline.
   hdLoader.load('https://clouds.matteason.co.uk/images/2048x1024/clouds-alpha.png',cloudTex=>{
+   if(p.disposed){cloudTex.dispose();return}
    cloudTex.colorSpace=THREE.SRGBColorSpace;
    cloudTex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
    const old=p.cloudShell.material.map;
@@ -245,6 +246,7 @@ function addRealClouds(p){
 function applyHdSurface(p){
  const identity=p.personaName||p.name,filename=hdPlanetMaps[identity];if(!filename)return;
  loadHdImage(filename,tex=>{
+  if(p.disposed){tex.dispose();return}
   tex.colorSpace=THREE.SRGBColorSpace;
   tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
   tex.minFilter=THREE.LinearMipmapLinearFilter;
@@ -259,7 +261,7 @@ function applyHdSurface(p){
   mat.metalness=.035;mat.needsUpdate=true;
   if(previousMap&&previousMap.isCanvasTexture)previousMap.dispose();
   p.isHd=true;hdLoaded++;updateHdProgress();
- },()=>{hdFailed++;p.isHd=false;updateHdProgress()});
+ },()=>{if(p.disposed)return;hdFailed++;p.isHd=false;updateHdProgress()});
 }
 /*
   COSM.OS v1.4 Real Asset World Builder.
