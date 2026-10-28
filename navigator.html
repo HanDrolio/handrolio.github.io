@@ -164,8 +164,9 @@ if(audio.paused){try{await audio.play();play.textContent='Ⅱ PAUSE';hint.textCo
 </script>
 <script type="module">
 import * as THREE from 'three';
+import {createNavigator} from './navigator.js';
 const $=id=>document.getElementById(id),stage=$('stage'),audio=$('audio');
-let renderer,scene,camera,galaxy,material,geometry,stars,starGeo,starMat,core,halo,ring;
+let renderer,scene,camera,galaxy,material,geometry,stars,starGeo,starMat,core,halo,ring,navigatorEngine=null;
 let count=innerWidth<700?6500:11500,positions,colors,original,phases,radii;
 let yaw=.1,pitch=.22,dist=25,drag=null,touches=new Map(),lastPinch=0;
 let ctx=null,analyser=null,source=null,bins=null,level=0,bass=0,mids=0,treble=0,beat=0,prevBass=0,clock=new THREE.Clock(),url=null,playing=false,seed=Math.random()*99999;
@@ -180,6 +181,7 @@ scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x050616,.009);
 camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,250);
 camera.position.set(0,6,25);
 makeGalaxy();makeStars();makeCore();createSpaceObjects();initializeCinematicUniverse();
+navigatorEngine=createNavigator({THREE,scene,camera,stage,planets,audio});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6))});
 animate();
 }
@@ -630,11 +632,39 @@ galaxy.rotation.y+=dt*.025*speed*(window.cosmosLevels?.orbit??1);stars.rotation.
 if(!drag&&touches.size===0)yaw+=dt*.035*speed;
 pitch=THREE.MathUtils.clamp(pitch,-1.42,1.42);
 camera.position.set(dist*Math.cos(pitch)*Math.sin(yaw),dist*Math.sin(pitch),dist*Math.cos(pitch)*Math.cos(yaw));camera.lookAt(0,0,0);
+if(navigatorEngine)navigatorEngine.update(dt,t,beat,{bass,mids,treble});
 renderer.render(scene,camera);
 if(!seekDrag&&Number.isFinite(audio.duration)&&audio.duration>0){$('seek').value=String(Math.round(audio.currentTime/audio.duration*1000))}$('elapsed').textContent=fmt(audio.currentTime);$('duration').textContent=fmt(audio.duration)}
-function pointerDown(e){if(e.target!==renderer.domElement)return;e.preventDefault();stage.setPointerCapture(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});drag={x:e.clientX,y:e.clientY};lastPinch=0}
-function pointerMove(e){if(!touches.has(e.pointerId))return;e.preventDefault();const prev=touches.get(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touches.size===1){yaw-=(e.clientX-prev.x)*.007;pitch+=(e.clientY-prev.y)*.007}else if(touches.size>=2){const pts=[...touches.values()],d=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);if(lastPinch)dist=THREE.MathUtils.clamp(dist*lastPinch/Math.max(1,d),8,75);lastPinch=d}}
-function pointerUp(e){touches.delete(e.pointerId);lastPinch=0;if(!touches.size)drag=null}
+function pointerDown(e){
+ if(e.target!==renderer.domElement)return;
+ e.preventDefault();
+ stage.setPointerCapture(e.pointerId);
+ touches.set(e.pointerId,{x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,startTime:performance.now(),moved:false});
+ drag={x:e.clientX,y:e.clientY};lastPinch=0;
+}
+function pointerMove(e){
+ if(!touches.has(e.pointerId))return;
+ e.preventDefault();
+ const prev=touches.get(e.pointerId),dx=e.clientX-prev.x,dy=e.clientY-prev.y;
+ if(Math.hypot(e.clientX-prev.startX,e.clientY-prev.startY)>9)prev.moved=true;
+ prev.x=e.clientX;prev.y=e.clientY;
+ if(touches.size===1){
+  if(navigatorEngine&&navigatorEngine.active)navigatorEngine.steer(dx,dy);
+  else{yaw-=dx*.007;pitch+=dy*.007}
+ }else if(touches.size>=2&&(!navigatorEngine||!navigatorEngine.active)){
+  const pts=[...touches.values()],d=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+  if(lastPinch)dist=THREE.MathUtils.clamp(dist*lastPinch/Math.max(1,d),8,75);
+  lastPinch=d;
+ }
+}
+function pointerUp(e){
+ const prev=touches.get(e.pointerId),wasSingle=touches.size===1;
+ touches.delete(e.pointerId);lastPinch=0;
+ if(!touches.size)drag=null;
+ if(prev&&wasSingle&&!prev.moved&&performance.now()-prev.startTime<500&&navigatorEngine){
+  navigatorEngine.handleTap();
+ }
+}
 stage.addEventListener('pointerdown',pointerDown);stage.addEventListener('pointermove',pointerMove);stage.addEventListener('pointerup',pointerUp);stage.addEventListener('pointercancel',pointerUp);stage.addEventListener('lostpointercapture',pointerUp);stage.addEventListener('wheel',e=>{dist=THREE.MathUtils.clamp(dist+e.deltaY*.025,8,75)},{passive:true});
 addEventListener('pagehide',()=>{if(url)URL.revokeObjectURL(url)});
 try{init()}catch(e){$('status').textContent='3D graphics unavailable: '+e.message;console.error(e)}
