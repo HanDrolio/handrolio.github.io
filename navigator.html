@@ -583,6 +583,173 @@ function pointerMove(e){
  }
 }
 function pointerUp(e){if(!pointerMap.has(e.pointerId))return;const didTap=pointerMap.size===1&&pointerMotion<12;pointerMap.delete(e.pointerId);pinchDist=0;lastPinchCenter=null;if(didTap&&(mode==='galaxy'||mode==='observe'))openRadar()}
+
+/* Restored from the v1.1 song-clock cinematic saga. FX are a 2D overlay so all
+   four explorable planets remain intact while the old cosmic story plays out. */
+const story={
+ events:[.05,.14,.27,.38,.52,.63,.76,.86,.94],
+ next:0,started:false,finished:false,elapsed:0,lastProgress:0,
+ meteors:[],particles:[],waves:[],collision:null,blackHole:false,
+ flash:0,flashHue:195,captionUntil:0,starTimer:0,beatLatch:false
+};
+const storyCanvas=$('storyFX'),storyContext=storyCanvas.getContext('2d',{alpha:true});
+function storyCaption(message,seconds=3){
+ const el=$('storyCaption');el.textContent=message;el.style.opacity='1';
+ story.captionUntil=performance.now()+seconds*1000;
+}
+function resetStory(announce=false){
+ story.next=0;story.started=false;story.finished=false;story.elapsed=0;story.lastProgress=0;
+ story.meteors.length=0;story.particles.length=0;story.waves.length=0;story.collision=null;
+ story.blackHole=false;story.flash=0;story.starTimer=0;story.beatLatch=false;
+ $('storyCaption').style.opacity='0';story.captionUntil=0;
+ if(announce)storyCaption('✦ NEW UNIVERSE · A NEW FATE',2.8);
+}
+function storyFlash(hue=195,amount=.4){story.flash=Math.max(story.flash,amount);story.flashHue=hue}
+function storyBurst(x=.5,y=.46,color='#a6eaff',count=95,power=1){
+ const w=innerWidth,h=innerHeight,r=Math.random;
+ for(let i=0;i<count;i++){
+  const angle=r()*Math.PI*2,speed=(60+r()*240)*power;
+  story.particles.push({x:x*w,y:y*h,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,age:0,life:.85+r()*1.9,size:.8+r()*2.2,color});
+ }
+ if(story.particles.length>400)story.particles.splice(0,story.particles.length-400);
+}
+function storyWave(x=.5,y=.46,color='#b7eaff',power=1){
+ story.waves.push({x,y,color,age:0,life:1.7,power});if(story.waves.length>10)story.waves.shift();
+}
+function storyShower(count=9){
+ for(let i=0;i<count;i++){
+  story.meteors.push({x:(.2+Math.random()*.95)*innerWidth,y:(Math.random()*.7-.2)*innerHeight,
+   vx:-(170+Math.random()*260),vy:130+Math.random()*260,delay:i*.09,age:0,life:.8+Math.random()*.8,
+   color:['#9dfaff','#e3a4ff','#ffda9e'][i%3]});
+ }
+ for(let i=0;i<Math.min(count,5);i++)starShot();
+ storyCaption('☄ METEOR SHOWER INCOMING');storyFlash(195,.21);
+}
+function storySupernova(){
+ storyBurst(.5,.46,'#ffdbab',160,1.8);storyWave(.5,.46,'#ffe7ae',2.2);
+ storyCaption('🌠 SUPERNOVA · THE SKY IS ON FIRE',3.2);storyFlash(40,.64);
+}
+function storyCollision(){
+ story.collision={age:0,life:2.9};
+ storyCaption('⚠ COLLISION COURSE: NYX + QUASAR',3.1);
+ storyShowerDebris();
+}
+function storyShowerDebris(){
+ for(let i=0;i<5;i++)starShot();
+ storyFlash(265,.19);
+}
+function storyEruption(){
+ storyBurst(.65,.49,'#ff8f64',145,1.3);storyWave(.65,.49,'#ffc06b',1.25);
+ storyCaption('💥 A DISTANT WORLD HAS EXPLODED',3);
+ storyFlash(22,.6);
+}
+function storyBlackHole(){
+ story.blackHole=true;
+ storyBurst(.76,.32,'#ba78ff',125,1.15);
+ storyWave(.76,.32,'#ae6eff',1.1);
+ storyCaption('🕳 BLACK HOLE FORMED · SPACE IS BENDING',3.4);
+ storyFlash(284,.38);
+}
+function storyRebirth(){
+ if(story.finished)return;
+ story.finished=true;story.collision=null;story.blackHole=false;
+ for(const p of [[.28,.48,'#b7eaff'],[.51,.4,'#ffbbef'],[.74,.5,'#ffe6a9']]){
+  storyBurst(p[0],p[1],p[2],95,1.55);storyWave(p[0],p[1],p[2],1.4);
+ }
+ storyCaption('✦ THE OLD UNIVERSE IS GONE · A NEW ONE IS BORN',5);
+ storyFlash(300,.72);
+}
+function playStoryStage(index){
+ switch(index){
+  case 0:storyShower(6);break;
+  case 1:storySupernova();break;
+  case 2:storyCollision();break;
+  case 3:storyEruption();break;
+  case 4:storyShower(14);break;
+  case 5:storyCollision();break;
+  case 6:storySupernova();storyBurst(.27,.55,'#9bf6c8',90,.9);break;
+  case 7:storyBlackHole();break;
+  case 8:storyRebirth();break;
+ }
+}
+function drawStoryFX(dt){
+ const c=storyCanvas,g=storyContext;if(!g)return;
+ const w=innerWidth,h=innerHeight,dpr=Math.min(devicePixelRatio||1,1.5);
+ if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr)}
+ g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+ if(story.captionUntil&&performance.now()>story.captionUntil){$('storyCaption').style.opacity='0';story.captionUntil=0}
+ const playing=!!audio.src&&!audio.paused;
+ const storyDt=playing?dt:0;
+ for(let i=story.meteors.length-1;i>=0;i--){
+  const m=story.meteors[i];m.age+=storyDt;
+  if(m.age<m.delay)continue;
+  const t=m.age-m.delay,fade=Math.max(0,1-t/m.life),x=m.x+m.vx*t,y=m.y+m.vy*t;
+  g.save();g.globalAlpha=fade;g.shadowBlur=13;g.shadowColor=m.color;g.strokeStyle=m.color;g.lineWidth=1.6+fade*2.6;
+  g.beginPath();g.moveTo(x,y);g.lineTo(x-m.vx*.18,y-m.vy*.18);g.stroke();g.restore();
+  if(t>m.life)story.meteors.splice(i,1);
+ }
+ for(let i=story.particles.length-1;i>=0;i--){
+  const p=story.particles[i];p.age+=storyDt;p.x+=p.vx*storyDt;p.y+=p.vy*storyDt;p.vx*=Math.exp(-storyDt*1.25);p.vy*=Math.exp(-storyDt*1.25);
+  const fade=Math.max(0,1-p.age/p.life);g.globalAlpha=fade;g.fillStyle=p.color;
+  g.beginPath();g.arc(p.x,p.y,p.size*(.5+fade),0,Math.PI*2);g.fill();
+  if(fade===0)story.particles.splice(i,1);
+ }
+ g.globalAlpha=1;
+ for(let i=story.waves.length-1;i>=0;i--){
+  const wave=story.waves[i];wave.age+=storyDt;
+  const t=wave.age/wave.life;
+  g.strokeStyle=wave.color;g.globalAlpha=Math.max(0,(1-t)*.8);
+  g.lineWidth=Math.max(.7,4*(1-t));
+  g.beginPath();g.arc(wave.x*w,wave.y*h,10+t*Math.min(w,h)*.9*wave.power,0,Math.PI*2);g.stroke();
+  if(t>=1)story.waves.splice(i,1);
+ }
+ g.globalAlpha=1;
+ if(story.collision){
+  const c=story.collision;c.age+=storyDt;const t=Math.min(1,c.age/c.life),ease=t*t*(3-2*t),cy=h*.43,cx=w*.5;
+  for(const sign of [-1,1]){
+   const x=cx+sign*(w*.42*(1-ease)),radius=Math.min(w,h)*(.035+.035*ease);
+   g.save();g.shadowBlur=25;g.shadowColor=sign<0?'#ff8ac7':'#7ceeff';g.fillStyle=sign<0?'#a85cef':'#65d5ff';
+   g.beginPath();g.arc(x,cy,radius,0,Math.PI*2);g.fill();g.restore();
+  }
+  if(t>=1){story.collision=null;storyBurst(.5,.43,'#ffdbbe',175,2.15);storyWave(.5,.43,'#e3b7ff',2);storyFlash(40,.7);storyCaption('💥 IMPACT · TWO WORLDS BECOME ONE',3.2)}
+ }
+ if(story.blackHole){
+  const x=w*.77,y=h*.33,r=Math.min(w,h)*(.067+Math.sin(spaceTime*1.7)*.005);
+  g.save();g.translate(x,y);g.rotate(spaceTime*.32);
+  g.strokeStyle='#aa65ff';g.shadowBlur=20;g.shadowColor='#a85bff';g.lineWidth=11;
+  g.beginPath();g.ellipse(0,0,r*1.42,r*.52,0,0,Math.PI*2);g.stroke();
+  g.shadowBlur=0;g.fillStyle='#02000b';g.beginPath();g.arc(0,0,r*.8,0,Math.PI*2);g.fill();
+  g.strokeStyle='#e9b6ff';g.lineWidth=2.3;g.beginPath();g.arc(0,0,r*.84,0,Math.PI*2);g.stroke();g.restore();
+ }
+ if(story.flash>0){
+  const a=Math.min(.58,story.flash),gradient=g.createRadialGradient(w*.5,h*.46,0,w*.5,h*.46,Math.max(w,h)*.7);
+  gradient.addColorStop(0,'hsla('+story.flashHue+',100%,87%,'+a+')');
+  gradient.addColorStop(1,'hsla('+story.flashHue+',100%,70%,0)');
+  g.fillStyle=gradient;g.fillRect(0,0,w,h);
+  story.flash=Math.max(0,story.flash-dt*.9);
+ }
+ g.globalAlpha=1;
+}
+function updateMusicStory(dt){
+ const playing=!!audio.src&&!audio.paused;
+ if(playing){
+  if(!story.started){story.started=true;storyCaption('✦ NEW UNIVERSE · A NEW FATE',2.7)}
+  story.elapsed+=dt;story.starTimer+=dt*(1+energy*.6);
+  const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:180;
+  const progress=clamp((Number.isFinite(audio.duration)&&audio.duration>0?audio.currentTime:story.elapsed)/duration,0,1);
+  if(progress<story.lastProgress-.025){resetStory(true);story.started=true}
+  let latest=-1;
+  while(story.next<story.events.length&&progress>=story.events[story.next])latest=story.next++;
+  if(latest>=0)playStoryStage(latest);
+  if(progress>=.995&&!story.finished)storyRebirth();
+  story.lastProgress=progress;
+  if(story.starTimer>2.4&&!story.finished){story.starTimer=0;story.meteors.push({x:(.3+Math.random()*.8)*innerWidth,y:Math.random()*innerHeight*.48,vx:-260,vy:210,delay:0,age:0,life:1.25,color:'#a8dfff'})}
+  if(beatStrength>.84&&!story.beatLatch){story.beatLatch=true;if(story.particles.length<290){storyBurst(.5,.46,'#b5e8ff',7,.4)}story.flash=Math.max(story.flash,.045)}
+  if(beatStrength<.2)story.beatLatch=false;
+ }
+ drawStoryFX(dt);
+}
+
 function initialize(){renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'high-performance'});renderer.setClearColor(0x000000,0);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(renderer.domElement);
  scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.04,330);camera.position.set(9,9,38);
  const ambient=new THREE.AmbientLight(0xb5c8ff,1.45),sun=new THREE.DirectionalLight(0xffffff,2.9);sun.position.set(21,25,38);scene.add(ambient,sun);glowMap=glowTexture();initGalaxy();specs.forEach(buildPlanet);buildOrbitalTraffic();createDestinationButtons();initRealCityAssets();
@@ -594,14 +761,16 @@ function frame(now){requestAnimationFrame(frame);const dt=clamp((now-lastFrame)/
  if(mode==='galaxy'){const pos=new THREE.Vector3(),look=new THREE.Vector3();positionGalaxyCamera(pos,look);camera.position.copy(pos);camera.up.set(0,1,0);camera.lookAt(look);}
  else if(transition)cinematicTransition(now,dt);else if(mode==='observe')updateObservation();
  if(statusUntil&&now>statusUntil){$('status').classList.remove('visible');statusUntil=0}
- renderer.render(scene,camera);window.cosmosThreeReady=true;
+ updateMusicStory(dt);renderer.render(scene,camera);window.cosmosThreeReady=true;
 }
 $('closeRadar').addEventListener('click',closeRadar);$('radarShell').addEventListener('click',e=>{if(e.target===$('radarShell'))closeRadar()});
 $('destinations').addEventListener('click',e=>{if(e.target.dataset.destination==='galaxy')navigateTo(null)});
 radar.addEventListener('click',e=>{const r=radar.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*620,y=(e.clientY-r.top)/r.height*620;let closest=null,best=32*32;for(const p of planets){const a=p.a+p.orbitAngle,px=310+Math.cos(a)*p.orbit*11.5,py=310+Math.sin(a)*p.orbit*11.5,dist=(x-px)**2+(y-py)**2;if(dist<best){best=dist;closest=p}}if(closest)navigateTo(closest);else if((x-310)**2+(y-310)**2<39*39)navigateTo(null)});
 $('return').addEventListener('click',()=>navigateTo(null));
-window.cosmosOnFile=()=>{history=[];lastOnset=-5;detectedBPM=110;bpmConfidence=0;targetSpeed=1;smoothSpeed=1};
+window.cosmosOnFile=()=>{history=[];lastOnset=-5;detectedBPM=110;bpmConfidence=0;targetSpeed=1;smoothSpeed=1;resetStory(false)};
 window.cosmosConnectAudio=connectAudio;
+audio.addEventListener('loadstart',()=>resetStory(false));
+audio.addEventListener('ended',()=>{if(story.started&&!story.finished)storyRebirth()});
 if(audio.src&&!audio.paused)connectAudio();
 try{initialize()}catch(err){console.error(err);$('hint').textContent='3D VIEW FAILED · GALAXY BACKDROP ACTIVE';say('3D INITIALIZATION ERROR',4)}
 </script>
