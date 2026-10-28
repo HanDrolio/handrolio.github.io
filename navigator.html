@@ -451,7 +451,7 @@ const bodyGroup=new THREE.Group();planet.group.add(bodyGroup);planet.bodyGroup=b
 const map=drawPlanetMap(planet),surface=new THREE.Mesh(
  new THREE.SphereGeometry(spec.size,innerWidth<700?72:96,innerWidth<700?48:64),
  new THREE.MeshStandardMaterial({map,roughness:.83,metalness:.08,emissive:new THREE.Color(spec.land),emissiveIntensity:.07})
-);bodyGroup.add(surface);planet.surface=surface;
+);bodyGroup.add(surface);planet.surface=surface;planet._highGeometry=surface.geometry;planet._lowGeometry=new THREE.SphereGeometry(spec.size,24,16);
 addRealClouds(planet);applyHdSurface(planet);
 const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(spec.size*1.125,40,30),new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,uniforms:{uColor:{value:new THREE.Color(spec.color)},uPulse:{value:0}},vertexShader:'varying vec3 vN;varying vec3 vView;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vView=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',fragmentShader:'uniform vec3 uColor;uniform float uPulse;varying vec3 vN;varying vec3 vView;void main(){float f=pow(1.0-abs(dot(normalize(vN),normalize(vView))),2.1);gl_FragColor=vec4(uColor*(1.35+uPulse*.5),clamp(f*.85+.04,0.,.64));}'}));bodyGroup.add(atmosphere);planet.atmosphere=atmosphere;
 const cloudRand=randSeed(planet.seed+81),cloudPoints=new Float32Array(480*3);for(let i=0;i<480;i++){const lon=cloudRand()*6.283,lat=Math.asin(cloudRand()*2-1),height=spec.size*(1.055+cloudRand()*.11),k=i*3;placeOnSphere(tmpV,lon,lat).multiplyScalar(height);cloudPoints[k]=tmpV.x;cloudPoints[k+1]=tmpV.y;cloudPoints[k+2]=tmpV.z}
