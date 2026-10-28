@@ -18,14 +18,14 @@ export function installInfiniteFrequency(api){
   galaxy:document.getElementById('galaxyReadout'),
   spotify:document.getElementById('spotifyLink')
  };
- const homeText='HOME SYSTEM · ORIGINAL FOUR';
+ const homeText='COSM.OS CORE · 8 PERSONA WORLDS';
  const shade=new THREE.Color();
  function notice(t){api.say(t,2.7)}
  function updateUI(){
   if(ui.auto){ui.auto.textContent=auto?'◈ AUTO ON':'◈ AUTO OFF';ui.auto.setAttribute('aria-pressed',String(auto))}
-  if(ui.galaxy)ui.galaxy.textContent=galaxyNumber===0?homeText:'GALAXY '+galaxyNumber+' · '+planets.length+' WORLDS';
+  if(ui.galaxy)ui.galaxy.textContent=galaxyNumber===0?homeText:'GALAXY '+galaxyNumber+' · '+planets.length+' PERSONA WORLDS';
   const subtitle=document.getElementById('subtitle');
-  if(subtitle&&api.mode()==='galaxy')subtitle.textContent=galaxyNumber===0?'4 WORLDS · EXPLORE':('GALAXY '+galaxyNumber+' · '+planets.length+' WORLDS');
+  if(subtitle&&api.mode()==='galaxy')subtitle.textContent=galaxyNumber===0?'8 PERSONAS · EXPLORE':('GALAXY '+galaxyNumber+' · '+planets.length+' WORLDS');
  }
  function setAuto(on){auto=!!on;autoClock=0;autoLeg=0;updateUI();notice(auto?'◈ AUTOPILOT ENGAGED':'◈ MANUAL NAVIGATION')}
  function manualOverride(){if(auto)setAuto(false)}
@@ -69,21 +69,22 @@ export function installInfiniteFrequency(api){
  }
  function generatedSpecs(n){
   const r=randSeed(hashNumber(n*45637+9917));
-  const amount=(innerWidth<700?3:4)+Math.floor(r()*2),out=[];
-  for(let i=0;i<amount;i++){
-   const themeIndex=Math.floor(r()*themes.length),colors=themes[themeIndex],name=titleA[Math.floor(r()*titleA.length)]+' '+titleB[Math.floor(r()*titleB.length)];
-   const idx=i;
-   out.push({
-    name:name+' '+(i+1),kind:kinds[themeIndex],
-    color:colors[0],secondary:colors[1],land:colors[2],
-    a:r()*Math.PI*2,orbit:10.4+i*3.7+r()*.8,
-    size:1.45+r()*1.6,speed:.029+r()*.063,
-    city:innerWidth<700?20+Math.floor(r()*12):34+Math.floor(r()*20),
-    creatures:2+Math.floor(r()*4),seed:hashNumber(n*982451653+idx*93623+777),
-    generated:true,cityTint:colors[1]
-   });
-  }
-  return out;
+  const archetypes=api.personaSpecs||homeWorlds;
+  // The infinite multiverse always has the same eight COSM.OS archetypes,
+  // with new terrain hues, weather, orbital patterns, cities and terrain.
+  return archetypes.map((base,i)=>{
+   const tint=themes[(i+Math.floor(r()*themes.length))%themes.length];
+   const variability=.76+r()*.45;
+   return {...base,name:base.name+' · '+n,personaName:base.name,
+    // Each galaxy is a new evolution of the same eight characters.
+    color:base.color,secondary:tint[1],land:tint[2],
+    a:base.a+(r()-.5)*.24,orbit:9.8+i*4.25+r()*.8,
+    size:base.size*variability,speed:base.speed*(.8+r()*.33),
+    city:innerWidth<700?34+Math.floor(r()*16):55+Math.floor(r()*24),
+    creatures:base.creatures,seed:hashNumber(n*982451653+i*93623+777),
+    generated:true,persona:true,cityTint:base.cityTint
+   };
+  });
  }
  function colorGalaxy(n){
   const geo=api.galaxyGeo(),a=geo.attributes.color.array;
@@ -121,8 +122,8 @@ export function installInfiniteFrequency(api){
   galaxyNumber=next;colorGalaxy(next);api.refreshDestinations();updateUI();
   api.resetStory();
   api.alignStoryWithAudio();
-  api.setGalaxyDistance(35);
-  notice(next===0?'✦ RETURNED TO FOUR HOMEWORLDS':'✦ DISCOVERED GALAXY '+next+' · '+planets.length+' WORLDS');
+  api.setGalaxyDistance(78);
+  notice(next===0?'✦ RETURNED TO THE EIGHTFOLD ATLAS':'✦ DISCOVERED GALAXY '+next+' · '+planets.length+' PERSONA WORLDS');
   if(fromAuto)autoClock=0;
  }
  function ringAt(pos,color,radius,life=1.8){
