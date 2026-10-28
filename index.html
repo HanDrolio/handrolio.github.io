@@ -124,7 +124,16 @@ float a=(1.-smoothstep(.05,.49,r))*.68+exp(-r*r*65.)*.65;
 gl_FragColor=vec4(vColor*(1.+exp(-r*r*24.)*.7),min(1.,a*vOpacity));}
 </script>
 <script type="module">
-import * as THREE from 'three';
+// Dynamic imports let the local visualizer survive a blocked CDN on mobile data.
+let THREE;
+try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js')}
+catch(primaryError){
+  try{THREE=await import('https://unpkg.com/three@0.180.0/build/three.module.js')}
+  catch(secondaryError){
+    document.getElementById('hint').textContent='3D DOWNLOAD UNAVAILABLE · REACTIVE GALAXY FALLBACK ACTIVE';
+    throw secondaryError;
+  }
+}
 const $=id=>document.getElementById(id),audio=$('audio'),host=$('space');
 const mobile=innerWidth<700,clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const rngInit=seed=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
