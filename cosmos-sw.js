@@ -43,6 +43,15 @@ self.addEventListener('fetch',event=>{
  if(!isStatic)return;
  event.respondWith((async()=>{
   const cache=await caches.open(local?SHELL:ASSETS);
+  // Our evolving application code updates online and remains available offline.
+  // Version-pinned public GLBs/textures are cache-first and never redownloaded.
+  if(local&&/\.m?js$/i.test(url.pathname)){
+   try{
+    const fresh=await fetch(req);
+    if(fresh.ok)event.waitUntil(cache.put(req,fresh.clone()).catch(()=>{}));
+    return fresh;
+   }catch(err){return await cache.match(req)||Response.error()}
+  }
   const hit=await cache.match(req);
   if(hit)return hit;
   const response=await fetch(req);
