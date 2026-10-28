@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#04091b">
+<meta name="description" content="COSM.OS Eightfold Atlas: eight unique persona planets, infinite universes, real 3D cities, local asset caching and music-reactive space travel.">
+<title>COSM.OS • Infinite Epoch v4.0</title>
+<style>
+:root{color-scheme:dark;--ice:#c9ecff;--muted:#a1b9d9;--stroke:#7190c888}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030615;color:#f4f8ff;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
+#world{position:fixed;inset:0;touch-action:none;background:radial-gradient(ellipse at 50% 42%,#142246,#050a1c 55%,#030615 100%)}
+#world canvas{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#skyFallback{z-index:0;pointer-events:none}#world canvas:not(#skyFallback){z-index:1}
+#brand{position:fixed;top:max(16px,env(safe-area-inset-top));left:17px;z-index:5;pointer-events:none;text-shadow:0 2px 18px #000b}
+#brand strong{display:block;letter-spacing:.21em;font-size:17px;font-weight:950}#brand strong span{color:#b6a4ff}#brand small{display:block;max-width:65vw;white-space:normal;overflow:visible;text-overflow:clip;color:#b7cce8;font-size:9px;font-weight:750;letter-spacing:.1em;line-height:1.4;margin-top:5px}
+#version{position:fixed;z-index:5;top:max(18px,env(safe-area-inset-top));right:17px;font:900 13px ui-monospace,SFMono-Regular,monospace;color:#e6d6ff;text-shadow:0 0 12px #7f61eb88;pointer-events:none}
+#controls{position:fixed;z-index:8;bottom:max(16px,env(safe-area-inset-bottom) + 12px);left:12px;right:12px;max-width:560px;margin:auto;display:flex;gap:10px;transition:opacity .3s}
+#controls label,#controls button{display:flex;flex:1;min-width:0;justify-content:center;align-items:center;height:51px;border:1px solid #b0bfff80;border-radius:17px;background:#142343d9;color:#f3f8ff;font-size:14px;font-weight:850;letter-spacing:.055em;backdrop-filter:blur(17px);box-shadow:0 7px 27px #0009;cursor:pointer;touch-action:manipulation}
+#controls label{background:linear-gradient(120deg,#236ba1e8,#7453b8e9);border-color:#b1c5ff}#controls button:active,#controls label:active{transform:scale(.97)}#music{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+#hint{position:fixed;z-index:5;bottom:max(79px,env(safe-area-inset-bottom) + 78px);left:12px;right:12px;text-align:center;font-size:10px;color:#c8dfff;letter-spacing:.1em;line-height:1.55;min-height:17px;text-shadow:0 2px 9px #000;pointer-events:none;transition:opacity .6s}
+#return{display:none;position:fixed;top:max(72px,env(safe-area-inset-top) + 58px);left:15px;z-index:7;background:#182440c7;color:#edf4ff;border:1px solid #95a9d688;border-radius:100px;padding:10px 15px;font-size:11px;letter-spacing:.06em;font-weight:900;backdrop-filter:blur(16px);box-shadow:0 5px 20px #0008;cursor:pointer}
+#return.show{display:block}
+#flightHud{position:fixed;z-index:4;inset:0;pointer-events:none;opacity:0;transition:opacity .8s}
+#flightHud.show{opacity:1}#flightHud.observe #crosshair{display:none}
+#flightHud:before,#flightHud:after{content:'';position:absolute;bottom:0;width:31vw;height:15vh;max-height:125px;border-top:1px solid #74e5ff55;background:linear-gradient(#70aeff16,#67b6ff08 45%,#020a23aa);clip-path:polygon(0 100%,0 42%,85% 0,100% 100%)}
+#flightHud:before{left:0}#flightHud:after{right:0;transform:scaleX(-1)}
+#crosshair{position:absolute;top:47%;left:50%;transform:translate(-50%,-50%);width:39px;height:39px;border-radius:50%;border:1px solid #8fdcff70;box-shadow:0 0 15px #59ccff38}
+#crosshair:after{content:'';position:absolute;top:18px;left:18px;width:3px;height:3px;border-radius:50%;background:#d0fcff;box-shadow:0 0 7px #fff}
+#flightLabel{position:absolute;left:0;right:0;top:11%;text-align:center;font:800 10px ui-monospace,monospace;letter-spacing:.16em;color:#b6eaff;text-shadow:0 1px 10px #000}
+#flightData{position:absolute;left:0;right:0;bottom:max(87px,env(safe-area-inset-bottom) + 84px);text-align:center;font:800 10px ui-monospace,monospace;letter-spacing:.15em;color:#b6eaff}
+#transition{position:fixed;z-index:4;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 50%,#8ef3ff1c,transparent 50%,#040717 100%);transition:opacity .1s}#transition canvas{display:block;width:100%;height:100%;mix-blend-mode:screen}
+#transition.flash{opacity:.95}
+#radarShell{position:fixed;z-index:12;inset:0;background:linear-gradient(#02040bdc,#061126e9);backdrop-filter:blur(18px);display:none;align-items:center;justify-content:center;padding:16px}
+#radarShell.open{display:flex}
+#radarCard{width:min(100%,390px);max-height:calc(100dvh - 38px);padding:17px 15px 20px;border:1px solid #7ddcfa55;border-radius:24px;background:linear-gradient(145deg,#0b1c35f8,#0b1229f8);box-shadow:0 30px 90px #000c;overflow-y:auto}
+.radarTitle{display:flex;align-items:center;justify-content:space-between;margin:0 2px 8px;gap:10px}.radarTitle>div{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}.radarTitle strong{font-size:15px;letter-spacing:.17em}.radarTitle small{font:800 10px ui-monospace,monospace;color:#70d9ff;letter-spacing:.09em}
+#closeRadar{border:1px solid #7ba3c97a;background:#192943;color:white;border-radius:11px;width:35px;height:35px;font-size:21px;cursor:pointer}
+#radar{display:block;margin:0 auto;max-width:100%;width:310px;height:310px;touch-action:manipulation;cursor:crosshair}
+#destination{font-size:11px;text-align:center;color:#ccdeff;min-height:18px;letter-spacing:.07em;margin-top:4px}
+#destinations{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}
+#destinations button{border:1px solid #6a92bf75;background:#172b47;color:#dcecff;padding:11px 7px;border-radius:12px;font-size:11px;font-weight:850;letter-spacing:.04em;cursor:pointer;min-height:41px}
+#destinations button:active{transform:scale(.97)}
+#destinations button.home{grid-column:span 2;background:linear-gradient(100deg,#244879,#553c81);border-color:#9ca7ecaa}
+#status{position:fixed;z-index:6;top:42%;left:0;right:0;text-align:center;pointer-events:none;font-size:clamp(13px,4vw,21px);font-weight:900;letter-spacing:.18em;color:#f7ffff;text-shadow:0 0 22px #4eacff,0 2px 14px black;opacity:0;transition:opacity .3s}
+#status.visible{opacity:1}
+@media(max-height:550px){#controls{bottom:8px}#controls label,#controls button{height:40px}#hint{bottom:55px}#return{top:46px}#flightData{bottom:56px}}
+#cityDetail{font-size:9px;color:#91badb;text-align:center;letter-spacing:.06em;margin-top:5px;line-height:1.45}
+#cityDetail.ready{color:#8ff3da}
+#storyFX{position:fixed;inset:0;z-index:3;width:100%;height:100%;pointer-events:none}
+#explorerTools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}#explorerTools button{min-height:37px;border-radius:11px;border:1px solid #6a92bf75;background:#172b47;color:#dcecff;font-size:10px;font-weight:850;cursor:pointer}#galaxyReadout{margin-top:11px;font:800 10px ui-monospace,monospace;color:#a8eeff;text-align:center;letter-spacing:.11em}#audioQueue{font-size:9px;color:#a9cbee;text-align:center;margin-top:6px}#controls #auto{flex:.84;font-size:11px;padding:0 4px}#controls label{font-size:12px}#storyCaption{position:fixed;z-index:7;top:22%;left:8px;right:8px;text-align:center;color:#f5eaff;letter-spacing:.13em;font-size:clamp(12px,3.5vw,19px);font-weight:950;text-shadow:0 0 18px #8d5dff,0 2px 18px #020414;pointer-events:none;opacity:0;transition:opacity .35s;padding:0 12px}
+
+#preloadScreen{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 44%,#1d1744ef,#050b1df7 62%,#020311fc);backdrop-filter:blur(11px);transition:opacity .7s}
+#preloadScreen[hidden]{display:none}#preloadScreen.finished{opacity:0;pointer-events:none}
+#preloadCard{width:min(420px,100%);text-align:center;border:1px solid #aa97fa66;background:linear-gradient(140deg,#161b3df0,#080f25f0);border-radius:24px;padding:29px 20px;box-shadow:0 15px 80px #000b}
+#preloadCard strong{display:block;font-size:20px;letter-spacing:.13em;color:#f4e7ff}
+#preloadCard p{font-size:12px;line-height:1.65;color:#c2cbff}
+#preloadTrack{height:9px;background:#26335d;border-radius:20px;overflow:hidden;border:1px solid #6d7db577;margin:18px 0 12px}
+#preloadBar{height:100%;width:0%;background:linear-gradient(90deg,#53e0d5,#b684ff,#ffc8aa);box-shadow:0 0 16px #aa8eff;transition:width .15s}
+#preloadCounter{font:900 12px ui-monospace,monospace;letter-spacing:.11em;color:#d7efff}
+#preloadStatus{margin-top:11px;font:700 10px ui-monospace,monospace;color:#93b9dd;line-height:1.6}
+#personaCard{position:fixed;top:max(119px,env(safe-area-inset-top) + 103px);left:12px;width:min(285px,calc(100vw - 24px));padding:12px 14px;border:1px solid #bdc5ff55;border-radius:16px;background:#101a37ce;backdrop-filter:blur(14px);z-index:6;pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s}
+#personaCard.show{opacity:1;transform:translateY(0)}
+#personaName{font-size:13px;font-weight:900;letter-spacing:.09em;color:#fff}
+#personaLore{margin-top:5px;font-size:10px;line-height:1.5;color:#c1d9f7}
+@media(max-height:650px){#personaCard{top:77px;width:225px;padding:8px 10px}#personaLore{font-size:9px}}
+body.epochOn #storyFX,body.epochOn #storyCaption{display:none!important}
+body.epochOn #flightHud{opacity:0!important}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="world"><canvas id="skyFallback"></canvas></div>
+<div id="preloadScreen" role="status" aria-live="polite"><div id="preloadCard"><strong>🟣🌀 COSM.OS</strong><p>THE EIGHTFOLD ATLAS IS INSTALLING<br>REAL 3D CITIES · HIGH-RES PLANETS · OFFLINE-FRIENDLY ASSETS<br>FIRST FLIGHT BUILDS YOUR LOCAL CACHE</p><div id="preloadTrack"><div id="preloadBar"></div></div><div id="preloadCounter">PREPARING EIGHT PERSONA WORLDS</div><div id="preloadStatus">INITIALIZING LOCAL STORAGE</div></div></div>
+<div id="personaCard"><div id="personaName"></div><div id="personaLore"></div></div>
+<div id="brand"><strong>COSM.OS <span>✦</span></strong><small id="subtitle">8 PERSONAS · WARP</small></div>
+<div id="version">EPOCH v4.0</div>
+<div id="status"></div>
+<div id="flightHud"><div id="crosshair"></div><div id="flightLabel">AUTOPILOT ENGAGED</div><div id="flightData">ATMOSPHERIC FLIGHT</div></div>
+<div id="transition"><canvas id="warpCanvas"></canvas></div><canvas id="storyFX" aria-hidden="true"></canvas><div id="storyCaption" aria-live="polite"></div>
+<button id="return" type="button">↶ GALAXY</button>
+<div id="hint">TAP SPACE: RADAR · PINCH: ZOOM</div>
+<div id="controls"><label for="music">♫ AUDIO<input id="music" type="file" multiple accept="audio/*,.mp3,.wav,.wave,.m4a,.aac,.flac,.ogg,.oga,.opus,.aif,.aiff,.webm"></label><button id="play" type="button">▶ PLAY</button><button id="auto" type="button" aria-pressed="false">◈ AUTO OFF</button></div>
+<audio id="audio" playsinline preload="metadata"></audio>
+<div id="radarShell" role="dialog" aria-modal="true" aria-label="Galaxy navigation radar">
+ <div id="radarCard">
+  <div class="radarTitle"><div><strong>◉ STELLAR RADAR</strong><small id="tempoReadout">AWAITING SIGNAL</small></div><button id="closeRadar" aria-label="Close radar">×</button></div>
+  <canvas id="radar" width="620" height="620" aria-label="Tap a planet to fly there"></canvas>
+  <div id="destination">TAP A WORLD TO OBSERVE IT FROM SPACE</div>
+  <div id="textureStatus" aria-live="polite" style="text-align:center;color:#75bcd5;font-size:9px;letter-spacing:.10em;margin-top:7px">8 HD PLANETS + REAL 3D CITIES LOADING</div>
+  <div id="cityDetail">STREAMING CC0 BUILDINGS + QUATERNIUS CITY KIT</div>
+  <div id="destinations"><button class="home" data-destination="galaxy">✦ RETURN TO GALAXY VIEW</button></div><div id="explorerTools"><button id="homeGalaxy" type="button">⌂ 8 PERSONAS</button><button id="nextGalaxy" type="button">✦ NEXT GALAXY</button><button id="nextAudio" type="button">♫ NEXT TRACK</button><button id="spotifyLink" type="button" title="Opens Spotify separately, not synchronized">↗ OPEN SPOTIFY</button></div><div id="galaxyReadout">THE EIGHTFOLD ATLAS · 8 PERSONAS</div><div id="audioQueue">MP3 · WAV · M4A · FLAC · OGG (BROWSER-DEPENDENT)</div>
+  <div style="margin-top:13px;text-align:center;font-size:9px;color:#81a0c1;line-height:1.45">SURFACES: <a href="https://play.solarsystemscope.com/textures/" target="_blank" rel="noopener noreferrer" style="color:#addcff">SOLAR SYSTEM SCOPE · CC BY 4.0</a><br>PLANET IMAGERY: SOLAR SYSTEM SCOPE · CLOUDS: MATTEASON (CC0)<br>3D WORLDS: <a href="https://kenney.nl/assets/space-kit" target="_blank" rel="noopener" style="color:#addcff">KENNEY SPACE / CASTLE / CITY / NATURE · CC0</a></div>
+ </div>
+</div>
+<script>
+/* A real animated fallback, shown before the optional Three.js 3D engine loads. */
+(()=>{
+ const c=document.getElementById('skyFallback'),x=c.getContext('2d'),host=document.getElementById('world');
+ let w=0,h=0,dpr=1,time=0,last=0;
+ let k=17912;const rand=()=>{k=(Math.imul(k,1664525)+1013904223)>>>0;return k/4294967296};
+ const stars=Array.from({length:210},()=>({x:rand(),y:rand(),size:.4+rand()*1.4,phase:rand()*7}));
+ const dust=Array.from({length:950},()=>({arm:Math.floor(rand()*5),r:Math.pow(rand(),.72),a:(rand()-.5)*.9,z:rand()}));
+ function resize(){w=host.clientWidth||innerWidth;h=host.clientHeight||innerHeight;dpr=Math.min(devicePixelRatio||1,1.5);c.width=Math.round(w*dpr);c.height=Math.round(h*dpr)}
+ function frame(now){requestAnimationFrame(frame);if(now-last<30)return;const dt=Math.min(.06,(now-last)/1000);last=now;time+=dt*.2;
+  x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+  if(window.cosmosThreeReady){for(const s of stars){x.globalAlpha=.3+.5*(.5+.5*Math.sin(time*4+s.phase));x.fillStyle='#bedbff';x.fillRect(s.x*w,s.y*h,s.size,s.size)}x.globalAlpha=1;return}
+  const cx=w*.5,cy=h*.43,radius=Math.min(w*.44,h*.3);
+  x.globalCompositeOperation='lighter';for(const s of stars){x.globalAlpha=.25+.6*(.5+.5*Math.sin(time*4+s.phase));x.fillStyle='#bedbff';x.fillRect(s.x*w,s.y*h,s.size,s.size)}
+  for(const p of dust){const r=(.08+p.r*.92)*radius,a=p.arm*6.283/5+p.r*3.5+p.a+time;x.globalAlpha=.35+.55*p.z;x.fillStyle=['#6eeaff','#5b8dff','#a186ff','#fc83df','#ffd3a3'][p.arm];x.beginPath();x.arc(cx+Math.cos(a)*r,cy+Math.sin(a)*r*.62,.65+p.z*.7,0,Math.PI*2);x.fill()}
+  const glow=x.createRadialGradient(cx,cy,0,cx,cy,36);glow.addColorStop(0,'#a9dcff9f');glow.addColorStop(.32,'#786df948');glow.addColorStop(1,'#00000000');x.fillStyle=glow;x.globalAlpha=.7;x.beginPath();x.arc(cx,cy,36,0,Math.PI*2);x.fill();x.globalCompositeOperation='source-over';x.globalAlpha=1;
+ }
+ resize();addEventListener('resize',resize);requestAnimationFrame(frame);
+ const audio=document.getElementById('audio'),file=document.getElementById('music'),play=document.getElementById('play'),hint=document.getElementById('hint'),subtitle=document.getElementById('subtitle');let currentFileURL=null,tracks=[],trackIndex=-1;
+ const queueText=document.getElementById('audioQueue');
+ async function loadTrack(i,autoplay=true){
+  if(!tracks.length)return;
+  audio.pause();if(currentFileURL)URL.revokeObjectURL(currentFileURL);
+  trackIndex=(i+tracks.length)%tracks.length;
+  const selected=tracks[trackIndex];currentFileURL=URL.createObjectURL(selected);
+  audio.src=currentFileURL;audio.load();
+  subtitle.textContent='♫ '+selected.name.slice(0,26);
+  if(queueText)queueText.textContent=(trackIndex+1)+' / '+tracks.length+' · '+selected.name.slice(0,36);
+  play.textContent='▶ PLAY';window.cosmosOnFile?.();window.cosmosConnectAudio?.();
+  if(!autoplay){hint.textContent='AUDIO LOADED · TAP PLAY';return}
+  try{await audio.play();play.textContent='Ⅱ PAUSE';hint.textContent='GALAXY LISTENING · DRAG TO EXPLORE'}
+  catch(err){hint.textContent='CANNOT PLAY THIS FORMAT · TRY WAV/MP3/M4A'}
+ }
+ file.addEventListener('change',e=>{
+  const selected=Array.from(e.target.files||[]).filter(f=>f.type.startsWith('audio/')||/\.(mp3|wav|wave|m4a|aac|flac|ogg|oga|opus|aif|aiff|webm)$/i.test(f.name));
+  if(!selected.length){hint.textContent='NO AUDIO FILES SELECTED';return}
+  tracks=selected;loadTrack(0,true)
+ });
+ window.cosmosNextTrack=()=>{if(tracks.length)loadTrack(trackIndex+1,true);else hint.textContent='LOAD MUSIC TO SKIP TRACKS'};
+ play.addEventListener('click',async()=>{
+  if(!audio.src){hint.textContent='LOAD AN AUDIO FILE FIRST';return}
+  window.cosmosConnectAudio?.();
+  if(audio.paused){try{await audio.play();play.textContent='Ⅱ PAUSE'}catch(err){hint.textContent='AUDIO NOT SUPPORTED IN THIS BROWSER'}}
+  else{audio.pause();play.textContent='▶ PLAY'}
+ });
+ audio.addEventListener('ended',()=>{play.textContent='▶ PLAY';if(tracks.length>1)loadTrack(trackIndex+1,true);else if(document.body.classList.contains('epochOn')){audio.currentTime=0;audio.play().catch(()=>{})}});
+ audio.addEventListener('error',()=>{if(audio.src){play.textContent='▶ PLAY';hint.textContent='AUDIO DECODE FAILED · TRY ANOTHER FORMAT'}});
+ document.getElementById('nextAudio')?.addEventListener('click',()=>window.cosmosNextTrack());
+ addEventListener('pagehide',()=>{if(currentFileURL)URL.revokeObjectURL(currentFileURL)});
+})();
+</script>
+<script type="module">
+import {PERSONA_WORLDS,PERSONA_ASSET_EXTENSIONS,WORLD_ASSET_POOLS,decoratePersonaWorld} from "./cosmos-personas.js";
+import {preloadCosmos} from "./cosmos-cache.js";
+import {installCosmicCinema} from "./cosmos-cinema.js";
+/* Three.js loaded only here. If it cannot load, the animated backdrop remains visible. */
+let THREE;
+try {THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js')}
+catch(firstError){
+ try{THREE=await import('https://unpkg.com/three@0.180.0/build/three.module.js')}
+ catch(secondError){document.getElementById('hint').textContent='3D LIBRARY UNAVAILABLE · GALAXY BACKDROP ACTIVE';throw secondError}
+}
+const $=id=>document.getElementById(id),host=$('world'),audio=$('audio'),radar=$('radar'),rctx=radar.getContext('2d');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));const lerp=(a,b,t)=>a+(b-a)*t;
+let renderer,scene,camera,galaxy,galaxyGeo,galaxyPoints,galaxyBase,galaxyRandom,galaxyColors,stars,core,halo,glowMap,spaceTime=0;
+let cityModelsReady=0,cityModelsFailed=0,cityStructureCount=0;
+let yaw=.19,pitch=.25,camDistance=78,mode='galaxy',transition=null,flightTarget=null,flightAzimuth=0,flightLookYaw=0,flightLookPitch=0,flightSteer=0,flightAltitudeBias=0,flightClock=0;
+let pointerMap=new Map(),pointerMotion=0,pinchDist=0,radarOpenedAt=0,galaxyFocus=new THREE.Vector3(),lastPinchCenter=null,observeYaw=.55,observePitch=.16,observeDistance=10;
+let audioCtx=null,analyser=null,source=null,freq=null,previousSpectrum=null,history=[],lastOnset=-5,fluxAverage=.017,detectedBPM=110,bpmConfidence=0,targetSpeed=1,smoothSpeed=1,beatStrength=0,bass=0,mids=0,highs=0,energy=0,avgBass=0,lastBeat=0;
+let lastFrame=performance.now(),statusUntil=0,fileURL=null;
+const randSeed=n=>()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296};
+const seeded=randSeed(77341),planets=[],flyingThings=[],meteors=[],satellites=[],interplanetaryShips=[];
+const palette=['#6ceaff','#7989ff','#c07aff','#ff88cc','#ffd5a9'];
+const specs=PERSONA_WORLDS.map(world=>({...world}));
+const tmpV=new THREE.Vector3(),tmpW=new THREE.Vector3(),tmpQ=new THREE.Quaternion(),tmpM=new THREE.Matrix4(),unitY=new THREE.Vector3(0,1,0);
+function say(text,seconds=2.5){const s=$('status');s.textContent=text;s.classList.add('visible');statusUntil=performance.now()+seconds*1000}
+function glowTexture(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,'#ffffff');gr.addColorStop(.1,'#fffefedb');gr.addColorStop(.3,'#9cc1ff7b');gr.addColorStop(1,'#00000000');g.fillStyle=gr;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
+function makeSprite(color,size,opacity=.75){const material=new THREE.SpriteMaterial({map:glowMap,color,opacity,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});const mesh=new THREE.Sprite(material);mesh.scale.set(size,size,1);return mesh}
+function drawPlanetMap(p){const c=document.createElement('canvas');c.width=512;c.height=256;const x=c.getContext('2d');let r=randSeed(p.seed),gr=x.createLinearGradient(0,0,0,256);const palettes={AZURA:['#082958','#155a9e','#1889b6','#2cc4c6','#17679e'],VESPER:['#200c57','#58339d','#af64cf','#6c39ba','#32165f'],EMBER:['#461520','#9c3529','#c86631','#f4a74f','#562c22'],GLACIA:['#1b4672','#438bb6','#9ccde8','#d7ebf7','#3b6b9e']};const colors=palettes[p.name]||[p.land,p.color,p.secondary,p.color,p.land];colors.forEach((col,i)=>gr.addColorStop(i/(colors.length-1),col));x.fillStyle=gr;x.fillRect(0,0,512,256);
+for(let i=0;i<540;i++){x.globalAlpha=.07+r()*.32;x.fillStyle=colors[Math.floor(r()*colors.length)];x.beginPath();x.ellipse(r()*512,r()*256,6+r()*120,1.2+r()*13,r()*.2,0,6.283);x.fill()}
+for(let i=0;i<155;i++){x.globalAlpha=.22+r()*.6;x.fillStyle=p.name==='EMBER'?'#ffb665':p.name==='GLACIA'?'#efffff':p.name==='VESPER'?'#fa9fff':'#70ffce';x.beginPath();x.ellipse(r()*512,r()*256,1+r()*17,1+r()*5,r()*6,0,6.283);x.fill()}
+x.globalAlpha=1;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+function initGalaxy(){const n=innerWidth<700?7400:14200;galaxyBase=new Float32Array(n*3);galaxyColors=new Float32Array(n*3);const buf=new Float32Array(n*3),rand=randSeed(53421);for(let i=0;i<n;i++){const arm=i%5,r=.22+Math.pow(rand(),.74)*26,a=arm*6.283/5+r*.31+(rand()-.5)*(.22+r*.028),k=i*3;const x=Math.cos(a)*r+(rand()-.5)*r*.05,z=Math.sin(a)*r+(rand()-.5)*r*.05,y=(rand()-.5)*(.22+r*.18);galaxyBase[k]=x;galaxyBase[k+1]=y;galaxyBase[k+2]=z;buf[k]=x;buf[k+1]=y;buf[k+2]=z;const color=new THREE.Color(palette[arm]).lerp(new THREE.Color(palette[(arm+1)%5]),rand()*.35);galaxyColors[k]=color.r;galaxyColors[k+1]=color.g;galaxyColors[k+2]=color.b}
+galaxyGeo=new THREE.BufferGeometry();galaxyGeo.setAttribute('position',new THREE.BufferAttribute(buf,3).setUsage(THREE.DynamicDrawUsage));galaxyGeo.setAttribute('color',new THREE.BufferAttribute(galaxyColors,3));galaxyPoints=new THREE.PointsMaterial({size:innerWidth<700?.21:.19,transparent:true,opacity:.86,vertexColors:true,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true});galaxy=new THREE.Points(galaxyGeo,galaxyPoints);scene.add(galaxy);
+core=makeSprite('#a9f3ff',5,.8);scene.add(core);halo=makeSprite('#8569ff',13,.26);scene.add(halo);
+const nStars=1600,pos=new Float32Array(nStars*3),col=new Float32Array(nStars*3),rs=randSeed(993);for(let i=0;i<nStars;i++){const a=rs()*6.283,v=rs()*2-1,r=60+rs()*160,t=Math.sqrt(1-v*v),j=i*3;pos[j]=Math.cos(a)*r*t;pos[j+1]=r*v;pos[j+2]=Math.sin(a)*r*t;col[j]=.56+rs()*.35;col[j+1]=.7+rs()*.25;col[j+2]=.92}
+const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));stars=new THREE.Points(g,new THREE.PointsMaterial({size:.45,vertexColors:true,transparent:true,opacity:.94,depthWrite:false}));scene.add(stars)}
+function placeOnSphere(unit,longitude,latitude){const cl=Math.cos(latitude);unit.set(Math.cos(longitude)*cl,Math.sin(latitude),Math.sin(longitude)*cl);return unit}
+/*
+ COSM.OS HD texture credits:
+ Albedo maps for AZURA, VESPER and EMBER © Solar System Scope (INOVE),
+ CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+ Original maps: https://play.solarsystemscope.com/textures/
+ Mirrored at https://github.com/Sanghel/solar-system-3d/tree/develop/public/textures
+ GLACIA uses NASA/USGS Europa imagery mirrored in the same project.
+ AZURA cloud imagery from matteason/live-cloud-maps, CC0 1.0,
+ https://github.com/matteason/live-cloud-maps
+ Modifications: fictional planet tinting, procedural cities, layered atmosphere.
+ No maps are presented as literal images of inhabited worlds.
+ The existing procedurally drawn maps remain as offline / network-failure fallbacks.
+*/
+const sourceRoot='https://cdn.jsdelivr.net/gh/Sanghel/solar-system-3d@47c8bbc6b63f4c6c2310911238c2c4b6bff6d20b/public/textures/';
+const sourceFallback='https://raw.githubusercontent.com/Sanghel/solar-system-3d/47c8bbc6b63f4c6c2310911238c2c4b6bff6d20b/public/textures/';
+const hdPlanetMaps={FLUX:'jupiter.jpg',ORION:'neptune.jpg',ASTRO:'earth.jpg',RIPPLE:'uranus.jpg',BRIX:'mars.jpg',DEMON:'venus.jpg',HERMES:'saturn.jpg',ECHO:'mercury.jpg'};
+const tintMap={FLUX:'#c197ff',ORION:'#8fd5ff',ASTRO:'#f1dea2',RIPPLE:'#8bffe9',BRIX:'#ffd0af',DEMON:'#ffb0a2',HERMES:'#eee3ff',ECHO:'#ffce92'};
+const hdLoader=new THREE.TextureLoader();hdLoader.setCrossOrigin('anonymous');
+let hdLoaded=0,hdFailed=0;
+function updateHdProgress(){
+ const el=$('textureStatus');if(!el)return;
+ el.textContent=hdLoaded>=8?'✓ '+hdLoaded+' HD SURFACES LOADED · 8 PERSONAS':hdLoaded+' / 8 HD PLANETS READY'+(hdFailed?' · '+hdFailed+' PROCEDURAL BACKUPS':'');
+}
+function loadHdImage(file,onReady,onFail){
+ // A real public CDN avoids the often-missing cross-origin headers on original hosts.
+ hdLoader.load(sourceRoot+file,onReady,undefined,()=>hdLoader.load(sourceFallback+file,onReady,undefined,()=>{if(onFail)onFail()}));
+}
+function proceduralCloudAlpha(spec){
+ const c=document.createElement('canvas');c.width=512;c.height=256;
+ const ctx=c.getContext('2d'),rand=randSeed(spec.seed+9120);
+ ctx.clearRect(0,0,c.width,c.height);
+ for(let i=0;i<(spec.name==='EMBER'?180:350);i++){
+  const px=rand()*512,py=rand()*256,rx=10+rand()*95,ry=2+rand()*18;
+  const opacity=(.045+rand()*.23)*(spec.name==='EMBER'?.45:1);
+  ctx.save();ctx.translate(px,py);ctx.scale(1,ry/rx);
+  const gradient=ctx.createRadialGradient(0,0,0,0,0,rx);
+  gradient.addColorStop(0,'rgba(255,255,255,'+opacity+')');
+  gradient.addColorStop(.45,'rgba(255,255,255,'+(opacity*.55)+')');
+  gradient.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=gradient;ctx.fillRect(-rx,-rx,rx*2,rx*2);ctx.restore();
+ }
+ const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+ return tex;
+}
+function addRealClouds(p){
+ const spec=p,cloudMat=new THREE.MeshBasicMaterial({
+  map:proceduralCloudAlpha(spec),color:new THREE.Color(spec.biome==='volcanic'?'#ffb28e':spec.biome==='ocean'?'#aeffff':'#e7f1ff'),
+  transparent:true,opacity:spec.biome==='volcanic'?.22:.43,depthWrite:false,side:THREE.DoubleSide
+ });
+ const cloudShell=new THREE.Mesh(new THREE.SphereGeometry(spec.size*1.043,64,40),cloudMat);
+ cloudShell.renderOrder=2;p.bodyGroup.add(cloudShell);p.cloudShell=cloudShell;
+ if(spec.biome==='ocean'){
+  // Public, CORS-enabled, NASA-based 2K cloud layer. The procedural version remains if offline.
+  hdLoader.load('https://clouds.matteason.co.uk/images/2048x1024/clouds-alpha.png',cloudTex=>{
+   if(p.disposed){cloudTex.dispose();return}
+   cloudTex.colorSpace=THREE.SRGBColorSpace;
+   cloudTex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+   const old=p.cloudShell.material.map;
+   p.cloudShell.material.map=cloudTex;p.cloudShell.material.color.set('#ffffff');
+   p.cloudShell.material.opacity=.67;p.cloudShell.material.needsUpdate=true;
+   if(old&&old.isCanvasTexture)old.dispose();
+  },undefined,()=>{});
+ }
+}
+function applyHdSurface(p){
+ const identity=p.personaName||p.name,filename=hdPlanetMaps[identity];if(!filename)return;
+ loadHdImage(filename,tex=>{
+  if(p.disposed){tex.dispose();return}
+  tex.colorSpace=THREE.SRGBColorSpace;
+  tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  tex.minFilter=THREE.LinearMipmapLinearFilter;
+  const mat=p.surface.material,previousMap=mat.map;
+  mat.map=tex;mat.color.set(tintMap[identity]||'#ffffff');
+  // Using planetary imagery as low-strength bump information adds relief
+  // without heavyweight displacement meshes. Gas giant bands stay smooth.
+  if(p.biome==='volcanic'||p.biome==='mountain'||p.biome==='temple'){
+   mat.bumpMap=tex;mat.bumpScale=p.size*.012;
+  }
+  mat.roughness=p.biome==='ocean'?.56:p.biome==='aurora'?.84:.78;
+  mat.metalness=.035;mat.needsUpdate=true;
+  if(previousMap&&previousMap.isCanvasTexture)previousMap.dispose();
+  p.isHd=true;hdLoaded++;updateHdProgress();
+ },()=>{if(p.disposed)return;hdFailed++;p.isHd=false;updateHdProgress()});
+}
+/*
+  COSM.OS v1.4 Real Asset World Builder.
+  Source models: original 3D model files by Kenney, dedicated CC0 1.0.
+  https://kenney.nl/assets/city-kit-commercial
+  https://kenney.nl/assets/city-kit-suburban
+  https://kenney.nl/assets/nature-kit
+  https://github.com/Hidencod/tge-assets (GLB distribution, embedded textures)
+  3D models are fetched over HTTPS with a fallback to original procedural cities.
+  The URLs are pinned to a catalog commit to avoid surprise changes in content.
+*/
+const CITY_ASSET_BASE='https://cdn.jsdelivr.net/gh/Hidencod/tge-assets@37f5baddf99899547ae661668880809c42b450f0/packs/';
+const CITY_ASSET_BACKUP='https://hidencod.github.io/tge-assets/packs/';
+const HERO_ASSET_BASE='https://cdn.jsdelivr.net/gh/anshaneja5/skyline-run@0c41526d8d4130c37c15e219c2c3737fa8cb4ad8/public/assets/models/';
+const HERO_ASSET_BACKUP='https://raw.githubusercontent.com/anshaneja5/skyline-run/0c41526d8d4130c37c15e219c2c3737fa8cb4ad8/public/assets/models/';
+const CITY_ASSETS=[
+ {id:'sky-a',file:'city-kit-commercial/building-skyscraper-a.glb',tag:'tower'},
+ {id:'sky-b',file:'city-kit-commercial/building-skyscraper-b.glb',tag:'tower'},
+ {id:'sky-c',file:'city-kit-commercial/building-skyscraper-c.glb',tag:'tower'},
+ {id:'sky-d',file:'city-kit-commercial/building-skyscraper-d.glb',tag:'tower'},
+ {id:'sky-e',file:'city-kit-commercial/building-skyscraper-e.glb',tag:'tower'},
+ {id:'tower-i',file:'city-kit-commercial/building-i.glb',tag:'tower'},
+ {id:'tower-j',file:'city-kit-commercial/building-j.glb',tag:'tower'},
+ {id:'tower-k',file:'city-kit-commercial/building-k.glb',tag:'tower'},
+ {id:'tower-m',file:'city-kit-commercial/building-m.glb',tag:'tower'},
+ {id:'tower-n',file:'city-kit-commercial/building-n.glb',tag:'tower'},
+ {id:'house-a',file:'city-kit-suburban/building-type-a.glb',tag:'house'},
+ {id:'house-e',file:'city-kit-suburban/building-type-e.glb',tag:'house'},
+ {id:'tree-oak',file:'nature-kit/tree-detailed.glb',tag:'tree'},
+ {id:'tree-palm',file:'nature-kit/tree-palm.glb',tag:'tree'},
+ ...PERSONA_ASSET_EXTENSIONS,
+ {id:'downtown-small',file:'b_small.glb',tag:'hero',source:'quaternius'},
+ {id:'downtown-medium',file:'b_medium.glb',tag:'hero',source:'quaternius'},
+ ...(innerWidth>=850?[{id:'downtown-large',file:'b_large.glb',tag:'hero',source:'quaternius'}]:[])
+];
+const citySessionSeed=Math.floor(Math.random()*2147483647),cityBlueprints=new Map();
+let cityLoader=null,urbanAssets=new Map(),districtStreetsBuilt=false,cityFleet=null;
+const CITY_TINTS=Object.fromEntries(PERSONA_WORLDS.map(p=>[p.name,p.cityTint]));
+function statusCityAssets(){
+ const status=$('cityDetail');
+ if(!status)return;
+ status.textContent=cityModelsReady+'/'+CITY_ASSETS.length+' REAL 3D MODELS · '+cityStructureCount+' BUILDINGS / TREES'+(cityModelsFailed?' · '+cityModelsFailed+' FALLBACKS':'');
+ status.classList.toggle('ready',cityModelsReady>=CITY_ASSETS.length-1);
+}
+function cityBlueprint(p){
+ if(cityBlueprints.has(p.name))return cityBlueprints.get(p.name);
+ const rand=randSeed(p.seed+(p.generated?91:citySessionSeed)),placements=[],cityHubs=[.2,1.6,3.2,4.85],occupied=[];
+ const reserve=(unit,radius)=>{if(occupied.some(o=>unit.distanceToSquared(o.unit)<(o.radius+radius)**2))return false;occupied.push({unit:unit.clone(),radius});return true};
+ const towerIds=['sky-a','sky-b','sky-c','sky-d','sky-e','tower-i','tower-j','tower-k','tower-m','tower-n'];
+ const residential=['house-a','house-e','tower-i','tower-k'];
+ // Cluster city blocks on curved worlds, using a grid for recognizable streets.
+ const count=p.generated?(innerWidth<740?42:76):(innerWidth<740?66:115);
+ for(let i=0;i<count;i++){
+  const district=i%4,block=Math.floor(i/4),col=(block%7)-3,row=Math.floor(block/7)-2;
+  const lon=cityHubs[district]+col*.105+(rand()-.5)*.024;
+  const lat=.04+row*.115+(rand()-.5)*.035;
+  const unit=placeOnSphere(new THREE.Vector3(),lon,lat);
+  if(!reserve(unit,.038))continue;
+  const identity=p.personaName||p.name,theme=WORLD_ASSET_POOLS[identity];
+  const pool=theme?.buildings||towerIds;
+  const modelId=rand()<.08?'downtown-small':pool[Math.floor(rand()*pool.length)];
+  const tall=(.069+Math.pow(rand(),2)*.115)*(theme?.height||1);
+  placements.push({unit,modelId,spin:rand()*Math.PI*2,height:p.size*tall,kind:'building'});
+ }
+ // Trees create greenbelts and alien parks on habitable and icy worlds.
+ const identity=p.personaName||p.name,flora=WORLD_ASSET_POOLS[identity]?.flora||['tree-oak','tree-palm'];
+ const trees=p.generated?(innerWidth<740?20:30):(innerWidth<740?28:54);
+ for(let i=0;i<trees;i++){
+  const district=i%4,lon=cityHubs[district]+(rand()-.5)*.82,lat=.05+(rand()-.5)*.65;
+  const unit=placeOnSphere(new THREE.Vector3(),lon,lat);
+  if(!reserve(unit,.023))continue;
+  placements.push({unit,modelId:flora[Math.floor(rand()*flora.length)],spin:rand()*6.283,height:p.size*(.07+rand()*.08),kind:'tree'});
+ }
+ cityBlueprints.set(p.name,placements);return placements;
+}
+function addCityStreets(p){
+ if(p.realDistrictLines)return;
+ p.realDistrictLines=[];const colors={AZURA:'#5ef5ff',VESPER:'#da83ff',EMBER:'#ffa65d',GLACIA:'#a8e8ff'};
+ const surface=p.bodyGroup;
+ for(const lon of [.2,1.6,3.2,4.85]){
+  for(const r of [.15,.39]){
+   const curve=[];for(let i=0;i<=72;i++){
+    const a=6.283*i/72,l=lon+Math.cos(a)*r,lat=.04+Math.sin(a)*r*.77;
+    curve.push(placeOnSphere(new THREE.Vector3(),l,lat).multiplyScalar(p.size*1.009));
+   }
+   const geo=new THREE.BufferGeometry().setFromPoints(curve);
+   const road=new THREE.LineLoop(geo,new THREE.LineBasicMaterial({color:colors[p.name]||p.color,transparent:true,opacity:.28,depthWrite:false,blending:THREE.AdditiveBlending}));
+   road.frustumCulled=false;surface.add(road);p.realDistrictLines.push(road);
+  }
+ }
+}
+function modelMeshes(model){
+ const meshes=[];model.scene.updateMatrixWorld(true);
+ model.scene.traverse(o=>{if(o.isMesh&&o.geometry&&!o.isSkinnedMesh)meshes.push(o)});
+ return meshes;
+}
+function prepareRealBuilding(p,asset){
+ if(!asset||!asset.model)return;
+ addCityStreets(p);
+ const plans=cityBlueprint(p).filter(x=>x.modelId===asset.id);
+ if(!plans.length)return;
+ const models=modelMeshes(asset.model);
+ if(!models.length)return;
+ const box=new THREE.Box3().setFromObject(asset.model.scene),min=box.min,max=box.max;
+ const size=new THREE.Vector3().subVectors(max,min);
+ if(!Number.isFinite(size.y)||size.y<.001)return;
+ const normalization=new THREE.Matrix4().makeScale(1/size.y,1/size.y,1/size.y)
+  .multiply(new THREE.Matrix4().makeTranslation(-(min.x+max.x)*.5,-min.y,-(min.z+max.z)*.5));
+ const rotation=new THREE.Quaternion(),face=new THREE.Quaternion(),spin=new THREE.Quaternion(),pos=new THREE.Vector3(),scale=new THREE.Vector3(),placement=new THREE.Matrix4(),combined=new THREE.Matrix4(),unitY=new THREE.Vector3(0,1,0);
+ for(const mesh of models){
+  // Preserve original textured geometry, but instance whole city blocks into a small number of draw calls.
+  const tintMaterial=original=>{
+   const mat=original.clone();
+   if(mat.color)mat.color.multiply(new THREE.Color(p.cityTint||CITY_TINTS[p.name]||p.color));
+   if(mat.emissive){mat.emissive.set(p.cityTint||CITY_TINTS[p.name]||p.color);mat.emissiveIntensity=p.name==='VESPER'?.32:.18}
+   if('roughness' in mat)mat.roughness=Math.min(1,mat.roughness+.05);
+   return mat;
+  };
+  const mats=Array.isArray(mesh.material)?mesh.material.map(tintMaterial):tintMaterial(mesh.material);
+  const inst=new THREE.InstancedMesh(mesh.geometry,mats,plans.length);
+  inst.name=p.name+' / CC0 '+asset.id;inst.frustumCulled=false;inst.visible=p.detailed!==false;
+  for(let i=0;i<plans.length;i++){
+   const plan=plans[i],surfaceHeight=p.size*1.008;
+   pos.copy(plan.unit).multiplyScalar(surfaceHeight);
+   face.setFromUnitVectors(unitY,plan.unit);
+   spin.setFromAxisAngle(unitY,plan.spin);rotation.copy(face).multiply(spin);
+   scale.setScalar(Math.min(plan.height,(p.size*.072)/Math.max(size.x/size.y,size.z/size.y,.25)));
+   placement.compose(pos,rotation,scale);
+   combined.copy(placement).multiply(normalization).multiply(mesh.matrixWorld);
+   inst.setMatrixAt(i,combined);
+  }
+  inst.instanceMatrix.needsUpdate=true;
+  p.bodyGroup.add(inst);
+  if(!p.realBuildings)p.realBuildings=[];
+  p.realBuildings.push(inst);
+ }
+ if(!p.loadedTypes)p.loadedTypes=0;
+ p.loadedTypes++;
+ cityStructureCount+=plans.length;
+ // Swap placeholder cylinders only once enough real asset types have arrived.
+ if(p.loadedTypes>=1&&p.proceduralBuildings){for(const obj of p.proceduralBuildings)obj.visible=false}
+ statusCityAssets();
+}
+function loadUrbanFile(loader,asset){
+ const urls=asset.source==='quaternius'?[HERO_ASSET_BASE+asset.file,HERO_ASSET_BACKUP+asset.file]:[CITY_ASSET_BASE+asset.file,CITY_ASSET_BACKUP+asset.file];
+ return new Promise((resolve,reject)=>{
+  let i=0;
+  const attempt=()=>{
+   if(i>=urls.length){reject(new Error('All model hosts unavailable: '+asset.id));return}
+   loader.load(urls[i++],gltf=>resolve(gltf),undefined,()=>attempt());
+  };
+  attempt();
+ });
+}
+async function initRealCityAssets(){
+ if(!scene||!renderer)return;
+ cityBlueprints.clear();cityStructureCount=0;
+ try{
+  const mod=await import('three/addons/loaders/GLTFLoader.js');
+  cityLoader=new mod.GLTFLoader();
+ }catch(err){
+  $('cityDetail').textContent='REAL 3D MODEL LOADER UNAVAILABLE · ORIGINAL CITY BUILDINGS ACTIVE';
+  console.warn('COSM.OS cities loader:',err);return;
+ }
+ // Concurrent but limited to 3 requests. Keeps Safari network and decoding responsive.
+ let next=0;
+ const worker=async()=>{
+  while(next<CITY_ASSETS.length){
+   const asset=CITY_ASSETS[next++];
+   try{
+    const model=await loadUrbanFile(cityLoader,asset);
+    urbanAssets.set(asset.id,{...asset,model});cityModelsReady++;
+    for(const p of planets)prepareRealBuilding(p,{...asset,model});
+   }catch(err){cityModelsFailed++;console.warn('City asset unavailable:',asset.id,err.message)}
+   statusCityAssets();
+  }
+ };
+ await Promise.all([worker(),worker(),worker(),worker(),worker()]);
+ if(cityModelsReady){
+  $('cityDetail').textContent='✓ '+cityModelsReady+' REAL GLB ARCHITECTURE TYPES · '+cityStructureCount+' GENERATED STRUCTURES';
+  $('cityDetail').classList.add('ready');
+ }
+}
+
+function surfaceSprite(car,color){
+ const c=document.createElement('canvas');c.width=64;c.height=96;const g=c.getContext('2d');g.lineCap='round';g.lineJoin='round';
+ if(car){g.fillStyle=color;g.beginPath();g.roundRect(5,34,54,30,9);g.fill();g.fillStyle='#b5eaff';g.fillRect(17,37,29,12);g.fillStyle='#101629';for(const x of [16,48]){g.beginPath();g.arc(x,67,8,0,7);g.fill()}}
+ else{g.fillStyle='#ffdbbc';g.beginPath();g.arc(32,17,10,0,7);g.fill();g.strokeStyle=color;g.lineWidth=12;g.beginPath();g.moveTo(32,34);g.lineTo(32,61);g.moveTo(32,42);g.lineTo(13,55);g.moveTo(32,42);g.lineTo(51,55);g.stroke();g.strokeStyle='#18213c';g.lineWidth=9;g.beginPath();g.moveTo(30,60);g.lineTo(18,86);g.moveTo(34,60);g.lineTo(47,86);g.stroke()}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+function addSurfacePopulation(p,parent){
+ const r=randSeed(p.seed+909),people=surfaceSprite(false,p.secondary),cars=surfaceSprite(true,p.color);p.population=[];const clusters=[.2,1.6,3.2,4.85];
+ for(let i=0;i<(innerWidth<740?96:156);i++){const car=i%5===0,lon=clusters[i%4]+(r()-.5)*.68,lat=(r()-.5)*.52,unit=placeOnSphere(new THREE.Vector3(),lon,lat),height=p.size*(car?.025:.017);
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:car?cars:people,transparent:true,depthWrite:false,alphaTest:.15}));sprite.position.copy(unit).multiplyScalar(p.size+height*.6);sprite.scale.set(height*(car?2.2:.7),height*(car?1.1:1.4),1);parent.add(sprite);p.population.push({sprite,unit,lon,lat,car,speed:(.006+r()*.018)*(i%2?-1:1),height})}
+}
+function animatePopulation(dt){for(const p of planets)if(p.detailed!==false)for(const a of p.population||[]){a.lon+=dt*a.speed*(a.car?2.8:1);placeOnSphere(a.unit,a.lon,a.lat);a.sprite.position.copy(a.unit).multiplyScalar(p.size+a.height*.6)}}
+function buildPlanet(spec,index){const planet={...spec,seed:spec.seed??190+index*239,group:new THREE.Group(),position:new THREE.Vector3(),cityGlow:[],life:[],shuttles:[],atmosphere:null,clouds:null,surface:null,beacon:null};scene.add(planet.group);
+const bodyGroup=new THREE.Group();planet.group.add(bodyGroup);planet.bodyGroup=bodyGroup;addSurfacePopulation(planet,bodyGroup);
+const map=drawPlanetMap(planet),surface=new THREE.Mesh(
+ new THREE.SphereGeometry(spec.size,innerWidth<700?96:128,innerWidth<700?64:96),
+ new THREE.MeshStandardMaterial({map,roughness:.83,metalness:.08,emissive:new THREE.Color(spec.land),emissiveIntensity:.07})
+);bodyGroup.add(surface);planet.surface=surface;planet._highGeometry=surface.geometry;planet._lowGeometry=new THREE.SphereGeometry(spec.size,24,16);
+addRealClouds(planet);applyHdSurface(planet);decoratePersonaWorld(planet,THREE);
+const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(spec.size*1.125,40,30),new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,uniforms:{uColor:{value:new THREE.Color(spec.color)},uPulse:{value:0}},vertexShader:'varying vec3 vN;varying vec3 vView;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vView=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',fragmentShader:'uniform vec3 uColor;uniform float uPulse;varying vec3 vN;varying vec3 vView;void main(){float f=pow(1.0-abs(dot(normalize(vN),normalize(vView))),2.1);gl_FragColor=vec4(uColor*(1.35+uPulse*.5),clamp(f*.85+.04,0.,.64));}'}));bodyGroup.add(atmosphere);planet.atmosphere=atmosphere;
+const cloudRand=randSeed(planet.seed+81),cloudPoints=new Float32Array(480*3);for(let i=0;i<480;i++){const lon=cloudRand()*6.283,lat=Math.asin(cloudRand()*2-1),height=spec.size*(1.055+cloudRand()*.11),k=i*3;placeOnSphere(tmpV,lon,lat).multiplyScalar(height);cloudPoints[k]=tmpV.x;cloudPoints[k+1]=tmpV.y;cloudPoints[k+2]=tmpV.z}
+const cloudGeo=new THREE.BufferGeometry();cloudGeo.setAttribute('position',new THREE.BufferAttribute(cloudPoints,3));const clouds=new THREE.Points(cloudGeo,new THREE.PointsMaterial({color:spec.secondary,size:spec.size*.052,transparent:true,opacity:.62,depthWrite:false,blending:THREE.AdditiveBlending}));bodyGroup.add(clouds);planet.clouds=clouds;
+if(spec.name==='VESPER'){const ring=new THREE.Mesh(new THREE.RingGeometry(spec.size*1.38,spec.size*1.9,90),new THREE.MeshBasicMaterial({color:0xa78aff,side:THREE.DoubleSide,transparent:true,opacity:.35,depthWrite:false}));ring.rotation.set(.55,.3,.18);bodyGroup.add(ring)}
+const rand=randSeed(planet.seed),towerMaterial=new THREE.MeshStandardMaterial({color:spec.color,emissive:spec.color,emissiveIntensity:.35,metalness:.6,roughness:.3}),town=new THREE.InstancedMesh(new THREE.CylinderGeometry(.075,.13,1,5),towerMaterial,spec.city);
+const lights=new THREE.InstancedMesh(new THREE.SphereGeometry(.075,5,4),new THREE.MeshBasicMaterial({color:spec.secondary}),spec.city);
+const cityClusters=[.2,1.6,3.2,4.85];
+for(let i=0;i<spec.city;i++){const block=Math.floor(i/4),lon=cityClusters[i%4]+((block%7)-3)*.11+(rand()-.5)*.011,lat=.04+(Math.floor(block/7)-2)*.12+(rand()-.5)*.01,unit=placeOnSphere(new THREE.Vector3(),lon,lat),height=spec.size*(.08+rand()*.28),pos=unit.clone().multiplyScalar(spec.size+height*.5);
+ tmpQ.setFromUnitVectors(unitY,unit);tmpM.compose(pos,tmpQ,new THREE.Vector3(.6+rand()*.8,height,.6+rand()*.8));town.setMatrixAt(i,tmpM);
+ tmpM.compose(unit.clone().multiplyScalar(spec.size+height+spec.size*.015),tmpQ,new THREE.Vector3(.58,.58,.58));lights.setMatrixAt(i,tmpM);
+}
+town.instanceMatrix.needsUpdate=true;lights.instanceMatrix.needsUpdate=true;bodyGroup.add(town,lights);planet.cityGlow.push(town.material);planet.proceduralBuildings=[town,lights];
+for(let i=0;i<4;i++){const lon=cityClusters[i],normal=placeOnSphere(new THREE.Vector3(),lon,.06);const bloom=makeSprite(spec.secondary,spec.size*.75,.46);bloom.position.copy(normal.multiplyScalar(spec.size*1.10));bodyGroup.add(bloom);planet.cityGlow.push(bloom.material)}
+for(let i=0;i<spec.creatures;i++){
+ const life=new THREE.Group();const wingMat=new THREE.MeshBasicMaterial({color:i%2?spec.color:spec.secondary,transparent:true,opacity:.83,side:THREE.DoubleSide});
+ const wings=new THREE.Mesh(new THREE.ConeGeometry(.27,1,3),wingMat);wings.rotation.x=Math.PI/2;wings.scale.set(.7,.35,1.1);life.add(wings);
+ const glow=makeSprite(spec.secondary,.46,.8);glow.position.z=.15;life.add(glow);bodyGroup.add(life);
+ planet.life.push({object:life,wing:wings,azimuth:i*1.27+.2,lat:Math.sin(i*1.8)*.21,radius:spec.size*(1.13+rand()*.05),speed:.06+rand()*.07});
+}
+for(let i=0;i<6;i++){const shuttle=new THREE.Mesh(new THREE.ConeGeometry(.075,.35,3),new THREE.MeshBasicMaterial({color:spec.secondary}));bodyGroup.add(shuttle);planet.shuttles.push({mesh:shuttle,phase:i*1.04,speed:.23+i*.04})}
+planets.push(planet);
+}
+function buildOrbitalTraffic(){
+ const hull=new THREE.MeshStandardMaterial({color:0xa4d9f8,metalness:.7,roughness:.23,emissive:0x2657a0,emissiveIntensity:.3});
+ const panels=new THREE.MeshStandardMaterial({color:0x1b68a4,metalness:.45,roughness:.3,emissive:0x0a4079,emissiveIntensity:.36});
+ for(let i=0;i<4;i++){
+  const g=new THREE.Group();g.add(new THREE.Mesh(new THREE.BoxGeometry(.48,.4,.62),hull));
+  for(const sign of [-1,1]){const wing=new THREE.Mesh(new THREE.BoxGeometry(1.0,.05,.62),panels);wing.position.x=sign*.95;g.add(wing);const arm=new THREE.Mesh(new THREE.BoxGeometry(.4,.06,.08),hull);arm.position.x=sign*.46;g.add(arm)}
+  const beacon=makeSprite('#6af4ff',.75,.78);beacon.position.y=.45;g.add(beacon);scene.add(g);satellites.push({g,beacon,radius:10+i*4.7,angle:i*1.95,speed:.13+i*.037});
+ }
+ for(let i=0;i<3;i++){
+  const g=new THREE.Group(),mat=new THREE.MeshStandardMaterial({color:i%2?0xff9fde:0x91dcff,metalness:.75,roughness:.19});
+  const nose=new THREE.Mesh(new THREE.ConeGeometry(.5,2.0,3),mat);nose.rotation.x=Math.PI/2;g.add(nose);
+  const wing=new THREE.Mesh(new THREE.BoxGeometry(2.2,.12,.54),mat);wing.position.z=.1;g.add(wing);
+  const thruster=makeSprite(i%2?'#ff88cc':'#6befff',1.3,.85);thruster.position.z=.95;g.add(thruster);
+  scene.add(g);interplanetaryShips.push({g,thruster,radius:15+i*5,phase:i*2.8,speed:.18+i*.055});
+ }
+}
+function updateTraffic(dt){
+ for(const s of satellites){s.angle+=dt*s.speed*smoothSpeed;const a=s.angle;s.g.position.set(Math.cos(a)*s.radius,Math.sin(a*1.1)*2,Math.sin(a)*s.radius);s.g.rotation.set(.2,a,spaceTime*.15);s.beacon.material.opacity=.45+beatStrength*.45}
+ for(const s of interplanetaryShips){s.phase+=dt*s.speed*smoothSpeed;const a=s.phase;s.g.position.set(Math.cos(a)*s.radius,Math.sin(a*1.4)*2.5,Math.sin(a)*s.radius);s.g.rotation.set(.12,a+Math.PI/2,spaceTime*.14);s.thruster.scale.setScalar(1+energy*.9+beatStrength*1.4)}
+}
+function renderWarpStreaks(progress){
+ const c=$('warpCanvas'),g=c.getContext('2d');if(!g)return;
+ const dpr=Math.min(devicePixelRatio||1,1.4),w=innerWidth,h=innerHeight;
+ if(c.width!==Math.floor(w*dpr)||c.height!==Math.floor(h*dpr)){c.width=Math.floor(w*dpr);c.height=Math.floor(h*dpr)}
+ g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+ const cx=w/2,cy=h*.46,boost=.3+Math.sin(Math.PI*progress)*1.1;
+ for(let i=0;i<115;i++){
+  const a=i*2.399963,rr=(i*31.43+spaceTime*310*boost)%Math.max(w,h)*.7;
+  const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.86;
+  const length=(4+rr*.075)*boost,alpha=Math.min(.82,.18+(rr/Math.max(w,h))*.6);
+  g.strokeStyle=i%4===0?`rgba(248,197,255,${alpha})`:`rgba(122,225,255,${alpha})`;
+  g.lineWidth=i%3===0?2:1;
+  g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(a)*length,y+Math.sin(a)*length*.86);g.stroke();
+ }
+}
+function starShot(){if(meteors.length>=9)return;const rand=seeded,origin=new THREE.Vector3((rand()-.5)*62,(rand()-.5)*24+7,(rand()-.5)*60),velocity=new THREE.Vector3((rand()-.5)*7,-3-rand()*7,(rand()-.5)*8),g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(27),3).setUsage(THREE.DynamicDrawUsage));const color=['#71eaff','#fba6e7','#ffcb8e'][Math.floor(rand()*3)];const line=new THREE.Line(g,new THREE.LineBasicMaterial({color,transparent:true,opacity:.86,blending:THREE.AdditiveBlending,depthWrite:false}));line.frustumCulled=false;scene.add(line);meteors.push({origin,velocity,age:0,line})}
+function updateMeteors(dt,t){if(seeded()<dt*(.12+energy*.8))starShot();for(let i=meteors.length-1;i>=0;i--){const m=meteors[i];m.age+=dt;const a=m.line.geometry.attributes.position;for(let j=0;j<9;j++){const tt=Math.max(0,m.age-j*.035);tmpV.copy(m.origin).addScaledVector(m.velocity,tt);a.setXYZ(j,tmpV.x,tmpV.y,tmpV.z)}a.needsUpdate=true;m.line.material.opacity=Math.max(0,1-m.age/1.6);if(m.age>1.6){scene.remove(m.line);m.line.geometry.dispose();m.line.material.dispose();meteors.splice(i,1)}}}
+function connectAudio(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(!analyser){analyser=audioCtx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.7;freq=new Uint8Array(analyser.frequencyBinCount);previousSpectrum=new Uint8Array(analyser.frequencyBinCount);source=audioCtx.createMediaElementSource(audio);source.connect(analyser);analyser.connect(audioCtx.destination)}audioCtx.resume().catch(()=>{})}catch(err){say('AUDIO ANALYSIS UNAVAILABLE',3)}}
+function band(low,high){const bin=audioCtx.sampleRate/2048,a=clamp(Math.floor(low/bin),0,freq.length-1),b=clamp(Math.ceil(high/bin),a,freq.length-1);let total=0;for(let i=a;i<=b;i++)total+=freq[i];return total/((b-a+1)*255)}
+function analyzeAudio(dt){if(!analyser||audio.paused){energy*=Math.exp(-dt*2);bass*=Math.exp(-dt*2.5);mids*=Math.exp(-dt*2.5);highs*=Math.exp(-dt*2.5);beatStrength*=Math.exp(-dt*5);return}
+analyser.getByteFrequencyData(freq);const k=1-Math.exp(-dt*12),b=band(27,190),m=band(190,2600),h=band(2600,14000);
+bass=lerp(bass,b,k);mids=lerp(mids,m,k);highs=lerp(highs,h,k);energy=lerp(energy,Math.min(1,bass*.72+mids*.5+highs*.16),k);
+let flux=0;for(let i=2;i<240;i++){flux+=Math.max(0,freq[i]-previousSpectrum[i])/255;previousSpectrum[i]=freq[i]}flux/=238;fluxAverage=lerp(fluxAverage,flux,1-Math.exp(-dt*.9));avgBass=lerp(avgBass,b,1-Math.exp(-dt*.65));
+const t=audio.currentTime;const onset=(flux>Math.max(.015,fluxAverage*1.48)&&b>.08)||(b>Math.max(.12,avgBass*1.42));
+if(onset&&t-lastOnset>.24){history.push(t);lastOnset=t;beatStrength=1;history=history.filter(x=>t-x<25)}beatStrength*=Math.exp(-dt*5);
+if(history.length>=8&&t-lastBeat>2.6){estimateTempo();lastBeat=t}
+}
+function estimateTempo(){const hist=new Float32Array(160);let samples=0;for(let i=0;i<history.length;i++)for(let back=1;back<=3&&i-back>=0;back++){
+ const d=history[i]-history[i-back];if(d<=0)continue;let candidate=60/d;
+ while(candidate<65)candidate*=2;while(candidate>175)candidate/=2;
+ if(candidate>=65&&candidate<=175){for(let b=Math.max(65,Math.floor(candidate)-3);b<=Math.min(175,Math.ceil(candidate)+3);b++)hist[b]+=Math.max(0,1-Math.abs(b-candidate)/4)/back;samples++}
+}
+let best=0,score=0;for(let i=65;i<=175;i++)if(hist[i]>score){score=hist[i];best=i}
+if(best&&score>2.6){bpmConfidence=clamp(score/Math.max(5,samples*.28),0,1);if(bpmConfidence>.28){detectedBPM=lerp(detectedBPM,best,.35);targetSpeed=clamp(detectedBPM/110,.58,1.62)}}
+}
+function planetCenter(p){const angle=p.a+p.orbitAngle;return p.position.set(Math.cos(angle)*p.orbit,Math.sin(angle*.7)*.8,Math.sin(angle)*p.orbit)}
+function positionGalaxyCamera(outPos,outLook){outPos.set(camDistance*Math.cos(pitch)*Math.sin(yaw),camDistance*Math.sin(pitch),camDistance*Math.cos(pitch)*Math.cos(yaw));outPos.add(galaxyFocus);outLook.copy(galaxyFocus)}
+function panGalaxy(dx,dy){const right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0),up=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1),scale=camDistance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*2/innerHeight;galaxyFocus.addScaledVector(right,-dx*scale).addScaledVector(up,dy*scale);galaxyFocus.clampLength(0,160)}
+function setOrbit(dt){smoothSpeed=lerp(smoothSpeed,targetSpeed,1-Math.exp(-dt*.5));for(const p of planets){p.orbitAngle=(p.orbitAngle||0)+dt*p.speed*smoothSpeed;planetCenter(p);p.group.position.copy(p.position);p.surface.material.emissiveIntensity=.11+beatStrength*.25+bass*.35;p.bodyGroup.rotation.y+=dt*(.075+planets.indexOf(p)*.013)*(1+energy*.22);p.clouds.rotation.y+=dt*.025;if(p.cloudShell)p.cloudShell.rotation.y+=dt*(.014+energy*.009);p.atmosphere.material.uniforms.uPulse.value=beatStrength+energy*.4;
+ for(const cr of p.life){cr.azimuth+=dt*cr.speed*smoothSpeed;const unit=placeOnSphere(tmpV,cr.azimuth,cr.lat+Math.sin(spaceTime*.5+cr.azimuth)*.06);cr.object.position.copy(unit.multiplyScalar(cr.radius));cr.object.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),tmpV.clone().normalize());cr.wing.scale.x=.65+Math.sin(spaceTime*5+cr.azimuth)*.14}
+ for(const s of p.shuttles){const a=s.phase+spaceTime*s.speed*smoothSpeed,r=p.size*1.16;s.mesh.position.set(Math.cos(a)*r,Math.sin(a*1.2)*r*.35,Math.sin(a)*r);s.mesh.rotation.y=a+Math.PI/2}
+ }
+ const a=galaxyGeo.attributes.position.array;const pulse=1+bass*1.8+beatStrength*.4;for(let i=0;i<a.length;i+=3){const r=Math.sqrt(galaxyBase[i]*galaxyBase[i]+galaxyBase[i+2]*galaxyBase[i+2]);const z=spaceTime*(.04+.15/(r+3))*smoothSpeed,c=Math.cos(z),sn=Math.sin(z),x=galaxyBase[i],zz=galaxyBase[i+2];a[i]=(x*c-zz*sn)*pulse;a[i+2]=(x*sn+zz*c)*pulse;a[i+1]=galaxyBase[i+1]+Math.sin(spaceTime*2+r)*mids*3;}galaxyGeo.attributes.position.needsUpdate=true;core.scale.setScalar(1+beatStrength*.6+energy*.7);halo.scale.setScalar(1+beatStrength*.35+energy*.25);galaxyPoints.size=(innerWidth<700?.21:.19)*(1+bass*.45+highs*.35);
+}
+function warpPlanets(){return planets.map(p=>({p,x:155+Math.cos(p.a+p.orbitAngle)*p.orbit*5.25,y:155+Math.sin(p.a+p.orbitAngle)*p.orbit*5.25}))}
+function drawRadar(){const w=620,h=620;rctx.clearRect(0,0,w,h);const cx=310,cy=310,scale=260/Math.max(...planets.map(p=>p.orbit),1);
+ const gr=rctx.createRadialGradient(cx,cy,8,cx,cy,306);gr.addColorStop(0,'#15466a');gr.addColorStop(.45,'#0d2349');gr.addColorStop(1,'#071426');rctx.fillStyle=gr;rctx.fillRect(0,0,w,h);
+ rctx.lineWidth=1.7;rctx.strokeStyle='#6bd5fa3b';for(const radius of [58,115,173,230,286]){rctx.beginPath();rctx.arc(cx,cy,radius,0,6.283);rctx.stroke()}
+ for(let x=20;x<620;x+=46){rctx.strokeStyle='#5ad6ff15';rctx.beginPath();rctx.moveTo(x,0);rctx.lineTo(x,620);rctx.stroke();rctx.beginPath();rctx.moveTo(0,x);rctx.lineTo(620,x);rctx.stroke()}
+ rctx.strokeStyle='#88f5ff';rctx.lineWidth=1.4;rctx.beginPath();rctx.moveTo(cx-9,cy);rctx.lineTo(cx+9,cy);rctx.moveTo(cx,cy-9);rctx.lineTo(cx,cy+9);rctx.stroke();
+ for(const p of planets){const a=p.a+p.orbitAngle,x=cx+Math.cos(a)*p.orbit*scale,y=cy+Math.sin(a)*p.orbit*scale;
+ rctx.fillStyle=p.color;rctx.shadowBlur=19;rctx.shadowColor=p.color;rctx.beginPath();rctx.arc(x,y,11,0,6.283);rctx.fill();rctx.shadowBlur=0;rctx.strokeStyle='#efffff';rctx.lineWidth=1.8;rctx.beginPath();rctx.arc(x,y,18,0,6.283);rctx.stroke();rctx.fillStyle='#e5f6ff';rctx.font='bold 16px system-ui';rctx.textAlign='center';rctx.fillText((p.personaName||p.name).slice(0,12),x,y-27)}
+ rctx.fillStyle='#9ff0ff';rctx.font='bold 17px system-ui';rctx.textAlign='center';rctx.fillText('GALACTIC CORE',cx,cy+31);
+ $('tempoReadout').textContent=bpmConfidence>.28?Math.round(detectedBPM)+' BPM · '+smoothSpeed.toFixed(2)+'× ORBITS':'LISTENING FOR BPM · TAP A WORLD';
+}
+function openRadar(){if(mode==='warp'||mode==='return')return;$('radarShell').classList.add('open');drawRadar();radarOpenedAt=performance.now()}
+function closeRadar(){$('radarShell').classList.remove('open')}
+function updatePersonaCard(p){
+ const box=$('personaCard');if(!box)return;
+ $('personaName').textContent=(p.glyph||'✦')+' '+(p.personaName||p.name)+' · '+p.kind;
+ $('personaLore').textContent=p.lore||'An inhabited world in the COSM.OS multiverse.';
+ box.style.borderColor=p.color+'88';box.classList.add('show');
+}
+function createDestinationButtons(){const root=$('destinations');for(const p of planets){const b=document.createElement('button');b.type='button';b.dataset.destination=p.name;b.textContent=(p.glyph||'◉')+' '+(p.personaName||p.name);b.title=p.lore||p.kind;b.addEventListener('click',()=>navigateTo(p));root.insertBefore(b,root.querySelector('.home'))}}
+function observationCameraPosition(p,out){const c=Math.cos(observePitch);return out.copy(p.position).add(new THREE.Vector3(Math.sin(observeYaw)*c,Math.sin(observePitch),Math.cos(observeYaw)*c).multiplyScalar(observeDistance))}
+function navigateTo(p){closeRadar();$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');const fromPos=camera.position.clone(),fromLook=new THREE.Vector3();camera.getWorldDirection(fromLook);fromLook.add(fromPos);
+if(!p){if(mode==='galaxy')return;const toPos=new THREE.Vector3(),toLook=new THREE.Vector3();positionGalaxyCamera(toPos,toLook);transition={kind:'return',start:performance.now(),duration:3600,fromPos,fromLook,toPos,toLook};mode='return';say('✦ RETURNING TO THE GALAXY',2.2);$('flightLabel').textContent='RETURN TO GALACTIC VIEW';return}
+flightTarget=p;observeYaw=.55;observePitch=.16;observeDistance=p.size*3.35;
+const toPos=observationCameraPosition(p,new THREE.Vector3()),toLook=p.position.clone();
+transition={kind:'warp',target:p,start:performance.now(),duration:4600,fromPos,fromLook,toPos,toLook};mode='warp';$('flightLabel').textContent='APPROACHING '+p.name;say('✦ WARPING TO '+p.name,2.5)
+}
+function ease(t){return t*t*(3-2*t)}
+function cinematicTransition(now,dt){
+ const c=transition,progress=clamp((now-c.start)/c.duration,0,1),e=ease(progress),dest=c.kind==='warp'?c.target:null;
+ if(dest){observationCameraPosition(dest,c.toPos);c.toLook.copy(dest.position)}
+ camera.position.lerpVectors(c.fromPos,c.toPos,e);
+ const look=new THREE.Vector3().lerpVectors(c.fromLook,c.toLook,e);
+ const travel=new THREE.Vector3().subVectors(c.toPos,c.fromPos);
+ camera.position.addScaledVector(travel,Math.sin(e*Math.PI)*.045);
+ camera.up.set(0,1,0);camera.lookAt(look);camera.rotation.z=Math.sin(progress*Math.PI)*.07;
+ $('transition').style.opacity=String(Math.sin(progress*Math.PI)*.88);renderWarpStreaks(progress);
+ $('flightData').textContent=c.kind==='warp'?Math.round(progress*100)+'% · HYPERSPACE TRANSIT':Math.round(progress*100)+'% · RETURNING TO GALAXY';
+ if(progress>=1){transition=null;$('transition').style.opacity='0';
+  if(dest){mode='observe';updatePersonaCard(dest);$('flightHud').classList.add('show','observe');$('return').classList.add('show');$('flightLabel').textContent='ORBITAL OBSERVATORY · '+dest.name;$('subtitle').textContent=dest.name+' · '+dest.kind;$('hint').textContent='DRAG: ORBIT · PINCH: ZOOM';say('✦ '+dest.name+' · OBSERVING FROM SPACE',2.8)}
+  else{mode='galaxy';$('personaCard')?.classList.remove('show');flightTarget=null;$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');$('subtitle').textContent='DRAG · ZOOM · WARP';$('hint').textContent='TAP: RADAR · PINCH: ZOOM';say('✦ GALAXY VIEW RESTORED',2)}
+ }
+}
+function updateObservation(){
+ const p=flightTarget;if(!p){mode='galaxy';return}
+ observationCameraPosition(p,camera.position);camera.up.set(0,1,0);camera.lookAt(p.position);
+ const altitude=Math.max(0,(observeDistance/p.size-1)*100);
+ $('flightData').textContent=(p.isHd?'HD SURFACE':'PROCEDURAL SURFACE')+' · '+Math.round(altitude)+'% ABOVE SURFACE · '+Math.round(detectedBPM)+' BPM';
+}
+function adjustControls(){if(mode==='galaxy'){$('return').classList.remove('show');$('flightHud').classList.remove('show')}else if(mode==='observe'){$('return').classList.add('show')}}
+function pointerDown(e){if(e.target.closest('#controls')||e.target.closest('#return'))return;galacticDirector?.manualOverride();e.preventDefault();host.setPointerCapture(e.pointerId);pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});pointerMotion=0;pinchDist=0;lastPinchCenter=null}
+function pointerMove(e){
+ if(!pointerMap.has(e.pointerId))return;e.preventDefault();
+ const old=pointerMap.get(e.pointerId);pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ pointerMotion+=Math.hypot(old.x-e.clientX,old.y-e.clientY);
+ if(pointerMap.size===1){
+  if(mode==='galaxy'){if(e.shiftKey||e.buttons===2)panGalaxy(e.clientX-old.x,e.clientY-old.y);else{yaw+=(old.x-e.clientX)*.007;pitch=clamp(pitch+(e.clientY-old.y)*.007,-1.5,1.5)}}
+  else if(mode==='observe'){observeYaw+=(old.x-e.clientX)*.006;observePitch=clamp(observePitch+(e.clientY-old.y)*.006,-1.48,1.48)}
+ }else if(pointerMap.size>=2){
+  const points=[...pointerMap.values()],distance=Math.hypot(points[0].x-points[1].x,points[0].y-points[1].y),center={x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2};
+  if(mode==='galaxy'){if(pinchDist)camDistance=clamp(camDistance*pinchDist/Math.max(1,distance),.045,220);if(lastPinchCenter)panGalaxy(center.x-lastPinchCenter.x,center.y-lastPinchCenter.y)}
+  else if(mode==='observe'&&flightTarget){if(pinchDist)observeDistance=clamp(observeDistance*pinchDist/Math.max(1,distance),flightTarget.size*1.06,flightTarget.size*18)}
+  pinchDist=distance;lastPinchCenter=center;
+ }
+}
+const worldPointerRay=new THREE.Raycaster();
+function pointerUp(e){
+ if(!pointerMap.has(e.pointerId))return;
+ const didTap=pointerMap.size===1&&pointerMotion<12;
+ pointerMap.delete(e.pointerId);pinchDist=0;lastPinchCenter=null;
+ if(!didTap)return;
+ if(mode==='galaxy'&&renderer&&camera){
+  const rect=renderer.domElement.getBoundingClientRect();
+  const coords=new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
+  worldPointerRay.setFromCamera(coords,camera);
+  const targets=planets.filter(p=>!p.destroyed&&p.group.visible);
+  const hits=worldPointerRay.intersectObjects(targets.map(p=>p.surface),false);
+  if(hits.length){const p=targets.find(p=>p.surface===hits[0].object);if(p){navigateTo(p);return}}
+ }
+ if(mode==='galaxy'||mode==='observe')openRadar();
+}
+
+/* Restored from the v1.1 song-clock cinematic saga. FX are a 2D overlay so all
+   four explorable planets remain intact while the old cosmic story plays out. */
+const story={
+ events:[.05,.14,.27,.38,.52,.63,.76,.86,.94],
+ next:0,started:false,finished:false,elapsed:0,lastProgress:0,
+ meteors:[],particles:[],waves:[],collision:null,blackHole:false,
+ flash:0,flashHue:195,captionUntil:0,starTimer:0,beatLatch:false
+};
+const storyCanvas=$('storyFX'),storyContext=storyCanvas.getContext('2d',{alpha:true});
+function storyCaption(message,seconds=3){
+ const el=$('storyCaption');el.textContent=message;el.style.opacity='1';
+ story.captionUntil=performance.now()+seconds*1000;
+}
+function resetStory(announce=false){
+ story.next=0;story.started=false;story.finished=false;story.elapsed=0;story.lastProgress=0;
+ story.meteors.length=0;story.particles.length=0;story.waves.length=0;story.collision=null;
+ story.blackHole=false;story.flash=0;story.starTimer=0;story.beatLatch=false;
+ $('storyCaption').style.opacity='0';story.captionUntil=0;
+ galacticDirector?.resetStory();
+ if(announce)storyCaption('✦ NEW UNIVERSE · A NEW FATE',2.8);
+}
+function storyFlash(hue=195,amount=.4){story.flash=Math.max(story.flash,amount);story.flashHue=hue}
+function storyBurst(x=.5,y=.46,color='#a6eaff',count=95,power=1){
+ const w=innerWidth,h=innerHeight,r=Math.random;
+ for(let i=0;i<count;i++){
+  const angle=r()*Math.PI*2,speed=(60+r()*240)*power;
+  story.particles.push({x:x*w,y:y*h,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,age:0,life:.85+r()*1.9,size:.8+r()*2.2,color});
+ }
+ if(story.particles.length>400)story.particles.splice(0,story.particles.length-400);
+}
+function storyWave(x=.5,y=.46,color='#b7eaff',power=1){
+ story.waves.push({x,y,color,age:0,life:1.7,power});if(story.waves.length>10)story.waves.shift();
+}
+function storyShower(count=9){
+ for(let i=0;i<count;i++){
+  story.meteors.push({x:(.2+Math.random()*.95)*innerWidth,y:(Math.random()*.7-.2)*innerHeight,
+   vx:-(170+Math.random()*260),vy:130+Math.random()*260,delay:i*.09,age:0,life:.8+Math.random()*.8,
+   color:['#9dfaff','#e3a4ff','#ffda9e'][i%3]});
+ }
+ for(let i=0;i<Math.min(count,5);i++)starShot();
+ storyCaption(galacticDirector?.event('meteor',count)||'☄ METEOR SHOWER INCOMING');storyFlash(195,.21);
+}
+function storySupernova(){
+ storyBurst(.5,.46,'#ffdbab',160,1.8);storyWave(.5,.46,'#ffe7ae',2.2);
+ storyCaption(galacticDirector?.event('supernova')||'🌠 SUPERNOVA · THE SKY IS ON FIRE',3.2);storyFlash(40,.64);
+}
+function storyCollision(){
+ story.collision=null;
+ storyCaption(galacticDirector?.event('collision')||'⚠ PLANETARY COLLISION',3.1);
+ storyShowerDebris();
+}
+function storyShowerDebris(){
+ for(let i=0;i<5;i++)starShot();
+ storyFlash(265,.19);
+}
+function storyEruption(){
+ storyBurst(.65,.49,'#ff8f64',145,1.3);storyWave(.65,.49,'#ffc06b',1.25);
+ storyCaption(galacticDirector?.event('eruption')||'💥 PLANETARY ERUPTION',3);
+ storyFlash(22,.6);
+}
+function storyBlackHole(){
+ story.blackHole=false;
+ storyBurst(.76,.32,'#ba78ff',125,1.15);
+ storyWave(.76,.32,'#ae6eff',1.1);
+ storyCaption(galacticDirector?.event('blackhole')||'🕳 GRAVITATIONAL COLLAPSE',3.4);
+ storyFlash(284,.38);
+}
+function storyRebirth(){
+ if(story.finished)return;
+ story.finished=true;story.collision=null;story.blackHole=false;
+ const rebirthLabel=galacticDirector?.event('rebirth');
+ for(const p of [[.28,.48,'#b7eaff'],[.51,.4,'#ffbbef'],[.74,.5,'#ffe6a9']]){
+  storyBurst(p[0],p[1],p[2],95,1.55);storyWave(p[0],p[1],p[2],1.4);
+ }
+ storyCaption(rebirthLabel||'✦ THE OLD UNIVERSE IS GONE · A NEW ONE IS BORN',5);
+ storyFlash(300,.72);
+}
+function playStoryStage(index){
+ switch(index){
+  case 0:storyShower(6);break;
+  case 1:storySupernova();break;
+  case 2:storyCollision();break;
+  case 3:storyEruption();break;
+  case 4:storyShower(14);break;
+  case 5:storyCollision();break;
+  case 6:storySupernova();storyBurst(.27,.55,'#9bf6c8',90,.9);break;
+  case 7:storyBlackHole();break;
+  case 8:storyRebirth();break;
+ }
+}
+function drawStoryFX(dt){
+ const c=storyCanvas,g=storyContext;if(!g)return;
+ const w=innerWidth,h=innerHeight,dpr=Math.min(devicePixelRatio||1,1.5);
+ if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr)}
+ g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+ if(story.captionUntil&&performance.now()>story.captionUntil){$('storyCaption').style.opacity='0';story.captionUntil=0}
+ const playing=!!audio.src&&!audio.paused;
+ const storyDt=playing?dt:0;
+ for(let i=story.meteors.length-1;i>=0;i--){
+  const m=story.meteors[i];m.age+=storyDt;
+  if(m.age<m.delay)continue;
+  const t=m.age-m.delay,fade=Math.max(0,1-t/m.life),x=m.x+m.vx*t,y=m.y+m.vy*t;
+  g.save();g.globalAlpha=fade;g.shadowBlur=13;g.shadowColor=m.color;g.strokeStyle=m.color;g.lineWidth=1.6+fade*2.6;
+  g.beginPath();g.moveTo(x,y);g.lineTo(x-m.vx*.18,y-m.vy*.18);g.stroke();g.restore();
+  if(t>m.life)story.meteors.splice(i,1);
+ }
+ for(let i=story.particles.length-1;i>=0;i--){
+  const p=story.particles[i];p.age+=storyDt;p.x+=p.vx*storyDt;p.y+=p.vy*storyDt;p.vx*=Math.exp(-storyDt*1.25);p.vy*=Math.exp(-storyDt*1.25);
+  const fade=Math.max(0,1-p.age/p.life);g.globalAlpha=fade;g.fillStyle=p.color;
+  g.beginPath();g.arc(p.x,p.y,p.size*(.5+fade),0,Math.PI*2);g.fill();
+  if(fade===0)story.particles.splice(i,1);
+ }
+ g.globalAlpha=1;
+ for(let i=story.waves.length-1;i>=0;i--){
+  const wave=story.waves[i];wave.age+=storyDt;
+  const t=wave.age/wave.life;
+  g.strokeStyle=wave.color;g.globalAlpha=Math.max(0,(1-t)*.8);
+  g.lineWidth=Math.max(.7,4*(1-t));
+  g.beginPath();g.arc(wave.x*w,wave.y*h,10+t*Math.min(w,h)*.9*wave.power,0,Math.PI*2);g.stroke();
+  if(t>=1)story.waves.splice(i,1);
+ }
+ g.globalAlpha=1;
+ if(story.collision){
+  const c=story.collision;c.age+=storyDt;const t=Math.min(1,c.age/c.life),ease=t*t*(3-2*t),cy=h*.43,cx=w*.5;
+  for(const sign of [-1,1]){
+   const x=cx+sign*(w*.42*(1-ease)),radius=Math.min(w,h)*(.035+.035*ease);
+   g.save();g.shadowBlur=25;g.shadowColor=sign<0?'#ff8ac7':'#7ceeff';g.fillStyle=sign<0?'#a85cef':'#65d5ff';
+   g.beginPath();g.arc(x,cy,radius,0,Math.PI*2);g.fill();g.restore();
+  }
+  if(t>=1){story.collision=null;storyBurst(.5,.43,'#ffdbbe',175,2.15);storyWave(.5,.43,'#e3b7ff',2);storyFlash(40,.7);storyCaption('💥 IMPACT · TWO WORLDS BECOME ONE',3.2)}
+ }
+ if(story.blackHole){
+  const x=w*.77,y=h*.33,r=Math.min(w,h)*(.067+Math.sin(spaceTime*1.7)*.005);
+  g.save();g.translate(x,y);g.rotate(spaceTime*.32);
+  g.strokeStyle='#aa65ff';g.shadowBlur=20;g.shadowColor='#a85bff';g.lineWidth=11;
+  g.beginPath();g.ellipse(0,0,r*1.42,r*.52,0,0,Math.PI*2);g.stroke();
+  g.shadowBlur=0;g.fillStyle='#02000b';g.beginPath();g.arc(0,0,r*.8,0,Math.PI*2);g.fill();
+  g.strokeStyle='#e9b6ff';g.lineWidth=2.3;g.beginPath();g.arc(0,0,r*.84,0,Math.PI*2);g.stroke();g.restore();
+ }
+ if(story.flash>0){
+  const a=Math.min(.58,story.flash),gradient=g.createRadialGradient(w*.5,h*.46,0,w*.5,h*.46,Math.max(w,h)*.7);
+  gradient.addColorStop(0,'hsla('+story.flashHue+',100%,87%,'+a+')');
+  gradient.addColorStop(1,'hsla('+story.flashHue+',100%,70%,0)');
+  g.fillStyle=gradient;g.fillRect(0,0,w,h);
+  story.flash=Math.max(0,story.flash-dt*.9);
+ }
+ g.globalAlpha=1;
+}
+function updateMusicStory(dt){
+ const playing=!!audio.src&&!audio.paused;
+ if(playing){
+  if(!story.started){story.started=true;storyCaption('✦ NEW UNIVERSE · A NEW FATE',2.7)}
+  story.elapsed+=dt;story.starTimer+=dt*(1+energy*.6);
+  const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:180;
+  const progress=clamp((Number.isFinite(audio.duration)&&audio.duration>0?audio.currentTime:story.elapsed)/duration,0,1);
+  if(progress<story.lastProgress-.025){resetStory(true);story.started=true}
+  let latest=-1;
+  while(story.next<story.events.length&&progress>=story.events[story.next])latest=story.next++;
+  if(latest>=0)playStoryStage(latest);
+  if(progress>=.995&&!story.finished)storyRebirth();
+  story.lastProgress=progress;
+  if(story.starTimer>2.4&&!story.finished){story.starTimer=0;story.meteors.push({x:(.3+Math.random()*.8)*innerWidth,y:Math.random()*innerHeight*.48,vx:-260,vy:210,delay:0,age:0,life:1.25,color:'#a8dfff'})}
+  if(beatStrength>.84&&!story.beatLatch){story.beatLatch=true;if(story.particles.length<290){storyBurst(.5,.46,'#b5e8ff',7,.4)}story.flash=Math.max(story.flash,.045)}
+  if(beatStrength<.2)story.beatLatch=false;
+ }
+ drawStoryFX(dt);
+}
+
+let galacticDirector=null;
+let cinematicDirector=null;
+let addonInstaller=null;
+try{addonInstaller=(await import('./cosmos-infinite.js')).installInfiniteFrequency}catch(err){console.warn('Infinite Frequency extension unavailable:',err)}
+async function initialize(){
+ await preloadCosmos({assetSpecs:CITY_ASSETS,cityBase:CITY_ASSET_BASE,heroBase:HERO_ASSET_BASE,hdFiles:hdPlanetMaps,textureBase:sourceRoot});
+ renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'high-performance'});renderer.setClearColor(0x000000,0);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.9));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(renderer.domElement);
+ scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.04,430);camera.position.set(9,9,78);
+ const ambient=new THREE.AmbientLight(0xb5c8ff,1.45),sun=new THREE.DirectionalLight(0xffffff,2.9);sun.position.set(21,25,38);scene.add(ambient,sun);glowMap=glowTexture();initGalaxy();specs.forEach(buildPlanet);buildOrbitalTraffic();createDestinationButtons();initRealCityAssets();
+  if(addonInstaller){try{galacticDirector=addonInstaller({THREE,scene,camera,renderer,planets,buildPlanet,randSeed,makeSprite,prepareRealBuilding,urbanAssets,galaxyGeo:()=>galaxyGeo,cityBlueprint,clearCityBlueprints:()=>cityBlueprints.clear(),mode:()=>mode,target:()=>flightTarget,audio:()=>audio,say,navigateTo,resetStory,alignStoryWithAudio:()=>{if(audio.src&&!audio.paused){const progress=clamp(audio.currentTime/(Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:180),0,1);const next=story.events.findIndex(v=>v>progress);story.next=next<0?story.events.length:next;story.lastProgress=progress;story.started=true}},abortTravel:()=>{transition=null;mode='galaxy';flightTarget=null;$('transition').style.opacity='0';$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');galaxyFocus.set(0,0,0)},setGalaxyDistance:v=>{camDistance=v;galaxyFocus.set(0,0,0)},raiseObservationDistance:v=>{observeDistance=Math.max(observeDistance,v)},personaSpecs:specs,refreshDestinations:()=>{$('destinations').querySelectorAll('button:not(.home)').forEach(b=>b.remove());createDestinationButtons()}})}catch(err){console.warn('Infinite Frequency startup:',err);say('GALAXY EXTENSION UNAVAILABLE',3)}}
+ try{cinematicDirector=installCosmicCinema({THREE,scene,camera,planets,audio,galacticDirector,say,getBPM:()=>detectedBPM})}catch(e){console.error('Cinema startup',e);say('CINEMA DIRECTOR UNAVAILABLE',4)}
+  host.addEventListener('contextmenu',e=>e.preventDefault());host.addEventListener('wheel',e=>{e.preventDefault();if(mode==='galaxy')camDistance=clamp(camDistance*Math.exp(e.deltaY*.0014),.045,220);else if(mode==='observe'&&flightTarget)observeDistance=clamp(observeDistance*Math.exp(e.deltaY*.0014),flightTarget.size*1.06,flightTarget.size*18)},{passive:false});host.addEventListener('pointerdown',pointerDown);host.addEventListener('pointermove',pointerMove);host.addEventListener('pointerup',pointerUp);host.addEventListener('pointercancel',e=>{pointerMap.delete(e.pointerId);pinchDist=0});host.addEventListener('lostpointercapture',e=>{pointerMap.delete(e.pointerId);pinchDist=0});
+ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.9))});
+ requestAnimationFrame(frame)
+}
+function frame(now){requestAnimationFrame(frame);const dt=clamp((now-lastFrame)/1000,.002,.06);lastFrame=now;spaceTime+=dt;analyzeAudio(dt);setOrbit(dt);updateMeteors(dt,spaceTime);updateTraffic(dt);animatePopulation(dt);galacticDirector?.tick(dt);
+ if(mode==='galaxy'){const pos=new THREE.Vector3(),look=new THREE.Vector3();positionGalaxyCamera(pos,look);camera.position.copy(pos);camera.up.set(0,1,0);camera.lookAt(look);}
+ else if(transition)cinematicTransition(now,dt);else if(mode==='observe')updateObservation();
+ if(statusUntil&&now>statusUntil){$('status').classList.remove('visible');statusUntil=0}
+ if(!cinematicDirector?.enabled)updateMusicStory(dt);
+  galacticDirector?.preventCameraClip();cinematicDirector?.update(dt);renderer.render(scene,camera);window.cosmosThreeReady=true;
+}
+$('closeRadar').addEventListener('click',closeRadar);$('radarShell').addEventListener('click',e=>{if(e.target===$('radarShell'))closeRadar()});
+$('destinations').addEventListener('click',e=>{if(e.target.dataset.destination==='galaxy')navigateTo(null)});
+radar.addEventListener('click',e=>{const r=radar.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*620,y=(e.clientY-r.top)/r.height*620;let closest=null,best=32*32;for(const p of planets){const a=p.a+p.orbitAngle,scale=260/Math.max(...planets.map(q=>q.orbit),1),px=310+Math.cos(a)*p.orbit*scale,py=310+Math.sin(a)*p.orbit*scale,dist=(x-px)**2+(y-py)**2;if(dist<best){best=dist;closest=p}}if(closest)navigateTo(closest);else if((x-310)**2+(y-310)**2<39*39)navigateTo(null)});
+$('return').addEventListener('click',()=>navigateTo(null));
+window.cosmosOnFile=()=>{history=[];lastOnset=-5;detectedBPM=110;bpmConfidence=0;targetSpeed=1;smoothSpeed=1;resetStory(false);galacticDirector?.onTrack();cinematicDirector?.onTrack()};
+window.cosmosConnectAudio=connectAudio;
+audio.addEventListener('loadstart',()=>resetStory(false));
+audio.addEventListener('ended',()=>{if(!cinematicDirector?.enabled&&story.started&&!story.finished)storyRebirth()});
+if(audio.src&&!audio.paused)connectAudio();
+initialize().catch(err=>{console.error(err);$('hint').textContent='3D VIEW FAILED · GALAXY BACKDROP ACTIVE';say('3D INITIALIZATION ERROR',4);document.getElementById('preloadScreen')?.remove()})
+</script>
+</body>
+</html>
