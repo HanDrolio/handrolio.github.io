@@ -615,6 +615,7 @@ function resetStory(announce=false){
  story.meteors.length=0;story.particles.length=0;story.waves.length=0;story.collision=null;
  story.blackHole=false;story.flash=0;story.starTimer=0;story.beatLatch=false;
  $('storyCaption').style.opacity='0';story.captionUntil=0;
+ galacticDirector?.resetStory();
  if(announce)storyCaption('✦ NEW UNIVERSE · A NEW FATE',2.8);
 }
 function storyFlash(hue=195,amount=.4){story.flash=Math.max(story.flash,amount);story.flashHue=hue}
@@ -636,15 +637,15 @@ function storyShower(count=9){
    color:['#9dfaff','#e3a4ff','#ffda9e'][i%3]});
  }
  for(let i=0;i<Math.min(count,5);i++)starShot();
- storyCaption('☄ METEOR SHOWER INCOMING');storyFlash(195,.21);
+ storyCaption(galacticDirector?.event('meteor',count)||'☄ METEOR SHOWER INCOMING');storyFlash(195,.21);
 }
 function storySupernova(){
  storyBurst(.5,.46,'#ffdbab',160,1.8);storyWave(.5,.46,'#ffe7ae',2.2);
- storyCaption('🌠 SUPERNOVA · THE SKY IS ON FIRE',3.2);storyFlash(40,.64);
+ storyCaption(galacticDirector?.event('supernova')||'🌠 SUPERNOVA · THE SKY IS ON FIRE',3.2);storyFlash(40,.64);
 }
 function storyCollision(){
- story.collision={age:0,life:2.9};
- storyCaption('⚠ COLLISION COURSE: NYX + QUASAR',3.1);
+ story.collision=null;
+ storyCaption(galacticDirector?.event('collision')||'⚠ PLANETARY COLLISION',3.1);
  storyShowerDebris();
 }
 function storyShowerDebris(){
@@ -653,23 +654,24 @@ function storyShowerDebris(){
 }
 function storyEruption(){
  storyBurst(.65,.49,'#ff8f64',145,1.3);storyWave(.65,.49,'#ffc06b',1.25);
- storyCaption('💥 A DISTANT WORLD HAS EXPLODED',3);
+ storyCaption(galacticDirector?.event('eruption')||'💥 PLANETARY ERUPTION',3);
  storyFlash(22,.6);
 }
 function storyBlackHole(){
- story.blackHole=true;
+ story.blackHole=false;
  storyBurst(.76,.32,'#ba78ff',125,1.15);
  storyWave(.76,.32,'#ae6eff',1.1);
- storyCaption('🕳 BLACK HOLE FORMED · SPACE IS BENDING',3.4);
+ storyCaption(galacticDirector?.event('blackhole')||'🕳 GRAVITATIONAL COLLAPSE',3.4);
  storyFlash(284,.38);
 }
 function storyRebirth(){
  if(story.finished)return;
  story.finished=true;story.collision=null;story.blackHole=false;
+ const rebirthLabel=galacticDirector?.event('rebirth');
  for(const p of [[.28,.48,'#b7eaff'],[.51,.4,'#ffbbef'],[.74,.5,'#ffe6a9']]){
   storyBurst(p[0],p[1],p[2],95,1.55);storyWave(p[0],p[1],p[2],1.4);
  }
- storyCaption('✦ THE OLD UNIVERSE IS GONE · A NEW ONE IS BORN',5);
+ storyCaption(rebirthLabel||'✦ THE OLD UNIVERSE IS GONE · A NEW ONE IS BORN',5);
  storyFlash(300,.72);
 }
 function playStoryStage(index){
