@@ -50,11 +50,28 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030615;col
 #cityDetail.ready{color:#8ff3da}
 #storyFX{position:fixed;inset:0;z-index:3;width:100%;height:100%;pointer-events:none}
 #explorerTools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}#explorerTools button{min-height:37px;border-radius:11px;border:1px solid #6a92bf75;background:#172b47;color:#dcecff;font-size:10px;font-weight:850;cursor:pointer}#galaxyReadout{margin-top:11px;font:800 10px ui-monospace,monospace;color:#a8eeff;text-align:center;letter-spacing:.11em}#audioQueue{font-size:9px;color:#a9cbee;text-align:center;margin-top:6px}#controls #auto{flex:.84;font-size:11px;padding:0 4px}#controls label{font-size:12px}#storyCaption{position:fixed;z-index:7;top:22%;left:8px;right:8px;text-align:center;color:#f5eaff;letter-spacing:.13em;font-size:clamp(12px,3.5vw,19px);font-weight:950;text-shadow:0 0 18px #8d5dff,0 2px 18px #020414;pointer-events:none;opacity:0;transition:opacity .35s;padding:0 12px}
+
+#preloadScreen{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 44%,#1d1744ef,#050b1df7 62%,#020311fc);backdrop-filter:blur(11px);transition:opacity .7s}
+#preloadScreen[hidden]{display:none}#preloadScreen.finished{opacity:0;pointer-events:none}
+#preloadCard{width:min(420px,100%);text-align:center;border:1px solid #aa97fa66;background:linear-gradient(140deg,#161b3df0,#080f25f0);border-radius:24px;padding:29px 20px;box-shadow:0 15px 80px #000b}
+#preloadCard strong{display:block;font-size:20px;letter-spacing:.13em;color:#f4e7ff}
+#preloadCard p{font-size:12px;line-height:1.65;color:#c2cbff}
+#preloadTrack{height:9px;background:#26335d;border-radius:20px;overflow:hidden;border:1px solid #6d7db577;margin:18px 0 12px}
+#preloadBar{height:100%;width:0%;background:linear-gradient(90deg,#53e0d5,#b684ff,#ffc8aa);box-shadow:0 0 16px #aa8eff;transition:width .15s}
+#preloadCounter{font:900 12px ui-monospace,monospace;letter-spacing:.11em;color:#d7efff}
+#preloadStatus{margin-top:11px;font:700 10px ui-monospace,monospace;color:#93b9dd;line-height:1.6}
+#personaCard{position:fixed;top:max(119px,env(safe-area-inset-top) + 103px);left:12px;width:min(285px,calc(100vw - 24px));padding:12px 14px;border:1px solid #bdc5ff55;border-radius:16px;background:#101a37ce;backdrop-filter:blur(14px);z-index:6;pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s}
+#personaCard.show{opacity:1;transform:translateY(0)}
+#personaName{font-size:13px;font-weight:900;letter-spacing:.09em;color:#fff}
+#personaLore{margin-top:5px;font-size:10px;line-height:1.5;color:#c1d9f7}
+@media(max-height:650px){#personaCard{top:77px;width:225px;padding:8px 10px}#personaLore{font-size:9px}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
 </head>
 <body>
 <div id="world"><canvas id="skyFallback"></canvas></div>
+<div id="preloadScreen" role="status" aria-live="polite"><div id="preloadCard"><strong>🟣🌀 COSM.OS</strong><p>THE EIGHTFOLD ATLAS IS INSTALLING<br>REAL 3D CITIES · HIGH-RES PLANETS · OFFLINE-FRIENDLY ASSETS<br>FIRST FLIGHT BUILDS YOUR LOCAL CACHE</p><div id="preloadTrack"><div id="preloadBar"></div></div><div id="preloadCounter">PREPARING EIGHT PERSONA WORLDS</div><div id="preloadStatus">INITIALIZING LOCAL STORAGE</div></div></div>
+<div id="personaCard"><div id="personaName"></div><div id="personaLore"></div></div>
 <div id="brand"><strong>COSM.OS <span>✦</span></strong><small id="subtitle">8 PERSONAS · WARP</small></div>
 <div id="version">v3.0</div>
 <div id="status"></div>
@@ -545,6 +562,12 @@ function drawRadar(){const w=620,h=620;rctx.clearRect(0,0,w,h);const cx=310,cy=3
 }
 function openRadar(){if(mode==='warp'||mode==='return')return;$('radarShell').classList.add('open');drawRadar();radarOpenedAt=performance.now()}
 function closeRadar(){$('radarShell').classList.remove('open')}
+function updatePersonaCard(p){
+ const box=$('personaCard');if(!box)return;
+ $('personaName').textContent=(p.glyph||'✦')+' '+(p.personaName||p.name)+' · '+p.kind;
+ $('personaLore').textContent=p.lore||'An inhabited world in the COSM.OS multiverse.';
+ box.style.borderColor=p.color+'88';box.classList.add('show');
+}
 function createDestinationButtons(){const root=$('destinations');for(const p of planets){const b=document.createElement('button');b.type='button';b.dataset.destination=p.name;b.textContent=(p.glyph||'◉')+' '+(p.personaName||p.name);b.title=p.lore||p.kind;b.addEventListener('click',()=>navigateTo(p));root.insertBefore(b,root.querySelector('.home'))}}
 function observationCameraPosition(p,out){const c=Math.cos(observePitch);return out.copy(p.position).add(new THREE.Vector3(Math.sin(observeYaw)*c,Math.sin(observePitch),Math.cos(observeYaw)*c).multiplyScalar(observeDistance))}
 function navigateTo(p){closeRadar();$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');const fromPos=camera.position.clone(),fromLook=new THREE.Vector3();camera.getWorldDirection(fromLook);fromLook.add(fromPos);
@@ -565,8 +588,8 @@ function cinematicTransition(now,dt){
  $('transition').style.opacity=String(Math.sin(progress*Math.PI)*.88);renderWarpStreaks(progress);
  $('flightData').textContent=c.kind==='warp'?Math.round(progress*100)+'% · HYPERSPACE TRANSIT':Math.round(progress*100)+'% · RETURNING TO GALAXY';
  if(progress>=1){transition=null;$('transition').style.opacity='0';
-  if(dest){mode='observe';$('flightHud').classList.add('show','observe');$('return').classList.add('show');$('flightLabel').textContent='ORBITAL OBSERVATORY · '+dest.name;$('subtitle').textContent=dest.name+' · '+dest.kind;$('hint').textContent='DRAG: ORBIT · PINCH: ZOOM';say('✦ '+dest.name+' · OBSERVING FROM SPACE',2.8)}
-  else{mode='galaxy';flightTarget=null;$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');$('subtitle').textContent='DRAG · ZOOM · WARP';$('hint').textContent='TAP: RADAR · PINCH: ZOOM';say('✦ GALAXY VIEW RESTORED',2)}
+  if(dest){mode='observe';updatePersonaCard(dest);$('flightHud').classList.add('show','observe');$('return').classList.add('show');$('flightLabel').textContent='ORBITAL OBSERVATORY · '+dest.name;$('subtitle').textContent=dest.name+' · '+dest.kind;$('hint').textContent='DRAG: ORBIT · PINCH: ZOOM';say('✦ '+dest.name+' · OBSERVING FROM SPACE',2.8)}
+  else{mode='galaxy';$('personaCard')?.classList.remove('show');flightTarget=null;$('flightHud').classList.remove('show','observe');$('return').classList.remove('show');$('subtitle').textContent='DRAG · ZOOM · WARP';$('hint').textContent='TAP: RADAR · PINCH: ZOOM';say('✦ GALAXY VIEW RESTORED',2)}
  }
 }
 function updateObservation(){
@@ -591,7 +614,22 @@ function pointerMove(e){
   pinchDist=distance;lastPinchCenter=center;
  }
 }
-function pointerUp(e){if(!pointerMap.has(e.pointerId))return;const didTap=pointerMap.size===1&&pointerMotion<12;pointerMap.delete(e.pointerId);pinchDist=0;lastPinchCenter=null;if(didTap&&(mode==='galaxy'||mode==='observe'))openRadar()}
+const worldPointerRay=new THREE.Raycaster();
+function pointerUp(e){
+ if(!pointerMap.has(e.pointerId))return;
+ const didTap=pointerMap.size===1&&pointerMotion<12;
+ pointerMap.delete(e.pointerId);pinchDist=0;lastPinchCenter=null;
+ if(!didTap)return;
+ if(mode==='galaxy'&&renderer&&camera){
+  const rect=renderer.domElement.getBoundingClientRect();
+  const coords=new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
+  worldPointerRay.setFromCamera(coords,camera);
+  const targets=planets.filter(p=>!p.destroyed&&p.group.visible);
+  const hits=worldPointerRay.intersectObjects(targets.map(p=>p.surface),false);
+  if(hits.length){const p=targets.find(p=>p.surface===hits[0].object);if(p){navigateTo(p);return}}
+ }
+ if(mode==='galaxy'||mode==='observe')openRadar();
+}
 
 /* Restored from the v1.1 song-clock cinematic saga. FX are a 2D overlay so all
    four explorable planets remain intact while the old cosmic story plays out. */
