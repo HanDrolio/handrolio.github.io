@@ -14,7 +14,7 @@ export function installCosmicCinema(api) {
  const scenes=[{name:'GENESIS',sub:'A UNIVERSE IS BORN',start:0,end:.2},{name:'ASCENSION',sub:'CIVILIZATIONS & FAITHS',start:.2,end:.45},{name:'THE LONG WAR',sub:'FLEETS CROSS THE VOID',start:.45,end:.75},{name:'AFTERMATH',sub:'EXODUS & RECONSTRUCTION',start:.75,end:.9},{name:'SINGULARITY',sub:'EVERYTHING BECOMES ONE',start:.9,end:1}];
  const civilizations=new Map(),ships=[],ufos=[],beacons=[],bolts=[],scaleBackup=new Map();
  const cluster=new THREE.Group(),singularity=new THREE.Group();scene.add(cluster);cluster.add(singularity);
- let random=seeded(437),universe=0,cycle=0,demo=0,lastT=0,lastP=-1,lastScene=-1,lastShot=-1,lastBar=-1,enabled=true,activeSrc='',blend=false,flash=0;
+ let random=seeded(437),universe=0,cycle=0,demo=0,lastT=0,lastP=-1,lastScene=-1,lastShot=-1,lastBar=-1,enabled=true,activeSrc='',blend=false,flash=0,pinnedWorld=-1;
  const el=document.createElement('style');
  el.textContent=[
  '#epochUI{position:fixed;inset:0;z-index:6;pointer-events:none;color:#e5f6ff;font-family:system-ui,-apple-system,sans-serif}',
@@ -22,7 +22,7 @@ export function installCosmicCinema(api) {
  '#epochMode.on{background:#0b3238e8;color:#afffeb;border-color:#59e8d5a2}',
  '#epochIntel{position:absolute;top:max(100px,env(safe-area-inset-top) + 90px);right:13px;width:min(270px,43vw);border:1px solid #75b5cf55;border-radius:15px;background:linear-gradient(125deg,#07152be8,#0a1c2cc9);backdrop-filter:blur(20px);padding:14px 14px;box-shadow:0 10px 40px #000a}',
  '#epochIntel .ey{font:800 9px monospace;letter-spacing:.13em;color:#78d6ea}#epochIntel h3{font:900 17px system-ui;margin:9px 0 5px}#epochIntel p{font:600 10px/1.6 system-ui;color:#b7cde1;margin:4px 0}#epochIntel .meta{font:800 9px/1.6 monospace;color:#9adfe1;margin-top:8px}',
- '#epochIntel button{pointer-events:auto;border:1px solid #83bed977;border-radius:10px;background:#1a344c;color:#ddf9ff;padding:9px;width:100%;margin-top:10px;font:800 9px monospace;cursor:pointer}',
+ '#epochIntel select{pointer-events:auto;width:100%;margin-top:10px;padding:8px;background:#0c2235;border:1px solid #73a7bf66;border-radius:9px;color:#c8f5ff;font:800 9px monospace}#epochIntel button{pointer-events:auto;border:1px solid #83bed977;border-radius:10px;background:#1a344c;color:#ddf9ff;padding:9px;width:100%;margin-top:10px;font:800 9px monospace;cursor:pointer}',
  '#epochAct{position:absolute;left:17px;bottom:max(209px,env(safe-area-inset-bottom) + 208px);width:min(68vw,560px);text-shadow:0 2px 18px #000e}#epochAct strong{display:block;font-size:clamp(19px,4.5vw,34px);letter-spacing:.05em;font-weight:950}#epochAct small{display:block;margin-top:5px;color:#add0e6;font:800 10px monospace;letter-spacing:.12em}',
  '#epochTimeline{position:absolute;bottom:max(89px,env(safe-area-inset-bottom) + 87px);left:12px;right:12px;max-width:690px;margin:auto;padding:12px 15px;border:1px solid #83bbdb55;border-radius:15px;background:#071529d9;backdrop-filter:blur(20px);box-shadow:0 10px 40px #0009}',
  '#epochTimeline .row{display:flex;justify-content:space-between;gap:8px;align-items:center}#epochStage{font:900 10px monospace;letter-spacing:.08em}#epochClock{font:700 10px monospace;color:#9dcde4}',
@@ -36,7 +36,7 @@ export function installCosmicCinema(api) {
  ].join('');
  document.head.appendChild(el);
  const u=document.createElement('div');u.id='epochUI';
- u.innerHTML='<div id="epochGlow"></div><div id="epochVortex"></div><button id="epochMode" class="on" aria-pressed="true">◉ CINEMA · ON</button><section id="epochIntel"><div class="ey">CIVILIZATION INTELLIGENCE</div><h3 id="epochWorld">THE EIGHTFOLD ATLAS</h3><p id="epochGov">Eight inhabited planets</p><p id="epochFaith"></p><div class="meta" id="epochStatus">AWAITING FIRST CONTACT</div><button id="epochExplore">◈ RETURN TO FREE EXPLORATION</button><button id="epochNext">↻ GENERATE NEW UNIVERSE</button></section><div id="epochAct"><strong id="epochTitle">THE INFINITE EPOCH</strong><small id="epochSubtitle">ONE SONG · ONE UNIVERSE · INFINITE LIVES</small></div><section id="epochTimeline"><div class="row"><div id="epochStage">GENESIS · A UNIVERSE IS BORN</div><div id="epochClock">00:00 / DEMO</div></div><div id="epochBar"><div id="epochFill"></div></div><div id="epochMarkers"><span>GENESIS</span><span>ASCENSION</span><span>WAR</span><span>AFTERMATH</span><span>∞</span></div></section>';
+ u.innerHTML='<div id="epochGlow"></div><div id="epochVortex"></div><button id="epochMode" class="on" aria-pressed="true">◉ CINEMA · ON</button><section id="epochIntel"><div class="ey">CIVILIZATION INTELLIGENCE</div><h3 id="epochWorld">THE EIGHTFOLD ATLAS</h3><p id="epochGov">Eight inhabited planets</p><p id="epochFaith"></p><div class="meta" id="epochStatus">AWAITING FIRST CONTACT</div><select id="epochWorldSelect" aria-label="Select planet to inspect"><option value="-1">◉ FOLLOW CAMERA</option></select><button id="epochExplore">◈ RETURN TO FREE EXPLORATION</button><button id="epochNext">↻ GENERATE NEW UNIVERSE</button></section><div id="epochAct"><strong id="epochTitle">THE INFINITE EPOCH</strong><small id="epochSubtitle">ONE SONG · ONE UNIVERSE · INFINITE LIVES</small></div><section id="epochTimeline"><div class="row"><div id="epochStage">GENESIS · A UNIVERSE IS BORN</div><div id="epochClock">00:00 / DEMO</div></div><div id="epochBar"><div id="epochFill"></div></div><div id="epochMarkers"><span>GENESIS</span><span>ASCENSION</span><span>WAR</span><span>AFTERMATH</span><span>∞</span></div></section>';
  document.body.appendChild(u);const $=id=>document.getElementById(id);
  const hullGeo=new THREE.ConeGeometry(.17,.8,5),wingGeo=new THREE.BoxGeometry(.63,.03,.21),glassGeo=new THREE.SphereGeometry(.13,8,6),beamGeo=new THREE.CylinderGeometry(.025,.025,1,5);
  const hullMat=new THREE.MeshStandardMaterial({color:0xbcdce9,roughness:.18,metalness:.84,emissive:0x194d7f,emissiveIntensity:.35});
@@ -72,9 +72,10 @@ export function installCosmicCinema(api) {
  function spawnSocieties(seed){
   random=seeded(12345+seed*977);civilizations.clear();
   for(let i=0;i<planets.length;i++){const p=planets[i];civilizations.set(p,{name:p.name.split(' · ')[0],society:pick(cultures,random),religion:pick(faiths,random),belief:pick(philosophies,random),population:(.3+random()*9).toFixed(1),technology:2+Math.floor(random()*8),opponent:(i+2+Math.floor(random()*3))%Math.max(1,planets.length)});}
+  const selector=$('epochWorldSelect');selector.length=1;pinnedWorld=-1;planets.forEach((p,i)=>selector.add(new Option(p.name.split(' · ')[0],String(i))));selector.value='-1';
   selectWorld(planets[0],0);
  }
- function selectWorld(p,t){const c=civilizations.get(p);if(!c)return;
+ function selectWorld(p,t){if(pinnedWorld>=0&&planets[pinnedWorld])p=planets[pinnedWorld];const c=civilizations.get(p);if(!c)return;
   $('epochWorld').textContent=c.name.toUpperCase();
   $('epochGov').textContent=c.society+' · '+c.population+'B citizens';
   $('epochFaith').textContent='FAITH: '+c.religion;
@@ -197,6 +198,7 @@ export function installCosmicCinema(api) {
   }else {if(scaleBackup.size)restore();$('epochVortex').style.opacity=0}
   lastP=progress;lastT=t;
  }
+ $('epochWorldSelect').addEventListener('change',e=>{pinnedWorld=Number(e.target.value);selectWorld(planets[pinnedWorld]||planets[0],lastP<0?0:lastP)});
  $('epochMode').addEventListener('click',()=>toggle(!enabled));
  $('epochExplore').addEventListener('click',()=>{toggle(false);say('TAP SPACE OR OPEN RADAR TO EXPLORE WORLDS',4)});
  $('epochNext').addEventListener('click',()=>{if(audio.src&&Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=0;else demo=0;newUniverse(true);lastP=-1;lastT=0;say('THE NEXT UNIVERSE IS BORN',3)});
