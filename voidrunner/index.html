@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050818"><title>VOIDRUNNER | COSM.OS</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050818;color:#eaf6ff;font:14px system-ui,sans-serif}canvas{display:block;width:100%;height:100%;touch-action:none}header{position:fixed;top:0;left:0;right:0;padding:16px max(18px,env(safe-area-inset-left));display:flex;justify-content:space-between;align-items:start;pointer-events:none;text-shadow:0 2px 12px #000}h1{margin:0;font-size:17px;letter-spacing:.2em}small{color:#8db5d4;letter-spacing:.13em}.stats{text-align:right;font:700 13px monospace;line-height:1.7}.stats b{color:#f9df70}#overlay{position:fixed;inset:0;display:grid;place-items:center;background:#050918bb;backdrop-filter:blur(8px);padding:22px;text-align:center}#panel{width:min(460px,100%);border:1px solid #5e97c3;border-radius:24px;padding:32px;background:linear-gradient(150deg,#132d51,#080b1d);box-shadow:0 0 90px #226fbd44}#panel h2{font-size:clamp(34px,8vw,60px);letter-spacing:-.07em;margin:10px 0}#panel p{color:#b2c9e2;line-height:1.6}button{border:0;border-radius:100px;padding:15px 30px;font-weight:900;letter-spacing:.1em;background:#f4d75c;color:#091124;cursor:pointer;margin-top:15px}button:focus-visible{outline:3px solid #fff;outline-offset:3px}#hint{position:fixed;bottom:18px;left:0;right:0;text-align:center;color:#9fb9d1;font:12px monospace;pointer-events:none}a{color:#a8dcff}#back{position:fixed;bottom:14px;left:18px;color:#c3d8f0;text-decoration:none;font-size:12px;z-index:3}#hint{bottom:46px}@media(max-width:600px){#hint{font-size:10px;bottom:50px}header{padding-top:12px}}
+</style></head><body>
+<canvas id="game" aria-label="VOIDRUNNER arcade game"></canvas>
+<header><div><h1>✦ VOIDRUNNER</h1><small>COSM.OS / ARCADE EXPERIMENT 01</small></div><div class="stats">SCORE <b id="score">00000</b><br>BEST <b id="best">00000</b><br>SHIELD <b id="shield">●●●</b></div></header>
+<div id="overlay"><div id="panel"><small>THE VOID IS CALLING</small><h2 id="headline">VOIDRUNNER</h2><p id="message">Dodge crimson anomalies. Collect golden energy. Survive as the universe accelerates.<br><br>Move with WASD / arrow keys, drag on touch, or use a gamepad left stick.</p><button id="start">LAUNCH SHIP</button></div></div>
+<div id="hint">MOVE: WASD / ARROWS / DRAG / GAMEPAD LEFT STICK · GOLD = +100 · RED = DAMAGE</div><a id="back" href="../">← COSM.OS ARCADE</a>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),overlay=document.getElementById('overlay'),scoreEl=document.getElementById('score'),bestEl=document.getElementById('best'),shieldEl=document.getElementById('shield'),headline=document.getElementById('headline'),message=document.getElementById('message'),start=document.getElementById('start');
+let w=0,h=0,dpr=1,playing=false,last=0,elapsed=0,spawn=0,points=0,hp=3,invuln=0,objects=[],particles=[],stars=[],pointer=null;
+let best=0;try{best=Number(localStorage.getItem('voidrunner-best'))||0}catch(e){}bestEl.textContent=String(best).padStart(5,'0');
+const ship={x:0,y:0,r:16};const keys=new Set();
+function resize(){dpr=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);ship.x=ship.x||w/2;ship.y=ship.y||h*.78;stars=Array.from({length:100},()=>({x:Math.random()*w,y:Math.random()*h,z:.3+Math.random()*1.8}));}
+addEventListener('resize',resize);resize();
+addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());if(e.key===' '&&!playing)reset()});
+addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+canvas.addEventListener('pointerdown',e=>{pointer={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{if(pointer)pointer={x:e.clientX,y:e.clientY}});
+canvas.addEventListener('pointerup',()=>pointer=null);canvas.addEventListener('pointercancel',()=>pointer=null);
+function reset(){playing=true;overlay.style.display='none';elapsed=0;spawn=0;points=0;hp=3;invuln=0;objects=[];particles=[];ship.x=w/2;ship.y=h*.78;updateHUD()}
+start.addEventListener('click',reset);
+function updateHUD(){scoreEl.textContent=String(Math.floor(points)).padStart(5,'0');bestEl.textContent=String(best).padStart(5,'0');shieldEl.textContent='●'.repeat(hp)+'○'.repeat(3-hp)}
+function burst(x,y,color,n=18){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=40+Math.random()*220;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.3+Math.random()*.5,color})}}
+function end(){playing=false;best=Math.max(best,Math.floor(points));try{localStorage.setItem('voidrunner-best',best)}catch(e){}updateHUD();headline.textContent='SIGNAL LOST';message.innerHTML='Final score: <b>'+Math.floor(points)+'</b><br>Best: <b>'+best+'</b><br><br>The void wins this round. Run it back.';start.textContent='RETRY RUN';overlay.style.display='grid'}
+function step(dt){elapsed+=dt;points+=dt*12;invuln=Math.max(0,invuln-dt);const speed=290+Math.min(420,elapsed*9);let ax=0,ay=0;
+if(keys.has('a')||keys.has('arrowleft'))ax--;if(keys.has('d')||keys.has('arrowright'))ax++;if(keys.has('w')||keys.has('arrowup'))ay--;if(keys.has('s')||keys.has('arrowdown'))ay++;
+const pad=navigator.getGamepads?.()?.find(p=>p);if(pad){ax+=Math.abs(pad.axes[0]||0)>.16?pad.axes[0]:0;ay+=Math.abs(pad.axes[1]||0)>.16?pad.axes[1]:0}
+const mag=Math.hypot(ax,ay);if(mag>1){ax/=mag;ay/=mag}ship.x+=ax*speed*dt;ship.y+=ay*speed*dt;
+if(pointer){ship.x+=(pointer.x-ship.x)*Math.min(1,dt*12);ship.y+=(pointer.y-ship.y)*Math.min(1,dt*12)}
+ship.x=Math.max(20,Math.min(w-20,ship.x));ship.y=Math.max(65,Math.min(h-25,ship.y));
+spawn-=dt;if(spawn<=0){spawn=Math.max(.18,.68-elapsed*.006);const gold=Math.random()<.23;objects.push({x:24+Math.random()*Math.max(1,w-48),y:-30,r:gold?10:15+Math.random()*12,vy:(gold?170:205)+Math.min(360,elapsed*7),gold,rot:Math.random()*7})}
+for(const o of objects){o.y+=o.vy*dt;o.rot+=dt*2;if(Math.hypot(o.x-ship.x,o.y-ship.y)<o.r+ship.r*.7){o.dead=true;if(o.gold){points+=100;burst(o.x,o.y,'#f9dc62',12)}else if(invuln===0){hp--;invuln=1.15;burst(ship.x,ship.y,'#ff486b',28);if(hp<=0){end();break}}}}
+objects=objects.filter(o=>!o.dead&&o.y<h+50);updateHUD()}
+function draw(t,dt){ctx.fillStyle='#050918';ctx.fillRect(0,0,w,h);const glow=ctx.createRadialGradient(w/2,h*.6,0,w/2,h*.6,Math.max(w,h)*.75);glow.addColorStop(0,'#11275c');glow.addColorStop(1,'#050918');ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
+for(const s of stars){s.y+=(playing?95:20)*s.z*dt;if(s.y>h){s.y=0;s.x=Math.random()*w}ctx.fillStyle='rgba(174,215,255,'+Math.min(1,s.z*.55)+')';ctx.fillRect(s.x,s.y,s.z*1.5,playing?s.z*5:s.z*2)}
+ctx.strokeStyle='#2a6ca52d';ctx.lineWidth=1;const horizon=h*.34;for(let i=-9;i<=9;i++){ctx.beginPath();ctx.moveTo(w/2,horizon);ctx.lineTo(w/2+i*w*.15,h);ctx.stroke()}for(let j=0;j<10;j++){const p=((j/10+t*.00012)%1);const y=horizon+(h-horizon)*p*p;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+for(const o of objects){ctx.save();ctx.translate(o.x,o.y);ctx.rotate(o.rot);ctx.shadowBlur=22;ctx.shadowColor=o.gold?'#f7d34f':'#ff315e';ctx.strokeStyle=o.gold?'#ffdf66':'#ff4a75';ctx.lineWidth=3;ctx.beginPath();const n=o.gold?4:6;for(let i=0;i<n;i++){const a=i*Math.PI*2/n;const r=o.r*(i%2?.8:1);i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.stroke();ctx.restore()}
+for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;ctx.globalAlpha=Math.max(0,Math.min(1,p.life*2));ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,4,4)}ctx.globalAlpha=1;particles=particles.filter(p=>p.life>0);
+if(playing||elapsed){ctx.save();ctx.translate(ship.x,ship.y);if(invuln>0&&Math.floor(t/85)%2)ctx.globalAlpha=.3;ctx.shadowColor='#63d9ff';ctx.shadowBlur=25;ctx.fillStyle='#b6f3ff';ctx.beginPath();ctx.moveTo(0,-21);ctx.lineTo(15,16);ctx.lineTo(0,8);ctx.lineTo(-15,16);ctx.closePath();ctx.fill();ctx.fillStyle='#f8d95d';ctx.fillRect(-4,13,8,9+Math.random()*15);ctx.restore()}}
+function frame(t){const dt=Math.min(.035,(t-last)/1000||0);last=t;if(playing)step(dt);draw(t,dt);requestAnimationFrame(frame)}requestAnimationFrame(frame);
+})();
+</script></body></html>
