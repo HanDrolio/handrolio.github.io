@@ -125,7 +125,21 @@ async function restoreTrack(){try{const db=await dbOpen();let value=await new Pr
 function useTrack(file,name){if(musicObjectUrl)URL.revokeObjectURL(musicObjectUrl);musicObjectUrl=URL.createObjectURL(file);music.src=musicObjectUrl;musicMode='file';trackName.textContent='SOUNDTRACK: '+name.toUpperCase();if(state.phase==='playing')resumeMusic()}
 trackInput.addEventListener('change',async()=>{let file=trackInput.files?.[0];if(!file)return;useTrack(file,file.name);await saveTrack(file)});
 music.addEventListener('error',()=>{if(musicMode==='file')notice('Could not decode audio. Try an MP3 or M4A file.');else{musicMode='synth';trackName.textContent='SOUNDTRACK: COSMIC SYNTH'}});
-(async()=>{if(await restoreTrack())return;try{const res=await fetch('./vibe1.m4a',{method:'HEAD',cache:'no-store'});if(res.ok){music.src='./vibe1.m4a';musicMode='file';trackName.textContent='SOUNDTRACK: VIBE 1 (LIVE A LITTLE)';}}catch{}})();
+(async()=>{
+  if(await restoreTrack())return;
+  trackName.textContent='SOUNDTRACK: LOADING VIBE 1...';
+  try{
+    const chunks=[];
+    for(let i=0;i<13;i+=4){
+      const urls=Array.from({length:Math.min(4,13-i)},(_,j)=>'./audio/vibe1.part'+String(i+j).padStart(2,'0'));
+      const responses=await Promise.all(urls.map(u=>fetch(u)));
+      if(responses.some(r=>!r.ok))throw new Error('Missing audio segment');
+      const buffers=await Promise.all(responses.map(r=>r.arrayBuffer()));
+      chunks.push(...buffers);
+    }
+    useTrack(new Blob(chunks,{type:'audio/mp4'}),'VIBE 1 (LIVE A LITTLE)');
+  }catch{trackName.textContent='SOUNDTRACK: COSMIC SYNTH (OR LOAD YOUR FILE)'}
+})();
 function notice(text){const el=$('error');el.textContent=text;el.hidden=false;setTimeout(()=>el.hidden=true,3800)}
 function synthTone(freq,duration,type='sawtooth',gain=.04,when=0){if(!audioContext)return;let osc=audioContext.createOscillator(),amp=audioContext.createGain();osc.type=type;osc.frequency.setValueAtTime(freq,when);amp.gain.setValueAtTime(.0001,when);amp.gain.exponentialRampToValueAtTime(gain*state.volume,when+.014);amp.gain.exponentialRampToValueAtTime(.0001,when+duration);osc.connect(amp).connect(audioContext.destination);osc.start(when);osc.stop(when+duration+.02)}
 function scheduleSynth(){if(!audioContext||audioContext.state!=='running'||musicMode!=='synth'||state.muted||state.phase!=='playing')return;let now=audioContext.currentTime;if(nextBeat<now)nextBeat=now+.02;const eighth=60/118/2;while(nextBeat<now+.12){if(beat%4===0){synthTone(55,.22,'sine',.11,nextBeat);synthTone(110,.08,'triangle',.04,nextBeat)}if(beat%2===0)synthTone(4800,.025,'square',.009,nextBeat);const notes=[110,0,146.83,0,164.81,0,146.83,196,110,0,146.83,0,220,0,164.81,146.83];let n=notes[beat%16];if(n)synthTone(n,.19,'triangle',.032,nextBeat);beat++;nextBeat+=eighth}}
