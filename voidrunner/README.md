@@ -6,7 +6,7 @@ A no-build-step 3D runner for GitHub Pages with a neon cosmic-surfer aesthetic.
 - **Visuals:** genuine perspective 3D tunnel and rotating obstacles, neon stars and sparks, original eight-frame hand-rendered 2D spaceship animation
 - **Controls:** Backbone / standard gamepad left stick, A to launch, Start/Menu to pause, B to toggle audio; WASD/arrows; relative touch drag
 - **Gameplay:** gradually increasing speed, pickups, three-hit shield, best score saved in localStorage
-- **Music:** full user-supplied “Vibe 1 (Live a little)” recording, transcoded to AAC in an M4A container and split into 13 binary segments under audio/. Browser downloads and concatenates them into a playable Blob. Audio loops. Optional music picker stores a replacement track locally in IndexedDB. Mute and volume are exposed on-screen.
+- **Music:** full user-supplied “Vibe 1 (Live a little)” recording, transcoded to AAC in an M4A container and split into 13 binary segments under audio/. Browser downloads and concatenates them into a playable Blob. Audio continues across game-over and pause screens and loops until muted. If Safari blocks a late-loaded track, the sound button becomes **♫ PLAY** for a one-tap retry. Optional music picker stores a replacement track locally in IndexedDB. Mute and volume are exposed on-screen.
 - **Mobile:** device-safe landscape layout using 100dvh and safe-area insets; smaller menus and condensed HUD in short viewports.
 
 ## Development
