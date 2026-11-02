@@ -83,9 +83,9 @@ function hud(){scoreLabel.textContent=String(Math.floor(state.score)).padStart(6
 hud();
 function showOverlay(title,msg,button){headline.innerHTML=title;message.innerHTML=msg;startButton.innerHTML=button+' <span>▶</span>';overlay.classList.add('open')}
 function startGame(){for(const o of obstacles)removeObstacle(o);obstacles=[];particles=[];state.phase='playing';state.score=0;state.shield=3;state.elapsed=0;state.speed=32;state.nextSpawn=1.1;state.invincible=0;state.shake=0;ship.x=0;ship.y=0;overlay.classList.remove('open');resumeMusic();hud()}
-function pauseGame(){if(state.phase!=='playing')return;state.phase='paused';suspendMusic();showOverlay('PAUSED<span>⏸</span>','Take a breather. The void can wait.','RESUME RUN')}
+function pauseGame(){if(state.phase!=='playing')return;state.phase='paused';showOverlay('PAUSED<span>⏸</span>','Take a breather. The void can wait.','RESUME RUN')}
 function resumeGame(){state.phase='playing';overlay.classList.remove('open');resumeMusic()}
-function endGame(){state.phase='over';suspendMusic();state.best=Math.max(state.best,Math.floor(state.score));try{localStorage.setItem('voidrunner-best',String(state.best))}catch{}hud();showOverlay('SIGNAL<span> LOST</span>','DISTANCE SCORE <b>'+Math.floor(state.score)+'</b> · PERSONAL BEST <b>'+state.best+'</b><br>The void got you. The next run is yours.','RUN IT BACK')}
+function endGame(){state.phase='over';state.best=Math.max(state.best,Math.floor(state.score));try{localStorage.setItem('voidrunner-best',String(state.best))}catch{}hud();showOverlay('SIGNAL<span> LOST</span>','DISTANCE SCORE <b>'+Math.floor(state.score)+'</b> · PERSONAL BEST <b>'+state.best+'</b><br>The void got you. The next run is yours.','RUN IT BACK')}
 function action(){if(state.phase==='paused')resumeGame();else if(state.phase!=='playing')startGame()}
 startButton.addEventListener('click',action);pauseButton.addEventListener('click',()=>state.phase==='paused'?resumeGame():pauseGame());
 const webKeys=new Set(['arrowup','arrowdown','arrowleft','arrowright',' ','w','a','s','d','p']);
@@ -118,13 +118,15 @@ function paintShip(t,dt){ink.clearRect(0,0,w,h);if(state.phase==='ready')return;
 // Audio: live-deployed vibe1.m4a if present, otherwise a locally chosen file (persisted in IndexedDB).
 // The fallback is an original lightweight synthesizer, never somebody else's recorded music.
 const music=new Audio();music.loop=true;music.preload='auto';music.playsInline=true;music.volume=state.volume;
-let musicMode='synth',musicObjectUrl='',audioContext=null,nextBeat=0,beat=0;
+let musicMode='synth',musicObjectUrl='',audioContext=null,nextBeat=0,beat=0,musicRequested=false,needsAudioGesture=false;
 function dbOpen(){return new Promise((resolve,reject)=>{if(!indexedDB)return reject(new Error('No IndexedDB'));let r=indexedDB.open('voidrunner-music',1);r.onupgradeneeded=()=>r.result.createObjectStore('tracks');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function saveTrack(file){try{const db=await dbOpen();await new Promise((resolve,reject)=>{let tx=db.transaction('tracks','readwrite');tx.objectStore('tracks').put({name:file.name,blob:file},'chosen');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}catch{notice('Track plays now. Browser storage could not save it for next time.')}}
 async function restoreTrack(){try{const db=await dbOpen();let value=await new Promise((resolve,reject)=>{let r=db.transaction('tracks','readonly').objectStore('tracks').get('chosen');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});db.close();if(value?.blob){useTrack(value.blob,value.name);return true}}catch{}return false}
-function useTrack(file,name){if(musicObjectUrl)URL.revokeObjectURL(musicObjectUrl);musicObjectUrl=URL.createObjectURL(file);music.src=musicObjectUrl;musicMode='file';trackName.textContent='SOUNDTRACK: '+name.toUpperCase();if(state.phase==='playing')resumeMusic()}
+function useTrack(file,name){if(musicObjectUrl)URL.revokeObjectURL(musicObjectUrl);musicObjectUrl=URL.createObjectURL(file);music.src=musicObjectUrl;musicMode='file';needsAudioGesture=false;trackName.textContent='SOUNDTRACK: '+name.toUpperCase();if(audioContext?.state==='running')audioContext.suspend();if(musicRequested)resumeMusic()}
 trackInput.addEventListener('change',async()=>{let file=trackInput.files?.[0];if(!file)return;useTrack(file,file.name);await saveTrack(file)});
 music.addEventListener('error',()=>{if(musicMode==='file')notice('Could not decode audio. Try an MP3 or M4A file.');else{musicMode='synth';trackName.textContent='SOUNDTRACK: COSMIC SYNTH'}});
+// The loop flag handles normal completion; recover if a mobile browser still fires ended.
+music.addEventListener('ended',()=>{if(musicMode==='file'&&musicRequested&&!state.muted){music.currentTime=0;resumeMusic()}});
 (async()=>{
   if(await restoreTrack())return;
   trackName.textContent='SOUNDTRACK: LOADING VIBE 1...';
@@ -142,10 +144,39 @@ music.addEventListener('error',()=>{if(musicMode==='file')notice('Could not deco
 })();
 function notice(text){const el=$('error');el.textContent=text;el.hidden=false;setTimeout(()=>el.hidden=true,3800)}
 function synthTone(freq,duration,type='sawtooth',gain=.04,when=0){if(!audioContext)return;let osc=audioContext.createOscillator(),amp=audioContext.createGain();osc.type=type;osc.frequency.setValueAtTime(freq,when);amp.gain.setValueAtTime(.0001,when);amp.gain.exponentialRampToValueAtTime(gain*state.volume,when+.014);amp.gain.exponentialRampToValueAtTime(.0001,when+duration);osc.connect(amp).connect(audioContext.destination);osc.start(when);osc.stop(when+duration+.02)}
-function scheduleSynth(){if(!audioContext||audioContext.state!=='running'||musicMode!=='synth'||state.muted||state.phase!=='playing')return;let now=audioContext.currentTime;if(nextBeat<now)nextBeat=now+.02;const eighth=60/118/2;while(nextBeat<now+.12){if(beat%4===0){synthTone(55,.22,'sine',.11,nextBeat);synthTone(110,.08,'triangle',.04,nextBeat)}if(beat%2===0)synthTone(4800,.025,'square',.009,nextBeat);const notes=[110,0,146.83,0,164.81,0,146.83,196,110,0,146.83,0,220,0,164.81,146.83];let n=notes[beat%16];if(n)synthTone(n,.19,'triangle',.032,nextBeat);beat++;nextBeat+=eighth}}
-function resumeMusic(){if(state.muted)return;if(musicMode==='file'){music.volume=state.volume;music.play().catch(()=>notice('Tap LAUNCH to allow soundtrack playback.'))}else{try{audioContext ||=new (window.AudioContext||window.webkitAudioContext)();audioContext.resume();nextBeat=0}catch{notice('Audio unavailable in this browser.')}}}
+function scheduleSynth(){if(!audioContext||audioContext.state!=='running'||musicMode!=='synth'||state.muted||!musicRequested)return;let now=audioContext.currentTime;if(nextBeat<now)nextBeat=now+.02;const eighth=60/118/2;while(nextBeat<now+.12){if(beat%4===0){synthTone(55,.22,'sine',.11,nextBeat);synthTone(110,.08,'triangle',.04,nextBeat)}if(beat%2===0)synthTone(4800,.025,'square',.009,nextBeat);const notes=[110,0,146.83,0,164.81,0,146.83,196,110,0,146.83,0,220,0,164.81,146.83];let n=notes[beat%16];if(n)synthTone(n,.19,'triangle',.032,nextBeat);beat++;nextBeat+=eighth}}
+function resumeMusic(){
+ musicRequested=true; // Music belongs to the session, not the current run.
+ if(state.muted)return;
+ if(musicMode==='file'){
+  music.volume=state.volume;
+  music.play().then(()=>{
+   if(state.muted||musicMode!=='file')return;
+   needsAudioGesture=false;soundButton.textContent='♫ ON';soundButton.setAttribute('aria-label','Mute soundtrack');
+  }).catch(()=>{
+   if(state.muted||musicMode!=='file')return;
+   needsAudioGesture=true;soundButton.textContent='♫ PLAY';soundButton.setAttribute('aria-label','Tap to start soundtrack');
+   notice('Tap ♫ PLAY to start the soundtrack.');
+  });
+ }else{
+  try{
+   audioContext ||=new (window.AudioContext||window.webkitAudioContext)();
+   audioContext.resume().catch(()=>notice('Tap ♫ ON to start audio.'));
+   nextBeat=0;
+  }catch{notice('Audio unavailable in this browser.')}
+ }
+}
 function suspendMusic(){music.pause();if(audioContext&&audioContext.state==='running')audioContext.suspend()}
-function toggleSound(){state.muted=!state.muted;music.muted=state.muted;soundButton.textContent=state.muted?'♫ OFF':'♫ ON';soundButton.setAttribute('aria-label',state.muted?'Unmute soundtrack':'Mute soundtrack');if(state.muted)suspendMusic();else if(state.phase==='playing')resumeMusic()}
+function toggleSound(){
+ // Safari can reject play() when the downloaded soundtrack arrives after launch.
+ // In that case, the next tap starts playback instead of accidentally muting it.
+ if(needsAudioGesture&&!state.muted){needsAudioGesture=false;resumeMusic();return}
+ state.muted=!state.muted;music.muted=state.muted;
+ soundButton.textContent=state.muted?'♫ OFF':'♫ ON';
+ soundButton.setAttribute('aria-label',state.muted?'Unmute soundtrack':'Mute soundtrack');
+ if(state.muted){needsAudioGesture=false;suspendMusic()}
+ else if(musicRequested)resumeMusic();
+}
 soundButton.addEventListener('click',toggleSound);volumeControl.addEventListener('input',()=>{state.volume=+volumeControl.value/100;music.volume=state.volume});
 
 function update(dt,pad){if(state.phase!=='playing')return;
@@ -158,7 +189,7 @@ function update(dt,pad){if(state.phase!=='playing')return;
  for(const o of obstacles){let previous=o.mesh.position.z;o.mesh.position.z+=state.speed*dt;o.mesh.rotation.x+=dt*o.spin;o.mesh.rotation.y+=dt*.85;if(o.collect)o.mesh.rotation.z+=dt*2;
  if(previous<PLAYER_Z&&o.mesh.position.z>=PLAYER_Z){if(Math.hypot(ship.x-o.x,ship.y-o.y)<o.size+playerCollisionRadius){burst(o.x,o.y,o.collect?'#ffdf74':'#ff4488',34);removeObstacle(o);if(o.collect){state.score+=150}else if(!state.invincible){state.shield--;state.invincible=1.2;state.shake=.45;$('flash').style.opacity='.85';setTimeout(()=>$('flash').style.opacity='0',120);if(state.shield<=0){endGame();break}}}}
  if(o.mesh.position.z>18&&!o.dead)removeObstacle(o)}
- obstacles=obstacles.filter(o=>!o.dead);hud();scheduleSynth()
+ obstacles=obstacles.filter(o=>!o.dead);hud()
 }
 function render(dt,t){let s=state.phase==='playing'?state.speed:9;
  for(const ring of rings){ring.position.z+=s*dt;if(ring.position.z>14)ring.position.z-=rings.length*7.2;ring.rotation.z+=dt*.05;}
@@ -167,5 +198,5 @@ function render(dt,t){let s=state.phase==='playing'?state.speed:9;
  light1.intensity=45+Math.sin(t*.002)*19;light2.intensity=42+Math.sin(t*.003+1)*22;
  renderer.render(scene,camera);paintShip(t,dt)
 }
-function loop(t){let dt=clamp((t-state.last)/1000||0,0,.04);state.last=t;let pad=pollGamepad();update(dt,pad);render(dt,t);requestAnimationFrame(loop)}requestAnimationFrame(loop);
+function loop(t){let dt=clamp((t-state.last)/1000||0,0,.04);state.last=t;let pad=pollGamepad();update(dt,pad);scheduleSynth();render(dt,t);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 window.addEventListener('webglcontextlost',e=>{e.preventDefault();notice('3D graphics paused. Reload the page to restart.');if(state.phase==='playing')pauseGame()});
