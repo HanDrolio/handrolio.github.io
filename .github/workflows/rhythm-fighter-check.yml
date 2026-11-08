@@ -26,6 +26,18 @@ jobs:
         run: |
           npm run check
           npm test
+      - name: Install headless Chromium smoke test runner
+        working-directory: rhythm-fighter
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Real browser smoke test (desktop and iPhone landscape)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8777 --bind 127.0.0.1 > /tmp/rhythm-server.log 2>&1 &
+          sleep 2
+          node rhythm-fighter/tests/browser-smoke.mjs
       - name: Confirm standalone assets and arcade link
         shell: bash
         run: |
