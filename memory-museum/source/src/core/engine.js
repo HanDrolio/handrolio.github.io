@@ -6,7 +6,7 @@ import { setSoftwareMode } from '../museum/kit.js';
 function atmosphere(scene) {
   const sky = new T.Mesh(new T.SphereGeometry(115, 28, 16), new T.ShaderMaterial({
     side: T.BackSide, depthWrite: false,
-    uniforms: { low: { value: new T.Color('#475773') }, high: { value: new T.Color('#0a132a') } },
+    uniforms: { low: { value: new T.Color('#334fa0') }, high: { value: new T.Color('#05071b') } },
     vertexShader: `varying vec3 direction;
       void main() { direction = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `varying vec3 direction; uniform vec3 low; uniform vec3 high;
@@ -14,7 +14,7 @@ function atmosphere(scene) {
         vec3 d = normalize(direction);
         float zenith = smoothstep(-0.18, 0.74, d.y);
         float horizon = pow(max(0.0, dot(d, normalize(vec3(-0.45, 0.13, -0.7)))), 7.0);
-        gl_FragColor = vec4(mix(low, high, zenith) + vec3(0.20, 0.095, 0.048) * horizon * (1.0 - zenith), 1.0);
+        gl_FragColor = vec4(mix(low, high, zenith) + vec3(0.32, 0.06, 0.21) * horizon * (1.0 - zenith), 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
@@ -24,8 +24,8 @@ function atmosphere(scene) {
   scene.add(sky);
 
   const rng = random(444);
-  const stars = new Float32Array(620 * 3);
-  for (let i = 0; i < 620; i++) {
+  const stars = new Float32Array(820 * 3);
+  for (let i = 0; i < 820; i++) {
     const a = rng() * Math.PI * 2, y = 0.035 + rng() * 0.95, r = Math.sqrt(1 - y * y);
     stars.set([Math.cos(a) * r * 101, y * 101, Math.sin(a) * r * 101], i * 3);
   }
@@ -34,7 +34,7 @@ function atmosphere(scene) {
     color: '#e0e8ff', transparent: true, opacity: 0.68, size: 1.4, sizeAttenuation: false, fog: false,
   }));
   sky.add(constellation);
-  const moon = new T.Mesh(new T.SphereGeometry(1.75, 24, 16), new T.MeshBasicMaterial({ color: '#f5e2b9', fog: false }));
+  const moon = new T.Mesh(new T.SphereGeometry(2.15, 12, 8), new T.MeshBasicMaterial({ color: '#dfd5ff', fog: false }));
   moon.position.set(-43, 53, -60);
   sky.add(moon);
   return sky;
@@ -85,7 +85,7 @@ export class Engine {
     this.canvas = canvas;
     this.settings = settings;
     this.scene = new T.Scene();
-    this.scene.fog = new T.FogExp2('#25364c', 0.015);
+    this.scene.fog = new T.FogExp2('#151b43', 0.012);
     this.camera = new T.PerspectiveCamera(75, 1, 0.075, 125);
     this.camera.rotation.order = 'YXZ';
     this.scene.add(this.camera);
@@ -96,16 +96,16 @@ export class Engine {
       this.renderer = new T.WebGLRenderer({ canvas, context });
       this.renderer.outputColorSpace = T.SRGBColorSpace;
       this.renderer.toneMapping = T.ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = 1.28;
+      this.renderer.toneMappingExposure = 1.39;
     } else {
       this.renderer = new SoftwareRenderer(canvas);
       this.software = true;
       setSoftwareMode(true);
     }
-    this.hemi = new T.HemisphereLight('#bfcfec', '#786251', 1.83);
-    const moon = new T.DirectionalLight('#c4dafb', 1.48);
+    this.hemi = new T.HemisphereLight('#a8b7ff', '#382359', 1.71);
+    const moon = new T.DirectionalLight('#8bb4ff', 1.69);
     moon.position.set(-7, 16, 6);
-    const fill = new T.DirectionalLight('#ffc592', 0.47);
+    const fill = new T.DirectionalLight('#e898ff', 0.63);
     fill.position.set(9, 5, -13);
     this.scene.add(this.hemi, moon, fill);
     this.flashlight = new T.SpotLight('#fff4d7', 0, 29, 0.36, 0.63, 1.45);
@@ -154,7 +154,7 @@ export class Engine {
     this.dust.visible = !this.software && !this.settings.reduced && zone === 'rotunda';
     this.dust.rotation.y = time * 0.01;
     this.shaft.visible = !this.software && !this.settings.reduced && zone === 'rotunda';
-    this.baseColor.set(zone === 'basement' ? '#5d4251' : zone === 'garden' ? '#d0e0f0' : '#bac9e3');
+    this.baseColor.set(zone === 'basement' ? '#5d4251' : zone === 'garden' ? '#b4c6ff' : '#9fb8ff');
     this.targetColor.copy(this.baseColor).lerp(this.personaColor.set(persona.color), zone === 'basement' ? 0.05 : 0.14);
     this.hemi.color.lerp(this.targetColor, 1 - Math.exp(-2.8 * dt));
     const intensity = (zone === 'basement' ? 0.46 : zone === 'garden' ? 1.98 : 1.48) * (0.91 + dayLight * 0.16);
