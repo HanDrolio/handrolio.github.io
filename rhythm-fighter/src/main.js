@@ -228,7 +228,8 @@ class RhythmFighter {
     const enemy=this.enemy;
     const realEnemy=enemy.id==='architect'?PERSONAS[4]:enemy;
     this.enemyHP=enemy.id==='architect'?1500:1000;
-    const notes=makeChart(this.analysis,difficulty,this.persona,seed);
+    const chartPersona=this.mode==='daily'?'orion':this.persona; // identical Daily note pattern for all fighters
+    const notes=makeChart(this.analysis,difficulty,chartPersona,seed);
     if(!notes.length){this.toast('This audio contains too little rhythmic activity. Try another track.');return;}
     this.session=new FighterSession({
       notes,persona:this.persona,enemy:realEnemy.id,difficulty,mode:this.mode,seed,
