@@ -2,17 +2,18 @@ import * as T from 'three';
 import { WINGS } from '../personas/personas.js';
 import { random, hash } from '../core/seed.js';
 import { makeExhibit } from '../memories/exhibit.js';
+import { makeRetroGallery } from './retro.js';
 import { bake, ball, box, cylinder, GOLD, light, mesh, pointIn, ring, sign, standard, torus } from './kit.js';
 
 const palettes = [
-  ['#303f53', '#222e3d', '#46576b', '#728ca6'],
-  ['#52372d', '#2d2528', '#704c39', '#a97853'],
-  ['#263f40', '#253136', '#536663', '#689088'],
-  ['#3c4149', '#2b3139', '#5b5e66', '#85858b'],
-  ['#302a36', '#201c29', '#463648', '#825260'],
-  ['#3c342d', '#29262a', '#674d3d', '#ac8869'],
-  ['#34313c', '#25262e', '#534650', '#886857'],
-  ['#332b4b', '#25223d', '#59476e', '#8071a8'],
+  ['#172750', '#0a1333', '#284b86', '#559ce5'],
+  ['#483458', '#241d42', '#89556a', '#ef9a5d'],
+  ['#10475a', '#0a2b41', '#257d8c', '#6de6dc'],
+  ['#2b3154', '#151b38', '#525f88', '#9eabc3'],
+  ['#301a4d', '#130d29', '#612e64', '#b05283'],
+  ['#363057', '#18132f', '#685881', '#d2b6ec'],
+  ['#442e50', '#201a36', '#835f66', '#ffb06c'],
+  ['#352060', '#180d38', '#6345a6', '#c18cff'],
 ];
 const black = standard('#111823');
 const rail = standard('#615347', 0.55, 0.32);
@@ -291,6 +292,7 @@ export function makeWings(world, day) {
     world.wingZones.push({ id: wing.id, angle, length: end, x: group.position.x, z: group.position.z });
     const place = pointIn(group, 0, 0, -3.5);
     world.wingEntries[wing.id] = { place, yaw: -angle };
+    makeRetroGallery(world, group, wing, index, layout);
     bake(group);
   });
 }
