@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101824">
+  <meta name="description" content="Walk a shifting archive of memories in a first-person 3D museum from COSM.OS.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>The Memory Museum · COSM.OS</title>
+  <link rel="icon" type="image/svg+xml" href="./mark.svg">
+</head>
+<body>
+  <canvas id="world" aria-label="First-person view of the Memory Museum"></canvas>
+  <div id="persona-tint" aria-hidden="true"></div>
+  <div id="transition" aria-hidden="true"></div>
+
+  <main id="entrance">
+    <header class="masthead">
+      <div class="wordmark">
+        <img src="./mark.svg" alt="" width="35" height="35">
+        <span><strong>COSM.OS</strong><small>AN INTERACTIVE ARCHIVE</small></span>
+      </div>
+      <div class="entrance-day">
+        <span class="eyebrow">DAILY SEED <b id="entrance-code">····</b></span>
+        <span id="entrance-glyphs" class="glyphs" aria-label="Loading daily seed">· · · ·</span>
+      </div>
+    </header>
+    <div class="entry-copy">
+      <div class="edition"><span></span><span>THE SHIFTING HALLS</span><span>VOL. 01</span></div>
+      <h1>The Memory<br><em>Museum.</em></h1>
+      <p>A first-person museum of what you keep. Its halls rearrange every morning at 4:44.</p>
+      <div class="entry-actions">
+        <button class="button primary" id="enter" type="button" disabled>Enter the Rotunda <span aria-hidden="true">→</span></button>
+        <button class="button quiet" id="entry-guide" type="button">Controls <span aria-hidden="true">→</span></button>
+      </div>
+      <p id="entry-error" class="entry-error" role="alert" hidden></p>
+    </div>
+    <footer class="entry-foot">
+      <span><b>01</b> <i></i> CENTRAL ATRIUM</span>
+      <span id="entry-date">ASSEMBLING THE ARCHIVE</span>
+      <span><span class="online-dot"></span> <span id="archive-count">LOADING EXHIBITS</span></span>
+    </footer>
+  </main>
+
+  <div id="focus" aria-hidden="true" hidden>
+    <span class="focus-mark">◇</span><span id="focus-label"></span>
+  </div>
+
+  <div id="touch" aria-label="Touch controls" hidden>
+    <div class="touch-tools">
+      <button type="button" data-action="persona" aria-label="Persona menu">◇</button>
+      <button type="button" data-action="journal" aria-label="Notebook">▤</button>
+      <button type="button" data-action="flashlight" aria-label="Toggle flashlight">☼</button>
+      <button type="button" data-action="back" aria-label="Pause">Ⅱ</button>
+    </div>
+    <div class="touch-stick" data-stick aria-hidden="true"><span></span></div>
+    <div class="touch-actions">
+      <button type="button" class="touch-small" data-action="sprint" aria-label="Hold to sprint">Run</button>
+      <button type="button" class="touch-small" data-action="slide" aria-label="Crouch or slide">Slide</button>
+      <button type="button" data-action="jump" aria-label="Jump">↑</button>
+      <button type="button" data-action="interact" aria-label="Interact">A</button>
+    </div>
+  </div>
+
+  <section id="radial" aria-labelledby="radial-title" role="dialog" hidden>
+    <div class="radial-wheel">
+      <div class="radial-orbit" aria-hidden="true"></div>
+      <div class="radial-center"><span class="eyebrow">PERSONA</span><h2 id="radial-title">Orion</h2><span id="radial-role">Logic</span></div>
+      <div id="radial-options"></div>
+    </div>
+    <div class="radial-bottom"><p id="radial-hint"></p><button type="button" id="close-radial" class="button quiet">Close</button></div>
+  </section>
+
+  <aside id="mode-banner" hidden>
+    <div><span class="eyebrow" id="mode-kicker"></span><span id="mode-title"></span></div>
+    <button type="button" id="exit-mode" class="button quiet">Stand up</button>
+  </aside>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="panel" aria-labelledby="panel-title"></dialog>
+  <noscript><p class="no-script">Enable JavaScript to enter the Memory Museum.</p></noscript>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
