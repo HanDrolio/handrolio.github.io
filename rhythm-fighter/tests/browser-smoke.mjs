@@ -24,7 +24,7 @@ async function verify(page,label){
   await page.locator('#help:visible').waitFor();
   await page.locator('#close-help').click();
   await page.locator('#resume').click();
-  await page.locator('#pause-screen:hidden').waitFor({timeout:8000});
+  await page.locator('#pause-screen').waitFor({state:'hidden',timeout:8000});
   await page.keyboard.down('KeyD');await page.keyboard.up('KeyD');
   await page.locator('#pause-button').click();
   await page.locator('#quit').click();
