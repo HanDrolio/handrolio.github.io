@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#070b20">
+  <meta name="description" content="COSM.OS Rhythm Fighter: turn your music into an animated PlayStation-controller rhythm brawler.">
+  <title>COSM.OS | Rhythm Fighter: The Beatdown</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./src/main.js" type="module"></script>
+</head>
+<body>
+  <canvas id="arena" aria-label="Rhythm Fighter 2D arena with four scrolling PlayStation-button note lanes"></canvas>
+  <header class="masthead" id="masthead">
+    <a class="home" href="../" aria-label="Back to COSM.OS arcade"><span class="brand-square">◈</span><span>COSM.<b>OS</b><small>THE BEATDOWN / VERSION 1.0</small></span></a>
+    <div class="header-actions"><span id="controller-status" class="controller-status">KEYBOARD / TOUCH READY</span><button id="help-button" class="secondary small">? CONTROLS</button></div>
+  </header>
+  <section id="setup" class="setup-screen" aria-label="Prepare your rhythm fight">
+    <div class="intro">
+      <div class="eyebrow">🟦🌌🟨 / AN INTERACTIVE COSM.OS WORLD</div>
+      <h1>RHYTHM<br><em>FIGHTER.</em></h1>
+      <div class="subtitle">THE <b>BEATDOWN</b> <span>V1.0</span></div>
+      <p>Load a song. Choose a persona. Every note is a strike, every miss is a counter. Your music becomes the battlefield.</p>
+      <div class="playstation-legend"><span>✕ CROSS</span><span>○ CIRCLE</span><span>□ SQUARE</span><span>△ TRIANGLE</span></div>
+    </div>
+    <div class="setup-card">
+      <div class="setup-scroll">
+        <div class="section-number">01 / SELECT YOUR SOUND</div>
+        <div class="demo-row" id="demos" role="group" aria-label="Built-in original soundtracks">
+          <button data-demo="neon" class="song-chip selected">⚡ NEON STATIC <small>126 BPM</small></button>
+          <button data-demo="garden" class="song-chip">🌿 GARDEN PULSE <small>96 BPM</small></button>
+          <button data-demo="void" class="song-chip">🌀 VOID BREAK <small>152 BPM</small></button>
+        </div>
+        <label class="file-drop" id="drop-area" for="track-file"><span>♫</span><strong>LOAD YOUR OWN MUSIC</strong><small>MP3 / WAV / OGG / FLAC, stored only in your browser</small>
+          <input id="track-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.flac" multiple>
+        </label>
+        <div id="track-status" role="status" aria-live="polite">Preparing original demo track…</div>
+        <div class="duo">
+          <label><span>02 / MODE</span><select id="mode">
+            <option value="arcade">ARCADE GAUNTLET · 8 FIGHTS</option>
+            <option value="survival">SURVIVAL · ENDLESS SET</option>
+            <option value="training">TRAINING · THE LAB</option>
+            <option value="daily">DAILY · 4:44 CHALLENGE</option>
+            <option value="versus">VERSUS · LOCAL 2-PLAYER TURNS</option>
+          </select></label>
+          <label><span>03 / DIFFICULTY</span><select id="difficulty">
+            <option value="easy">EASY</option><option value="normal" selected>NORMAL</option>
+            <option value="hard">HARD</option><option value="expert">EXPERT</option>
+          </select></label>
+        </div>
+        <div class="section-number">04 / CHOOSE YOUR FIGHTER <span id="fighter-name">FLUX</span></div>
+        <div class="roster" id="roster" role="group" aria-label="Choose one of eight persona fighters"></div>
+        <div id="fighter-info" class="fighter-info">FLUX / MORPH</div>
+        <div class="section-number">05 / CHOOSE AN ARENA</div>
+        <div id="stages" class="stage-grid" role="group" aria-label="Stage selection"></div>
+        <div class="section-number">06 / EQUIP THREE GLYPHS</div>
+        <div id="glyphs" class="glyphs" role="group" aria-label="Equip up to three passive glyphs"></div>
+        <div class="settings">
+          <label>INPUT CALIBRATION <span id="offset-value">0ms</span><input id="offset" type="range" min="-150" max="150" value="0" step="5"></label>
+          <label id="speed-row" hidden>TRAINING SPEED <span id="speed-value">100%</span><input id="speed" type="range" min="0.5" max="1" step="0.05" value="1"></label>
+          <label>MUSIC VOLUME <span id="volume-value">80%</span><input id="volume" type="range" min="0" max="1" step="0.05" value="0.8"></label>
+        </div>
+      </div>
+      <div class="launch-bar">
+        <button class="launch-btn" id="launch" disabled><span>✕ START THE FIGHT</span><span aria-hidden="true">▶</span></button>
+        <div class="tiny">REAL AUDIO ANALYSIS · OFFLINE-FRIENDLY · 1 NOTE AT A TIME</div>
+      </div>
+    </div>
+  </section>
+  <div id="gamebar" class="gamebar" hidden>
+    <div class="playing-track"><span class="live-dot"></span><span id="now-playing">NEON STATIC</span> <span id="time-display">0:00 / 0:48</span></div>
+    <button id="pause-button" class="secondary small">OPTIONS / PAUSE</button>
+  </div>
+  <div class="touch-pad" id="touch-pad" hidden aria-label="PlayStation face-button touch controls">
+    <button type="button" data-lane="3" class="triangle" aria-label="Triangle, lead attack">△</button>
+    <button type="button" data-lane="2" class="square" aria-label="Square, special attack">□</button>
+    <button type="button" data-lane="1" class="circle" aria-label="Circle, counter attack">○</button>
+    <button type="button" data-lane="0" class="cross" aria-label="Cross, kick attack">✕</button>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <section id="pause-screen" class="modal-cover" hidden aria-label="Pause menu">
+    <div class="modal"><div class="eyebrow">COSM.OS / THE BEATDOWN</div><h2>PAUSED<span>.</span></h2>
+      <p>Keep the pulse or change the channel.</p>
+      <div class="modal-actions">
+        <button id="resume" class="launch-btn">✕ RESUME</button>
+        <button id="retry" class="secondary">RESTART TRACK</button>
+        <button id="pause-help" class="secondary">CONTROLS & TIMING</button>
+        <button id="quit" class="secondary">RETURN TO MENU</button>
+      </div>
+    </div>
+  </section>
+  <section id="results" class="modal-cover" hidden aria-label="Fight results">
+    <div class="modal results">
+      <div class="eyebrow">COSM.OS / FIGHT REPORT</div><h2 id="result-title">TRACK CLEAR<span>.</span></h2>
+      <div id="result-score" class="result-score">0</div>
+      <div id="result-stats" class="stats"></div>
+      <p id="result-text"></p>
+      <div class="modal-actions">
+        <button id="next-fight" class="launch-btn">NEXT FIGHT ▶</button>
+        <button id="replay" class="secondary">REPLAY TRACK</button>
+        <button id="results-menu" class="secondary">RETURN TO MENU</button>
+      </div>
+    </div>
+  </section>
+  <section id="help" class="modal-cover" hidden aria-label="Controls and gameplay instructions">
+    <div class="modal instructions">
+      <div class="eyebrow">PLAYER MANUAL / PLAYSTATION EDITION</div><h2>PRESS TO THE <span>BEAT.</span></h2>
+      <p>Notes travel right to left. Press a matching face button when its note reaches the bright yellow line. Never more than one note at once.</p>
+      <div class="control-grid">
+        <div><b class="blue">✕ CROSS</b><span>Low / Kick / Punch</span><kbd>D</kbd><small>GAMEPAD 0</small></div>
+        <div><b class="red">○ CIRCLE</b><span>Mid-low / Counter</span><kbd>F</kbd><small>GAMEPAD 1</small></div>
+        <div><b class="yellow">□ SQUARE</b><span>Mid-high / Special</span><kbd>J</kbd><small>GAMEPAD 2</small></div>
+        <div><b class="green">△ TRIANGLE</b><span>High / Ultimate</span><kbd>K</kbd><small>GAMEPAD 3</small></div>
+      </div>
+      <p><strong>START / OPTIONS:</strong> pause or resume. <strong>DualSense / DualShock / Backbone:</strong> standard face-button positions. <strong>Touch:</strong> four on-screen symbols. Hold a button for a long note. The game automatically spends meter on enhanced □, guard-breaking ○, and ultimate △ attacks.</p>
+      <p><strong>Timing:</strong> PERFECT ±25ms, GREAT ±50ms, GOOD ±80ms. Adjust the calibration slider for headphones or display delay. Songs are processed locally. Spotify and YouTube streams cannot be directly analyzed in this release.</p>
+      <p><strong>Versus:</strong> local hot-seat soundclash. Player 1 and Player 2 play consecutive rounds, with their scores compared. Online multiplayer and global daily leaderboards require a server and are not part of this release.</p>
+      <button id="close-help" class="launch-btn">GOT IT ✓</button>
+    </div>
+  </section>
+  <footer class="footnote" id="footnote">© COSM.OS · RHYTHM FIGHTER · ORIGINAL DEMO MUSIC · <a href="../">RETURN TO THE ARCADE</a></footer>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "cosmos-rhythm-fighter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/data.js && node --check src/analyzer.js && node --check src/combat.js && node --check src/render.js && node --check src/main.js"
+  }
+}

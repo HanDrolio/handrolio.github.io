@@ -1,0 +1,51 @@
+name: Rhythm Fighter validation
+
+on:
+  push:
+    branches:
+      - feature/cosmos-rhythm-fighter-v1
+    paths:
+      - 'rhythm-fighter/**'
+      - 'index.html'
+      - '.github/workflows/rhythm-fighter-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax and game logic tests
+        working-directory: rhythm-fighter
+        run: |
+          npm run check
+          npm test
+      - name: Install headless Chromium smoke test runner
+        working-directory: rhythm-fighter
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Real browser smoke test (desktop and iPhone landscape)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8777 --bind 127.0.0.1 > /tmp/rhythm-server.log 2>&1 &
+          sleep 2
+          node rhythm-fighter/tests/browser-smoke.mjs
+      - name: Confirm standalone assets and arcade link
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in index.html style.css sw.js icon.svg src/main.js src/analyzer.js src/combat.js src/render.js src/data.js; do
+            test -s "rhythm-fighter/$path"
+          done
+          grep -q 'href="./rhythm-fighter/"' index.html
+          grep -q 'data-lane="3"' rhythm-fighter/index.html
+          grep -q 'data-lane="0"' rhythm-fighter/index.html
+          echo "Static GitHub Pages and PlayStation note-lane checks passed."
