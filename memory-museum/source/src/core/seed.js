@@ -89,7 +89,8 @@ export function makeDay({ date, memories, code, demonVisits = 0 }) {
   for (const memory of entries) wingEntries[migrations.get(memory.id) || memory.location_hint || memory.persona].push(memory);
   const newEntries = entries.filter(memory => memory.availableOn === date && !memory.demo);
   for (const wing of WINGS) {
-    wingEntries[wing.id] = shuffle(wingEntries[wing.id], random(hash(`${code}/${wing.id}/exhibits`)));
+    wingEntries[wing.id] = shuffle(wingEntries[wing.id], random(hash(`${code}/${wing.id}/exhibits`)))
+      .sort((a, b) => Number(!a.published) - Number(!b.published));
   }
   return { code, date, glyphs: glyphs(code), secretWing, basement, cat, light, migrations, newEntries,
     wingEntries, layouts: Object.fromEntries(WINGS.map(wing => [wing.id, layoutFor(code, wing)])) };

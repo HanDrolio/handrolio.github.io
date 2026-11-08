@@ -1,4 +1,5 @@
 import { DEMOS, SEALED_DEMO } from '../memories/demo.js';
+import { scheduleEntries } from '../memories/import.js';
 
 export const SETTINGS = { volume: 0.55, lookSpeed: 1, reduced: false, touch: 'auto', muted: false, activePersona: 'orion' };
 const KEY = 'cosmos.memory-museum.settings.v1';
@@ -61,6 +62,7 @@ export class Archive {
     this.entries = new Map([...DEMOS, SEALED_DEMO].map(memory => [memory.id, { ...memory }]));
     this.world = { demonVisits: 0, days: [] };
     this.sessionMedia = new Map();
+    this.collections = [];
     this.saves = Promise.resolve();
   }
 
@@ -89,14 +91,37 @@ export class Archive {
     return result;
   }
 
-  saveMany(records) {
+  installPublished({ collections, memories }) {
+    this.collections = collections;
+    for (const memory of memories) {
+      const stored = this.entries.get(memory.id);
+      if (stored) {
+        const { integration_status, visit_count, last_visited, notes } = stored;
+        this.entries.set(memory.id, { ...memory, integration_status, visit_count, last_visited, notes });
+      } else {
+        this.entries.set(memory.id, memory);
+      }
+    }
+  }
+
+  saveMany(records, now = new Date()) {
     return this.enqueue(async () => {
-      await write(this.db, ['memories', 'media'], tx => {
-        for (const { memory, blob } of records) {
-          tx.objectStore('memories').put(memory);
-          if (blob) tx.objectStore('media').put(blob, memory.id);
-        }
-      });
+      if (this.db) {
+        await write(this.db, ['memories', 'media'], tx => {
+          const table = tx.objectStore('memories');
+          const request = table.getAll();
+          request.onsuccess = () => {
+            // Serialize the three daily slots across tabs in the same IndexedDB transaction.
+            scheduleEntries(records, request.result, now);
+            for (const { memory, blob } of records) {
+              table.put(memory);
+              if (blob) tx.objectStore('media').put(blob, memory.id);
+            }
+          };
+        });
+      } else {
+        scheduleEntries(records, this.memories, now);
+      }
       for (const { memory, blob } of records) {
         this.entries.set(memory.id, memory);
         if (!this.db && blob) this.sessionMedia.set(memory.id, blob);

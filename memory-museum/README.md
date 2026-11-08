@@ -13,7 +13,7 @@ A first-person COSM.OS archive. Visit the central Rotunda and eight persona gall
 
 The day turns over at 4:44 AM in the device’s local time zone. Wing entrances stay fixed. Gallery dimensions, room offsets, the location of exhibits, and the lighting change with the four-glyph seed. Each seed places roughly a fifth of the available entries in a different wing from their usual home. A seed link reconstructs the architecture and exhibit placement for the same active archive. Sealed access from visits belongs to the local archive.
 
-The Notebook accepts TXT, Markdown, JSON, JSONL, and ChatGPT conversation exports. Up to three new exhibits are released per day. Queued entries are readable in the Notebook. To attach image, audio, or video files, choose an exhibit type under New entry. Starter exhibits are fictional. Imported memories, media, integration status, and notes are stored in IndexedDB. The game has no memory-upload endpoint. A service worker caches the game and its sample media after the first online load.
+The Notebook accepts TXT, Markdown, JSON, JSONL, and ChatGPT conversation exports. Up to three new exhibits are released per day. Queued entries are readable in the Notebook. To attach image, audio, or video files, choose an exhibit type under New entry. The published COSM.OS archive includes 40 exhibits in nine collections. The Notebook’s Collections tab lists each collection and its original summary. The archive is served with the game. Visitor-created memories, media, integration status, and notes are stored in IndexedDB. The game has no memory-upload endpoint. A service worker caches the game and its sample media after the first online load.
 
 ## Develop
 

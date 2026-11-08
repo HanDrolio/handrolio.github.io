@@ -1,14 +1,34 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import * as T from 'three';
 import { codeText, dailyCode, glyphs, makeDay, museumDate, parseCode } from '../src/core/seed.js';
 import { normalizedMemory, readJournal, scheduleEntries } from '../src/memories/import.js';
 import { DEMOS } from '../src/memories/demo.js';
+import { publishedRecords } from '../src/memories/collection.js';
 import { Museum } from '../src/museum/world.js';
 import { GARDEN_LEVEL } from '../src/museum/garden.js';
 import { Controller, SPAWN } from '../src/movement/controller.js';
 import { Collision } from '../src/movement/physics.js';
 import { PERSONAS, WINGS } from '../src/personas/personas.js';
+
+test('the published archive preserves every exhibit and collection summary verbatim', () => {
+  const source = JSON.parse(readFileSync(new URL('../public/data/cosmos-museum-memories.json', import.meta.url), 'utf8'));
+  const records = publishedRecords(source);
+  assert.equal(records.memories.length, 40);
+  assert.equal(records.collections.length, 9);
+  const exhibits = Object.values(source.archives).flatMap(collection => collection.content.key_exhibits);
+  for (const exhibit of exhibits) {
+    const result = records.memories.find(memory => memory.id === 'published-' + exhibit.id);
+    assert.equal(result.title, exhibit.title);
+    assert.equal(result.content, exhibit.content);
+    assert.equal(result.type, exhibit.type);
+    assert.equal(result.timestamp, exhibit.timestamp);
+  }
+  for (const collection of Object.values(source.archives)) {
+    assert.equal(records.collections.find(item => item.id === collection.id).summary, collection.content.summary);
+  }
+});
 
 test('4:44 AM is the civil-day boundary, including New Year', () => {
   assert.equal(museumDate(new Date(2027, 0, 1, 4, 43, 59)), '2026-12-31');

@@ -11,18 +11,23 @@ export function archiveRows(memories, date, includeSealed = false) {
     const wing = PERSONAS[memory.persona]?.wing || 'Memory';
     const status = STATUS_LABELS[memory.integration_status] || 'Raw';
     const availability = memory.availableOn && memory.availableOn > date ? ` · Exhibits ${memory.availableOn}` : '';
-    const label = `${wing} · ${TYPE_LABELS[memory.type]} · ${status}${availability}${memory.demo ? ' · Sample' : ''}`;
+    const label = `${wing} · ${TYPE_LABELS[memory.type]} · ${status}${availability}${memory.demo ? ' · Sample' : memory.published ? ' · COSM.OS archive' : ''}`;
     return `<button type="button" class="archive-item" data-do="memory" data-id="${esc(memory.id)}" data-filter="${esc(`${memory.title} ${label} ${memory.emotion_tags.join(' ')}`.toLowerCase())}">
       <strong>${title}</strong><small>${esc(includeSealed ? 'Sealed · ' + label : label)}</small></button>`;
   }).join('') : '<p class="hint">This shelf is empty.</p>';
 }
 
-export function journalBody(tab, memories, persona, date, canPersist) {
-  const tabs = [['archive', 'Archive'], ['write', 'New entry'], ['import', 'Import']];
+export function journalBody(tab, memories, persona, date, canPersist, collections) {
+  const tabs = [['archive', 'Archive'], ['collections', 'Collections'], ['write', 'New entry'], ['import', 'Import']];
   const nav = `<nav class="tabs" aria-label="Notebook pages">${tabs.map(([key, label]) =>
     `<button type="button" data-do="tab" data-id="${key}"${tab === key ? ' aria-current="page"' : ''}>${label}</button>`).join('')}</nav>`;
   const storage = canPersist ? 'Entries and media stay in this browser.' : 'Storage is unavailable. Entries last until you leave this page.';
-  if (tab === 'archive') return nav + `<p class="panel-copy">${storage} The museum starts with fictional exhibits.</p>
+  if (tab === 'collections') return nav + `<p class="panel-copy">Nine collections from the COSM.OS archive.</p>
+    <div class="archive-list">${collections.map(collection => {
+      const count = memories.filter(memory => memory.collectionId === collection.id).length;
+      return `<button type="button" class="archive-item" data-do="collection" data-id="${esc(collection.id)}"><strong>${esc(collection.title)}</strong><small>${esc(collection.wing)} · ${count} exhibits</small></button>`;
+    }).join('') || '<p class="hint">The published collections are unavailable.</p>'}</div>`;
+  if (tab === 'archive') return nav + `<p class="panel-copy">Explore the published COSM.OS exhibits, add a note, or make your own exhibit. ${storage}</p>
     <input class="field archive-filter" type="search" aria-label="Search archive" placeholder="Search titles, wings, or tags">
     <div class="archive-list">${archiveRows(memories, date)}</div>`;
   if (tab === 'write') return nav + `<p class="panel-copy">Give a memory a title and a home wing. Add a local file for a media exhibit.</p>
@@ -66,6 +71,7 @@ function mediaMarkup(memory) {
   if (memory.type === 'scene') return `<div class="actions">${button('Enter the diorama', 'scene', { kind: 'primary' })}</div>`;
   if (memory.asset || memory.hasMedia) return '<div class="media-box" data-media aria-live="polite">Opening media…</div>';
   if (memory.type === 'audio' || memory.type === 'song') {
+    if (memory.published) return '<p class="hint">Recording notes · Text archive</p>';
     return `<div class="media-box synthetic"><span class="media-symbol" aria-hidden="true">${memory.type === 'song' ? '◎' : '∿'}</span>
       ${button('Play recording', 'track')}${memory.type === 'song' ? button('Scratch record', 'scratch') : ''}</div>`;
   }
@@ -79,7 +85,7 @@ export function exhibitBody(memory, persona, listed) {
   const open = memory.integration_status === 'raw' || memory.integration_status === 'processing';
   return `<div class="exhibit-meta"><span class="pill ${memory.integration_status}">${STATUS_LABELS[memory.integration_status]}</span>
     <span class="pill">${TYPE_LABELS[memory.type]} · ${esc(dateLabel)}</span>
-    <span class="pill">Intensity ${memory.intensity}/10</span>${tags}${memory.demo ? '<span class="pill">Fictional sample</span>' : ''}</div>
+    <span class="pill">Intensity ${memory.intensity}/10</span>${tags}${memory.demo ? '<span class="pill">Fictional sample</span>' : memory.published ? '<span class="pill">COSM.OS archive</span>' : ''}</div>
     ${memory.content ? `<p class="memory-body">${esc(memory.content)}</p>` : ''}
     ${mediaMarkup(memory)}
     <div class="actions">${open ? '<button type="button" class="button hold" data-do="hold">Hold to integrate · 3s</button>' : ''}
@@ -87,7 +93,7 @@ export function exhibitBody(memory, persona, listed) {
       ${listed ? button('Previous', 'previous') + button('Next', 'next') : ''}</div>
     ${open ? '<p class="hint">Hold A, E, or the button to turn this exhibit gold.</p>' : ''}
     ${memory.notes?.length ? `<hr class="divider"><span class="eyebrow">Curator notes</span>${memory.notes.map(note => `<p class="note">${esc(note.text)}</p>`).join('')}` : ''}
-    ${memory.demo ? '' : `<div class="actions">${button('Remove exhibit', 'remove', { kind: 'quiet danger' })}</div>`}`;
+    ${memory.demo || memory.published ? '' : `<div class="actions">${button('Remove exhibit', 'remove', { kind: 'quiet danger' })}</div>`}`;
 }
 
 export function perspectiveBody(memory, persona, archive) {

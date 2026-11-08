@@ -231,7 +231,7 @@ export function makeWings(world, day) {
     const end = back + layout.back;
     const height = 5.28 + layout.detail * 0.34;
     const secret = day.secretWing === wing.id ? front + 2.8 : null;
-    const split = Math.min(4, Math.ceil(day.wingEntries[wing.id].length / 2));
+    const split = Math.min(8, Math.ceil(day.wingEntries[wing.id].length / 2));
     room(world, group, 0, 3.24, 0, front, p, 4.5, []);
     room(world, group, 0, layout.half, front, middle, p, height, [0, layout.offset], secret);
     room(world, group, layout.offset, 2.75, middle, back, p, 4.52, []);
@@ -272,15 +272,17 @@ export function makeWings(world, day) {
       world.basementReturn = pointIn(group, x, 0, -end + 2.8);
     }
     const entries = day.wingEntries[wing.id];
-    for (let i = 0; i < Math.min(8, entries.length); i++) {
+    for (let i = 0; i < Math.min(16, entries.length); i++) {
       const second = i >= split;
       const seat = second ? i - split : i;
       const side = seat % 2 ? 1 : -1;
-      const d = (second ? back + 3.36 : front + 4.55) + Math.floor(seat / 2) * 3.02 + (side > 0 ? 0.47 : 0);
+      const row = Math.floor(seat / 2);
+      const nearSecret = !second && side > 0 && secret !== null;
+      const d = (second ? back : front) + (nearSecret ? 4.5 + row * 1.58 : 2.55 + row * 2.06 + (side > 0 ? 0.24 : 0));
       const x = (second ? layout.offset : 0) + side * (layout.half - (second ? 1.59 : 1.38));
       makeExhibit(world, group, entries[i], wing, x, d, side);
     }
-    if (entries.length > 8) {
+    if (entries.length > 16) {
       const at = pointIn(group, layout.offset - 1.95, 1.26, -end + 0.9);
       sign(group, { x: layout.offset - 1.95, y: 1.28, z: -end + 0.31, width: 2.51, height: 0.68,
         title: 'Exhibit Catalogue', kicker: `${entries.length} ENTRIES`, color: wing.color });

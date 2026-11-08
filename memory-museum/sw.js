@@ -1,5 +1,5 @@
-const RELEASE = 'aeccb18136ab52';
-const GENERATED = ["./THREE-LICENSE.txt","./assets/index-DF5DE88a.js","./assets/index-DZmrw6JY.css","./assets/three-core-DDTEyzDJ.js","./assets/three-renderer-CI-vBaZn.js","./index.html","./mark.svg","./media/orbit.svg","./media/weather.mp4","./media/window.svg"];
+const RELEASE = '263356635f6ebf';
+const GENERATED = ["./THREE-LICENSE.txt","./assets/index-Cx8IJH3g.js","./assets/index-DZmrw6JY.css","./assets/three-core-DDTEyzDJ.js","./assets/three-renderer-CI-vBaZn.js","./data/cosmos-museum-memories.json","./index.html","./mark.svg","./media/orbit.svg","./media/weather.mp4","./media/window.svg"];
 const PREFIX = 'memory-museum-shell-';
 const CACHE = PREFIX + RELEASE;
 const scope = self.registration.scope;

@@ -10,8 +10,9 @@ import { BASEMENT_SPAWN } from './museum/basement.js';
 import { GARDEN_LEVEL, SEAT } from './museum/garden.js';
 import { Diorama } from './museum/diorama.js';
 import { AudioMuseum } from './audio/ambient.js';
-import { fromForm, normalizedMemory, readJournal, scheduleEntries } from './memories/import.js';
+import { fromForm, normalizedMemory, readJournal } from './memories/import.js';
 import { updateExhibit } from './memories/exhibit.js';
+import { loadPublished } from './memories/collection.js';
 import { Panel, button, escapeHTML as esc } from './ui/panel.js';
 import { controlsBody, pauseBody, seedBody } from './ui/menus.js';
 import { archiveRows, exhibitBody, journalBody, perspectiveBody, setupJournal } from './ui/journal.js';
@@ -52,7 +53,18 @@ class Game {
       this.engine = new Engine(this.canvas, this.config);
       this.player = new Controller(this.engine.camera);
       this.museum = new Museum(this.engine.scene, this.archive);
-      await this.archive.load();
+      const [archive, published] = await Promise.allSettled([
+        this.archive.load(),
+        loadPublished(seedAsset('data/cosmos-museum-memories.json')),
+      ]);
+      if (archive.status === 'rejected') throw archive.reason;
+      if (published.status === 'fulfilled') {
+        this.archive.installPublished(published.value);
+        $('archive-count').textContent = `${published.value.memories.length} EXHIBITS`;
+      } else {
+        console.warn(published.reason);
+        $('archive-count').textContent = 'ARCHIVE OFFLINE';
+      }
       this.refreshWorld();
       this.applyPreferences();
       $('enter').disabled = false;
@@ -275,9 +287,10 @@ class Game {
   journal(tab = 'archive') {
     const memories = this.archive.memories.filter(memory => !memory.sealed)
       .sort((a, b) => Number(a.demo) - Number(b.demo) || b.timestamp.localeCompare(a.timestamp));
-    this.show('journal', 'The Notebook', 'Curator’s desk', journalBody(tab, memories, this.persona.id, this.day.date, this.archive.canPersist), {
+    this.show('journal', 'The Notebook', 'Curator’s desk', journalBody(tab, memories, this.persona.id, this.day.date, this.archive.canPersist, this.archive.collections), {
       activate: (action, id) => {
         if (action === 'tab') this.journal(id);
+        if (action === 'collection') this.openCollection(id);
         if (action === 'memory') this.openMemory(id, memories, () => this.journal('archive'));
       },
       submit: async (form, data) => {
@@ -303,9 +316,21 @@ class Game {
   }
 
   async saveNew(records) {
-    scheduleEntries(records, this.archive.memories);
     await this.archive.saveMany(records);
     this.refreshWorld();
+  }
+
+  openCollection(id) {
+    const collection = this.archive.collections.find(item => item.id === id);
+    if (!collection) return this.journal('collections');
+    const entries = this.archive.memories.filter(memory => memory.collectionId === id);
+    this.show('collection', collection.title, collection.wing,
+      `<p class="memory-body">${esc(collection.summary)}</p><div class="archive-list">${archiveRows(entries, this.day.date)}</div>`, {
+        close: () => this.journal('collections'),
+        activate: (action, entryId) => {
+          if (action === 'memory') this.openMemory(entryId, entries, () => this.openCollection(id));
+        },
+      });
   }
 
   catalogue(wing) {
@@ -357,7 +382,7 @@ class Game {
       hold.addEventListener('blur', () => { this.holdPointer = false; });
     }
     this.attachMedia(memory, autoPlay);
-    if (autoPlay && !memory.hasMedia && !memory.asset && ['audio', 'song'].includes(memory.type)) {
+    if (autoPlay && !memory.published && !memory.hasMedia && !memory.asset && ['audio', 'song'].includes(memory.type)) {
       this.toggleTrack(memory, this.panel.find('[data-do=track]'));
     }
   }
