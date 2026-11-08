@@ -1,0 +1,58 @@
+name: Build Memory Museum (release branch)
+
+on:
+  push:
+    branches:
+      - feature/museum-ps2-graphics-and-arcade
+    paths:
+      - 'memory-museum/source/**'
+      - '.github/workflows/build-memory-museum.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: memory-museum/source/package-lock.json
+      - name: Install dependencies
+        working-directory: memory-museum/source
+        run: npm ci
+      - name: Run museum regression tests
+        working-directory: memory-museum/source
+        run: npm test
+      - name: Compile standalone GitHub Pages release
+        working-directory: memory-museum/source
+        run: npm run build
+      - name: Verify release assets and copy into Pages folder
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s memory-museum/source/dist/index.html
+          test -s memory-museum/source/dist/sw.js
+          test -s memory-museum/source/dist/data/cosmos-museum-memories.json
+          rm -rf memory-museum/assets
+          cp -a memory-museum/source/dist/. memory-museum/
+          node -e "const fs=require('fs');const html=fs.readFileSync('memory-museum/index.html','utf8');for(const ref of [...html.matchAll(/(?:src|href)=[\"']\.\/(assets\/[^\\\"']+)[\"']/g)].map(x=>x[1]))if(!fs.existsSync('memory-museum/'+ref))throw Error('Missing bundled asset: '+ref);"
+      - name: Commit compiled version to release branch for review and merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A memory-museum
+          if git diff --cached --quiet; then
+            echo 'Built version already matches committed assets.'
+            exit 0
+          fi
+          git commit -m "build(museum): publish compiled PS2 graphics overhaul"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
