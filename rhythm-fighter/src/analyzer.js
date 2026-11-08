@@ -5,6 +5,12 @@ import {clamp,mulberry32,hashString} from './data.js';
 const N=512, RATE=11025, HOP=256;
 const bitReverse=new Uint16Array(N);
 for(let i=0;i<N;i++){let x=i,r=0;for(let b=0;b<9;b++){r=(r<<1)|(x&1);x>>=1;}bitReverse[i]=r;}
+const twiddles=new Map();
+for(let size=2;size<=N;size*=2){
+  const c=new Float32Array(size/2),s=new Float32Array(size/2);
+  for(let k=0;k<size/2;k++){c[k]=Math.cos(-2*Math.PI*k/size);s[k]=Math.sin(-2*Math.PI*k/size);}
+  twiddles.set(size,{c,s});
+}
 const hann=Float32Array.from({length:N},(_,i)=>0.5-0.5*Math.cos(2*Math.PI*i/(N-1)));
 const groupBin=(k)=>{
   const hz=k*RATE/N;
@@ -14,10 +20,10 @@ export function fftBands(frame) {
   const re=new Float32Array(N),im=new Float32Array(N);
   for(let i=0;i<N;i++)re[bitReverse[i]]=frame[i]*hann[i];
   for(let size=2;size<=N;size*=2){
-    const theta=-2*Math.PI/size;
+    const {c,s}=twiddles.get(size);
     for(let start=0;start<N;start+=size){
       for(let k=0;k<size/2;k++){
-        const j=start+k,h=j+size/2,angle=k*theta,cs=Math.cos(angle),sn=Math.sin(angle);
+        const j=start+k,h=j+size/2,cs=c[k],sn=s[k];
         const tr=cs*re[h]-sn*im[h],ti=sn*re[h]+cs*im[h];
         re[h]=re[j]-tr; im[h]=im[j]-ti; re[j]+=tr; im[j]+=ti;
       }
