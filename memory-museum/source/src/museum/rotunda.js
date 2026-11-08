@@ -4,13 +4,13 @@ import { codeText } from '../core/seed.js';
 import { bake, ball, box, cylinder, GOLD, light, mesh, ring, sign, standard, torus } from './kit.js';
 
 const TAU = Math.PI * 2;
-const stone = standard('#242e3c');
-const dark = standard('#131d2a');
-const panel = standard('#394454');
-const rib = standard('#465362');
-const floor = standard('#202a36', 0.69, 0.17);
-const brass = standard('#a88051', 0.47, 0.49);
-const trim = light('#b48754', 0.84);
+const stone = standard('#14254c');
+const dark = standard('#070f2b');
+const panel = standard('#2a4578');
+const rib = standard('#284f9c');
+const floor = standard('#101941', 0.46, 0.31);
+const brass = standard('#c2a447', 0.32, 0.65);
+const trim = light('#65ceff', 1.02);
 
 function at(group, distance, angle, callback) {
   return callback(group, Math.sin(angle) * distance, -Math.cos(angle) * distance);
@@ -101,9 +101,9 @@ export function makeRotunda(world, day) {
     beam.rotation.x = -0.104;
   }
 
-  const underside = new T.MeshStandardMaterial({ color: '#253041', side: T.DoubleSide, roughness: 0.9 });
+  const underside = new T.MeshStandardMaterial({ color: '#101d44', side: T.DoubleSide, roughness: 0.79, metalness: 0.29 });
   ring(group, 0, 10.7, 0, 25.25, 18.95, underside);
-  ring(group, 0, 10.62, 0, 6.37, 0.1, light('#cfc6a2', 0.85));
+  ring(group, 0, 10.62, 0, 6.37, 0.1, light('#a58bff', 0.92));
   ring(group, 0, 10.49, 0, 8.25, 0.08, trim);
   ring(group, 0, 10.47, 0, 15.9, 0.055, trim);
   ring(group, 0, 10.25, 0, 21.27, 0.18, brass);
@@ -126,7 +126,7 @@ export function makeRotunda(world, day) {
   const seed = new T.Group();
   seed.position.set(0, 2.86, 0);
   group.add(seed);
-  const crystal = mesh(seed, new T.OctahedronGeometry(0.93), standard('#a2c9e8', 0.26, 0.38), 0, 0, 0, false);
+  const crystal = mesh(seed, new T.OctahedronGeometry(0.93), standard('#ac94ff', 0.19, 0.69), 0, 0, 0, false);
   crystal.scale.set(0.8, 1.44, 0.8);
   const edges = new T.LineSegments(new T.EdgesGeometry(crystal.geometry), new T.LineBasicMaterial({ color: '#d1eaff', transparent: true, opacity: 0.88 }));
   edges.scale.copy(crystal.scale).multiplyScalar(1.006);

@@ -8,6 +8,7 @@ const controlRows = [
   ['Interact / integrate', 'E / hold E', 'A / hold A'],
   ['Persona wheel', 'Hold Q, arrows, release', 'Hold RB, right stick, release'],
   ['Notebook / back', 'J / Esc', 'Y / B'],
+  ['Pause / resume', 'Esc', 'START / Menu'],
   ['Flashlight / sit', 'F / V', 'D-pad ↑ / ↓'],
   ['Browse exhibits', '[ / ]', 'D-pad ← / →'],
 ];
@@ -16,7 +17,7 @@ export function controlsBody(fromEntrance) {
   return `<p class="panel-copy">The Rotunda is your starting point. Look at a pedestal and interact when its label appears. The notebook holds your archive.</p>
   <table class="key-table"><thead><tr><th scope="col">Action</th><th scope="col">Keyboard</th><th scope="col">Backbone</th></tr></thead><tbody>
   ${controlRows.map(([name, key, pad]) => `<tr><td>${name}</td><td><kbd>${key}</kbd></td><td><kbd>${pad}</kbd></td></tr>`).join('')}</tbody></table>
-  <p class="hint">On touch, use the left stick to move and drag the scene to look. Tap A at an exhibit. If mouse lock is unavailable, drag to look.</p>
+  <p class="hint">On touch, use the left stick to move and drag the scene to look. Tap A at an exhibit and Ⅱ to pause. On Backbone, START / Menu opens the pause screen, where Controls is available. If mouse lock is unavailable, drag to look.</p>
   <div class="actions">${button(fromEntrance ? 'Back to entrance' : 'Back to pause', 'close', { kind: 'primary' })}</div>`;
 }
 
