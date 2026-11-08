@@ -5,6 +5,7 @@ import { makeRotunda } from './rotunda.js';
 import { makeWings } from './wings.js';
 import { GARDEN_LEVEL, makeGarden } from './garden.js';
 import { makeBasement } from './basement.js';
+import { makeRetroShell } from './retro.js';
 
 export class Museum {
   constructor(scene, archive) {
@@ -33,6 +34,7 @@ export class Museum {
     makeWings(this, day);
     makeGarden(this, day);
     if (day.basement) makeBasement(this);
+    makeRetroShell(this, day);
   }
 
   target(kind, title, x, y, z, reach, action, value) {
