@@ -112,10 +112,15 @@ function commands(){
   $('#reroll-inline').disabled=busy;
   const el=$('#commands');
   if(busy){el.innerHTML=`<div class="waiting-command"><div class="loading-ring"></div> ${playingTurn?'PLAYING TURN…':'GET READY…'}</div>`;return;}
-  if(state.ended){el.innerHTML=`<div class="start-command"><button class="challenge-button" data-action="next">NEXT CHALLENGE <span>→</span></button><button class="roll-command" data-action="log" aria-label="Read battle log">≡</button><div class="start-note">New team. Full health. Same champion.</div></div>`;return;}
+  if(state.ended){
+    const won=state.winner==='YOU';
+    const next=won&&!state.stage.final?'NEXT GYM':'NEW RUN';
+    const note=won&&!state.stage.final?`Next: ${nextStageName()} · Team heals and evolves to Lv${[21,24,63][state.stage.index]}`:'A new team begins at Brock.';
+    el.innerHTML=`<div class="start-command"><button class="challenge-button" data-action="next">${next} <span>→</span></button><button class="roll-command" data-action="log" aria-label="Read battle log">≡</button><div class="start-note">${note}</div></div>`;return;
+  }
   if(state.request?.teamPreview){
     $('#fight-tab').classList.toggle('selected',scene==='field');$('#switch-tab').classList.toggle('selected',scene==='party');
-    el.innerHTML=`<div class="field-commands ${resumable?'has-resume':''}"><button class="challenge-button party-menu-button" data-action="${scene==='party'?'field':'party'}">${scene==='party'?'DONE':'POKÉMON'} <span>${scene==='party'?'↩':'▦'}</span></button><button class="challenge-button" data-action="start">FIGHT BLUE <span>→</span></button>${resumable?`<button class="resume-command" data-action="resume">RESUME LAST BATTLE · TURN ${pad(resumable.battle.turn)}</button>`:''}<div class="start-note">${scene==='party'?'Drag to swap · Tap to lead · Alt + arrows to reorder':`Lead: ${esc(state.p1.pokemon.find(p=>p.slot===lead)?.name)} · D-pad: walk · A: talk`}</div></div>`;return;
+    el.innerHTML=`<div class="field-commands ${resumable?'has-resume':''}"><button class="challenge-button party-menu-button" data-action="${scene==='party'?'field':'party'}">${scene==='party'?'DONE':'POKÉMON'} <span>${scene==='party'?'↩':'▦'}</span></button><button class="challenge-button" data-action="start">FIGHT ${esc(opponent().toUpperCase())} <span>→</span></button>${resumable?`<button class="resume-command" data-action="resume">RESUME LAST BATTLE · TURN ${pad(resumable.battle.turn)}</button>`:''}<div class="start-note">${scene==='party'?'Drag to swap · Tap to lead · Alt + arrows to reorder':`Lead: ${esc(state.p1.pokemon.find(p=>p.slot===lead)?.name)} · D-pad: walk · A: talk`}</div></div>`;return;
   }
   const forced=state.request?.forceSwitch?.some(Boolean),req=state.request?.active?.[0];
   if(forced)tab='switch';
@@ -134,7 +139,7 @@ function render(){
   $('#player-team').innerHTML=teamCards('p1');$('#champion-team').innerHTML=teamCards('p2');
   $('#team-hint').textContent=state.request?.teamPreview?'Drag to swap. Tap a Pokémon to lead.':'Tap a Pokémon to inspect its set.';
   $('#turn-counter').textContent=state.ended?'BATTLE OVER':state.turn?`TURN ${pad(state.turn)}`:'READY?';
-  $('#screen-state').textContent=state.ended?(state.winner==='YOU'?'NEW CHAMPION':'CHAMPION DEFENDED'):'CHAMPION CHALLENGE';
+  $('#screen-state').textContent=state.ended?(state.winner==='YOU'?state.stage.final?'NEW CHAMPION':state.stage.badge.toUpperCase()+' BADGE':'RUN ENDED'):`${opponentTitle()} · LV${state.stage.aceLevel}`;
   renderField();syncScene();commands();stats();
 }
 function overlay(){
@@ -255,7 +260,7 @@ async function run(type,data={}){
     const r=await request(type,data);
     if(type==='start'){record.played++;resumable=null;}
     if(type==='act')tab='fight';
-    if(type==='start'){scene='battle';$('#overworld').classList.add('hidden');$('#party-overlay').classList.add('hidden');$('.console').classList.remove('mode-field','mode-party');world.enabled=false;$('#screen-overlay').classList.add('hidden');say('CHAMPION BLUE wants to battle!','');await effects.intro();}
+    if(type==='start'){scene='battle';$('#overworld').classList.add('hidden');$('#party-overlay').classList.add('hidden');$('.console').classList.remove('mode-field','mode-party');world.enabled=false;$('#screen-overlay').classList.add('hidden');say(`${opponent().toUpperCase()} wants to battle!`,'');await effects.intro(opponent());}
     await apply(r,true);
   }catch(e){busy=false;commands();toast(e.message);readyMessage();}
 }
@@ -351,9 +356,9 @@ document.addEventListener('click',async e=>{
   switch(action){
     case 'start':begin();break;
     case 'resume':resumeBattle();break;
-    case 'start-key':if(state?.request?.teamPreview)setScene(scene==='party'?'field':'party');else if(state?.ended)fresh();else showLog();break;
+    case 'start-key':if(state?.request?.teamPreview)setScene(scene==='party'?'field':'party');else if(state?.ended)advanceCircuit();else showLog();break;
     case 'reroll':if(busy)return;if(!state?.request?.teamPreview&&!state?.ended){toast('Reroll before a battle, or forfeit from the battle log.');return;}fresh();break;
-    case 'next':fresh();break;
+    case 'next':advanceCircuit();break;
     case 'fight':if(!busy){if(state?.request?.teamPreview){begin();return;}if(state?.request?.forceSwitch?.some(Boolean)){toast('Choose a replacement Pokémon first.');return;}tab='fight';commands();}break;
     case 'switch':if(!busy){if(state?.request?.teamPreview){setScene('party');return;}tab='switch';commands();}break;
     case 'inspect':if(state)inspect(button.dataset.mon,button.dataset.side);break;
@@ -389,7 +394,7 @@ document.addEventListener('keydown',e=>{
   if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;
   const key={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',z:'a',Z:'a',Enter:'a',x:'b',X:'b',Escape:'b'}[e.key];
   if(key){e.preventDefault();if(!e.repeat||(state?.request?.teamPreview&&scene==='field'))control(key);}
-  else if(e.code==='Space'){e.preventDefault();if(!e.repeat)$('#modal').open?closeModal():state?.request?.teamPreview?setScene(scene==='party'?'field':'party'):state?.ended?fresh():showLog();}
+  else if(e.code==='Space'){e.preventDefault();if(!e.repeat)$('#modal').open?closeModal():state?.request?.teamPreview?setScene(scene==='party'?'field':'party'):state?.ended?advanceCircuit():showLog();}
   else if(e.key.toLowerCase()==='l'){e.preventDefault();showLog();}
 });
 let gamepadFrame=null,lastButtons={},lastPadTime=0;
