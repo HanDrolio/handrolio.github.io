@@ -145,8 +145,9 @@ function render(){
 function overlay(){
   const el=$('#screen-overlay');
   if(state.ended){
-    el.classList.remove('hidden');el.innerHTML=`<div class="boot-card"><span class="eyebrow">INDIGO PLATEAU · FINAL RESULT</span><div class="result-score ${state.winner==='YOU'?'':'loss'}">${state.winner==='YOU'?'YOU WIN!':state.winner==='BLUE'?'BLUE WINS':'A DRAW'}</div><p>${state.winner==='YOU'?'A new name on the throne.':'The throne is still taken.'}</p><span>${state.winner==='YOU'?'Your next team is one tap away.':'A fresh six might change everything.'}</span></div>`;
-
+    el.classList.remove('hidden');
+    const won=state.winner==='YOU';
+    el.innerHTML=`<div class="boot-card"><span class="eyebrow">${esc(opponentTitle())} · RESULT</span><div class="result-score ${won?'':'loss'}">${won?state.stage.final?'CHAMPION!':esc(state.stage.badge.toUpperCase()+' BADGE!'):'RUN OVER'}</div><p>${won?state.stage.final?'You conquered the circuit.':`You defeated ${esc(opponent())}!`:`${esc(opponent())} defeated your team.`}</p><span>${won&&!state.stage.final?'Your same six will return stronger.':'Start a new run from Pewter.'}</span></div>`;
   }else el.classList.add('hidden');
 }
 
@@ -236,12 +237,13 @@ async function playLogs(lines){
   }
 }
 function readyMessage(){
-  if(state.ended){say(state.winner==='YOU'?'You defeated Champion Blue!':'Blue holds the title. Run it back.',`${record.wins} victories · Best streak: ${record.best}`);return;}
-  if(state.request?.teamPreview){say(scene==='party'?'Choose the order of your six.':world.near()?'BLUE: Ready for another battle?':'Blue is waiting at the summit.',scene==='party'?'Drag to swap · First slot leads · B: done':world.near()?'A: challenge · START: party':'D-pad: walk · A: talk · START: party');return;}
+  if(state.ended){say(state.winner==='YOU'?state.stage.final?'You became Kanto Champion!':`${opponent()} defeated! Badge secured.`:'Your Kanto run ended.',state.winner==='YOU'&&!state.stage.final?`Next: ${nextStageName()} · Your six stay together.`:`${record.wins} wins · Best streak: ${record.best}`);return;}
+  if(state.request?.teamPreview){say(scene==='party'?'Choose the order of your six.':world.near()?`${opponent().toUpperCase()}: Ready for a battle?`:`${opponent()} awaits. Ace Lv${state.stage.aceLevel}.`,scene==='party'?'Drag to swap · First slot leads · B: done':world.near()?'A: challenge · START: party':'D-pad: walk · A: talk · START: party');return;}
   const p=active(state,'p1');
   if(state.request?.forceSwitch?.some(Boolean))say(`${p.name} can’t battle anymore.`,'Choose your next Pokémon.');
   else say(`What will ${p.name} do?`,`${p.ability} · ${p.item||'No held item'}${state.request?.active?.[0]?.trapped?' · TRAPPED':''}`);
 }
+
 async function apply(result,animate=false){
   if(result.catalog)dex=result.catalog;
   currentSave=result.save;
@@ -268,6 +270,13 @@ async function fresh(){
   if(busy)return;
   counted=false;history=[];lead=1;teamOrder=[];scene='field';partySelection=0;tab='fight';uiEpoch++;world.reset();
   await run('new');
+}
+async function advanceCircuit(){
+  if(busy||!state?.ended)return;
+  if(state.winner!=='YOU'||state.stage.final){await fresh();return;}
+  counted=false;scene='field';tab='fight';partySelection=0;uiEpoch++;world.reset();
+  await run('advance');
+  if(state?.stage)toast(`Your team grew to Lv${state.stage.aceLevel}! Next: ${opponent()}.`);
 }
 async function resumeBattle(){
   if(busy||!resumable)return;
