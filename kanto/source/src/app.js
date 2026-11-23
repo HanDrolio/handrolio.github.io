@@ -9,7 +9,7 @@ const clone=s=>JSON.parse(JSON.stringify(s));
 const COLORS={Normal:'#a1a286',Fire:'#d98b53',Water:'#639cac',Electric:'#b9a442',Grass:'#7e9d5a',Ice:'#7dbab5',Fighting:'#b77a63',Poison:'#a184b4',Ground:'#b6a16c',Flying:'#95a6b6',Psychic:'#c58c9c',Bug:'#9ca657',Rock:'#9b9572',Ghost:'#887f9e',Dragon:'#8394bb',Dark:'#827967',Steel:'#92a4a3',Fairy:'#c6a0ad'};
 const chip=t=>`<span class="type-chip" style="--type-color:${COLORS[t]||COLORS.Normal}">${esc(t)}</span>`;
 const pad=n=>String(n).padStart(2,'0');
-const SAVE_KEY='kanto-champion-loop-v1';
+const SAVE_KEY='kanto-gym-circuit-v2';
 const STATS_KEY='kanto-champion-record-v1';
 let state=null,view=null,dex=[],busy=true,lead=1,tab='fight',focusIndex=0,speed=1,sound=false,audio=null,currentSave=null,counted=false,history=[],uiEpoch=0;
 let teamOrder=[],scene='field',partySelection=0,playingTurn=false;
@@ -18,6 +18,10 @@ let saved=null;
 try{saved=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');record={...record,...JSON.parse(localStorage.getItem(STATS_KEY)||'{}')};speed=Number(localStorage.getItem('kanto-speed'))||1;sound=localStorage.getItem('kanto-sound')==='true';}catch{}
 let resumable=saved?.battle?.turn>0&&!saved.battle.ended&&saved.battle.requestState!=='teampreview'?saved:null;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let spriteMotion=localStorage.getItem('kanto-sprite-motion')==='on'||(localStorage.getItem('kanto-sprite-motion')===null&&!reducedMotion);
+const opponent=()=>state?.stage?.name||'Brock';
+const opponentTitle=()=>state?.stage?.title||'PEWTER GYM';
+const nextStageName=()=>['Misty','Lt. Surge','Champion Blue','Brock'][state?.stage?.index||0];
 let messageId=0;
 const pending=new Map();
 const worker=new Worker(new URL('worker.js',location.href),{type:'module'});
@@ -42,7 +46,7 @@ function active(s,id){if(id==='p1'&&s?.request?.teamPreview)return s[id].pokemon
 function health(p){return Math.max(0,p.hp/p.maxhp*100);}
 function hpColor(p){return health(p)<20?'red':health(p)<50?'yellow':'';}
 function monByIdent(s,ident){return s[sideOf(ident)]?.pokemon.find(p=>p.name===nameOf(ident));}
-function sprite(num,back=false,motion=false){return `assets/${back?'back':motion&&!reducedMotion?'calm':'front'}/${num>=1&&num<=151?num:132}.png`;}
+function sprite(num,back=false,motion=false){return `assets/${back?'back':motion&&spriteMotion?'calm':'front'}/${num>=1&&num<=151?num:132}.png`;}
 function imageFallback(e){if(e.target.tagName==='IMG'&&!e.target.dataset.fallback){e.target.dataset.fallback='true';e.target.src=sprite(132);}}
 document.addEventListener('error',imageFallback,true);
 
@@ -50,7 +54,7 @@ function orderedParty(){return (state?.request?.teamPreview?teamOrder:state?.p1.
 function teamCards(side,editor=false){
   const preview=state?.request?.teamPreview,draggable=preview&&side==='p1';
   const party=draggable?orderedParty():view[side].pokemon;
-  return party.map((p,index)=>`<article class="party-card ${!preview&&p.active?'is-active':''} ${draggable&&index===0?'is-lead':''} ${p.fainted?'is-fainted':''} ${editor&&index===partySelection?'party-focus':''}" ${draggable?`data-order-slot="${p.slot}"`:''} role="listitem"><button class="party-main" data-action="${draggable?'preview-lead':'inspect'}" data-side="${side}" data-mon="${esc(p.key)}" data-slot="${p.slot}" aria-label="${draggable?`${index===0?'Current lead:':'Make lead:'} ${esc(p.name)}`:`Inspect ${esc(p.name)}`}"><img src="${sprite(p.originalNum)}" alt="" draggable="false"><div class="mon-text"><div class="mon-name">${esc(p.name)}<small>Lv100</small></div><div class="mon-role">${esc(p.role)}</div><div class="mon-item">◇ ${esc(p.item||'Item used')}</div><div class="mon-hp"><i style="width:${health(p)}%;background:${health(p)<20?'#bf7051':health(p)<50?'#c7a748':'#6b9365'}"></i></div>${editor?`<div class="party-hp-count">${p.hp}/${p.maxhp}</div>`:''}</div></button><button class="party-info" data-action="inspect" data-side="${side}" data-mon="${esc(p.key)}" aria-label="Set details for ${esc(p.name)}">i</button>${draggable?`<span class="order-label">${index===0?'LEAD':pad(index+1)}</span><span class="drag-grip" aria-hidden="true">⠿</span>`:''}</article>`).join('');
+  return party.map((p,index)=>`<article class="party-card ${!preview&&p.active?'is-active':''} ${draggable&&index===0?'is-lead':''} ${p.fainted?'is-fainted':''} ${editor&&index===partySelection?'party-focus':''}" ${draggable?`data-order-slot="${p.slot}"`:''} role="listitem"><button class="party-main" data-action="${draggable?'preview-lead':'inspect'}" data-side="${side}" data-mon="${esc(p.key)}" data-slot="${p.slot}" aria-label="${draggable?`${index===0?'Current lead:':'Make lead:'} ${esc(p.name)}`:`Inspect ${esc(p.name)}`}"><img src="${sprite(p.originalNum)}" alt="" draggable="false"><div class="mon-text"><div class="mon-name">${esc(p.name)}<small>Lv${p.level}</small></div><div class="mon-role">${esc(p.role)}</div><div class="mon-item">◇ ${esc(p.item||'Item used')}</div><div class="mon-hp"><i style="width:${health(p)}%;background:${health(p)<20?'#bf7051':health(p)<50?'#c7a748':'#6b9365'}"></i></div>${editor?`<div class="party-hp-count">${p.hp}/${p.maxhp}</div>`:''}</div></button><button class="party-info" data-action="inspect" data-side="${side}" data-mon="${esc(p.key)}" aria-label="Set details for ${esc(p.name)}">i</button>${draggable?`<span class="order-label">${index===0?'LEAD':pad(index+1)}</span><span class="drag-grip" aria-hidden="true">⠿</span>`:''}</article>`).join('');
 }
 function setScene(next){if(busy)return;scene=next;syncScene();commands();readyMessage();}
 function syncScene(){
@@ -74,7 +78,7 @@ function swapParty(source,target){
 function chooseLead(slot){if(teamOrder[0]!==slot)swapParty(teamOrder[0],slot);else{lead=slot;readyMessage();}}
 const world=new Summit($('#summit-canvas'),near=>{
   $('#talk-prompt').classList.toggle('hidden',!near);
-  if(state?.request?.teamPreview&&scene==='field'&&!busy)say(near?'BLUE: Ready for another battle?':'Blue is waiting at the summit.',near?'Press A to challenge. START opens your party.':'D-pad: walk · A: talk · START: party');
+  if(state?.request?.teamPreview&&scene==='field'&&!busy)say(near?`${opponent().toUpperCase()}: Ready to battle?`:`${opponent()} is waiting at the gym.`,near?'Press A to challenge. START opens your party.':'D-pad: walk · A: talk · START: party');
 });
 const effects=new BattleEffects({field:$('#battlefield'),canvas:$('#effect-canvas'),layer:$('#fx-layer'),speed:()=>speed,reduced:reducedMotion});
 enablePartyDrag({canDrag:()=>!busy&&!!state?.request?.teamPreview,onSwap:swapParty});
@@ -82,7 +86,7 @@ enablePartyDrag({canDrag:()=>!busy&&!!state?.request?.teamPreview,onSwap:swapPar
 function hud(p,side){
   if(!p)return '';
   const boosts=Object.entries(p.boosts||{}).filter(([,v])=>v!==0).map(([k,v])=>`<span class="${v<0?'negative':''}">${k.toUpperCase()} ${v>0?'+':''}${v}</span>`).join('');
-  return `<div class="hud-name"><span>${esc(p.species)}</span><small>Lv100</small></div><div class="hud-hp"><span>HP</span><div class="hp-track"><div class="hp-fill ${hpColor(p)}" style="width:${health(p)}%"></div></div></div>${side==='p1'?`<div class="hp-count">${Math.round(p.hp)} / ${p.maxhp}</div>`:''}<div class="hud-footer"><span>${p.status?`<span class="status-badge">${esc(p.status.toUpperCase())}</span>`:esc(p.types.join(' / ').toUpperCase())}</span><div class="boost-chips">${boosts}</div></div>`;
+  return `<div class="hud-name"><span>${esc(p.species)}</span><small>Lv${p.level}</small></div><div class="hud-hp"><span>HP</span><div class="hp-track"><div class="hp-fill ${hpColor(p)}" style="width:${health(p)}%"></div></div></div>${side==='p1'?`<div class="hp-count">${Math.round(p.hp)} / ${p.maxhp}</div>`:''}<div class="hud-footer"><span>${p.status?`<span class="status-badge">${esc(p.status.toUpperCase())}</span>`:esc(p.types.join(' / ').toUpperCase())}</span><div class="boost-chips">${boosts}</div></div>`;
 }
 function renderField(){
   for(const [side,sel]of [['p1','player'],['p2','enemy']]){
@@ -90,11 +94,11 @@ function renderField(){
     $(`#${sel}-hud`).innerHTML=hud(p,side);
     const wrap=$(`#${sel}-sprite`),img=wrap.querySelector('img');
     const url=sprite(p.num,side==='p1',true);if(img.getAttribute('src')!==url)img.src=url;
-    img.alt=`${side==='p1'?'Your':'Blue’s'} ${p.species}`;
+    img.alt=`${side==='p1'?'Your':opponent()+'’s'} ${p.species}`;
     wrap.classList.toggle('fainted',p.fainted||p.hp===0);
   }
   $('#weather-label').textContent=[view.weather?.replace(/sunnyday/,'SUN').replace(/raindance/,'RAIN').replace(/sandstorm/,'SAND').replace(/snow/,'SNOW'),view.terrain].filter(Boolean).join(' · ').toUpperCase();
-  $('#field-conditions').innerHTML=['p1','p2'].flatMap(id=>view[id].conditions.map(c=>`<span>${id==='p1'?'YOU':'BLUE'}: ${esc(c.name.toUpperCase())}${c.layers>1?` ×${c.layers}`:''}</span>`)).join('');
+  $('#field-conditions').innerHTML=['p1','p2'].flatMap(id=>view[id].conditions.map(c=>`<span>${id==='p1'?'YOU':opponent().toUpperCase()}: ${esc(c.name.toUpperCase())}${c.layers>1?` ×${c.layers}`:''}</span>`)).join('');
 }
 function typeEffect(move,target){
   if(move.category==='Status'||!target)return '';
