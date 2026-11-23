@@ -157,7 +157,12 @@ function render(){
   $('#opponent-hint').textContent=`${state.stage.badge} ${state.stage.final?'Title':'Badge'} · Ace Lv${state.stage.aceLevel} · ${state.stage.index+1}/4`;
   $('#opponent-tag').textContent=state.stage.final?'CHAMPION BLUE':'GYM LEADER';
   $('#opponent-quote').textContent=state.stage.final?'The final hurdle. Six surprises await.':'Defeat this leader to level up and evolve your same six.';
-  $('.champion-quote img').style.visibility=state.stage.final?'visible':'hidden';
+  const portrait=$('#opponent-portrait');
+  portrait.src=`assets/trainers/${state.stage.id}.svg`;
+  portrait.alt=`${opponent()} trainer pixel art`;
+  $('.world-location').textContent=opponentTitle();
+  $('.world-trainer-label').textContent=opponent().toUpperCase();
+  $('#summit-canvas').setAttribute('aria-label',`Approach ${opponent()} at ${opponentTitle()}`);
 
   $('#team-hint').textContent=state.request?.teamPreview?'Drag to swap. Tap a Pokémon to lead.':'Tap a Pokémon to inspect its set.';
   $('#turn-counter').textContent=state.ended?'BATTLE OVER':state.turn?`TURN ${pad(state.turn)}`:'READY?';
@@ -347,11 +352,14 @@ function filterDex(){
   $('#dex-summary').textContent=`${matches.length} of 151 Pokémon · Tap a sprite to inspect the set.`;
 }
 function showLog(){modal('Battle record.',`<div class="battle-log" id="battle-log">${history.length?history.map(e=>`<p class="${e.kind==='turn'?'log-turn':''}">${esc(e.text)}</p>`).join(''):'<p>Your battle hasn’t started yet. Pick your lead and challenge the leader.</p>'}</div><div class="modal-actions">${state&&!state.ended&&!state.request?.teamPreview?'<button class="secondary-button" data-action="forfeit">FORFEIT BATTLE</button>':''}<button class="secondary-button" data-action="close">BACK TO BATTLE</button></div>`);const log=$('#battle-log');log.scrollTop=log.scrollHeight;}
-function showGuide(){modal('The Kanto Gym Circuit.',`<div class="guide-content"><span class="guide-pill">3 Gym Leaders + Champion</span><span class="guide-pill">Six evolving partners</span><span class="guide-pill">Ace-level caps</span><span class="guide-pill">Original 151</span><h3>THE CIRCUIT</h3><p>Brock Lv14 → Misty Lv21 → Lt. Surge Lv24 → randomized Champion Lv63. Every victory heals your same six Pokémon and raises them to match the next boss's ace. Level evolutions occur at their normal thresholds; trade and stone evolutions unlock at Lv36 for the Champion leap.</p><h3>THE AI</h3><p>Brock chooses from several reasonable moves, Misty narrows her decisions, Surge chooses the strongest immediate option, and Blue runs limited turn simulations against possible replies. Opponents never inspect your chosen move before deciding.</p><h3>THE RULES</h3><p>Pokémon Showdown Gen 9 National Dex mechanics. Six permanent partners for each four-fight run, but fainting in one battle does not permanently remove them. Losing restarts with a fresh six. Your Pokémon match the opponent's ace level. Move sets refresh when Pokémon evolve.</p><h3>CONTROLS</h3><p>Walk with D-pad and press A to challenge, or tap the fight button. START opens your party. Drag to reorder, tap to lead. Battle moves, switches, and controller input work as before. Sound and sprite motion can be toggled separately.</p></div>`,'FIELD GUIDE · FOUR FIGHTS');}
+function showGuide(){modal('The Kanto Gym Circuit.',`<div class="guide-content"><span class="guide-pill">3 Gym Leaders + Champion</span><span class="guide-pill">Six evolving partners</span><span class="guide-pill">Ace-level caps</span><span class="guide-pill">Original 151</span><h3>THE CIRCUIT</h3><p>Brock Lv14 → Misty Lv21 → Lt. Surge Lv24 → Champion Blue Lv63, using his original Pidgeot, Alakazam, Rhydon, Exeggutor, Arcanine and Blastoise. Every victory heals your same six Pokémon and raises them to match the next boss's ace. Level evolutions occur at their normal thresholds; trade and stone evolutions unlock at Lv36 for the Champion leap.</p><h3>THE AI</h3><p>Brock chooses from several reasonable moves, Misty narrows her decisions, Surge chooses the strongest immediate option, and Blue runs limited turn simulations against possible replies. Opponents never inspect your chosen move before deciding.</p><h3>THE RULES</h3><p>Pokémon Showdown Gen 9 National Dex mechanics. Six permanent partners for each four-fight run, but fainting in one battle does not permanently remove them. Losing restarts with a fresh six. Your Pokémon match the opponent's ace level. Move sets refresh when Pokémon evolve.</p><h3>CONTROLS</h3><p>Walk with D-pad and press A to challenge, or tap the fight button. START opens your party. Drag to reorder, tap to lead. Battle moves, switches, and controller input work as before. Sound and sprite motion can be toggled separately.</p></div>`,'FIELD GUIDE · FOUR FIGHTS');}
 
 function credits(){modal('Built on good company.',`<div class="guide-content"><p>A fan-made battle challenge built for Han. Pokémon characters, names, and original FireRed/LeafGreen sprites belong to Nintendo, Game Freak, and The Pokémon Company.</p><h3>BATTLE ENGINE</h3><p><a href="https://github.com/pkmn/ps" target="_blank" rel="noopener">@pkmn/sim</a>, a browser-compatible extraction of the MIT-licensed <a href="https://github.com/smogon/pokemon-showdown" target="_blank" rel="noopener">Pokémon Showdown simulator</a>. The battle AI, interface, and move effects are custom.</p><h3>SPRITES & TYPE</h3><p>FireRed/LeafGreen back sprites and animated Emerald front sprites from <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokéAPI Sprites</a>. Blue’s trainer sprite hosted by Pokémon Showdown. Silkscreen by Jason Kottke and Space Grotesk by Florian Karsten, distributed under the SIL Open Font License.</p><p>No official affiliation. No account, battle server, or external API needed during play.</p></div>`,'KANTO / CHAMPION LOOP · CREDITS');}
 
 function control(key){
+  // Pointer buttons are acknowledged by the click-capture listener below.
+  // Keyboard and gamepad A also reach the same gate without triggering moves.
+  if(dialogue.waiting)return;
   if($('#modal').open){if(key==='b')closeModal();return;}
   if(busy)return;
   if(state?.request?.teamPreview){
@@ -382,6 +390,13 @@ document.addEventListener('pointerdown',e=>{
 });
 const stopHardware=()=>{clearTimeout(hardwareRepeat);clearInterval(hardwareRepeat);hardwareRepeat=null;};
 document.addEventListener('pointerup',stopHardware);document.addEventListener('pointercancel',stopHardware);window.addEventListener('blur',stopHardware);
+// Capture console taps before button commands fire. A single tap means one
+// acknowledgement, regardless of whether the user taps the text, A, or the field.
+document.addEventListener('click',e=>{
+  if(!dialogue.waiting||!e.target.closest('.console'))return;
+  e.preventDefault();e.stopImmediatePropagation();
+  dialogue.advance();
+},true);
 document.addEventListener('click',async e=>{
   const button=e.target.closest('button');if(!button)return;
   if(button.dataset.key){if(hardwareHandled&&e.detail>0){hardwareHandled=false;return;}control(button.dataset.key);return;}
@@ -427,6 +442,10 @@ $('#modal').addEventListener('click',e=>{if(e.target===$('#modal')){const r=$('#
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)document.body.classList.remove('game-expanded');});
 document.addEventListener('keydown',e=>{
   if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;
+  if(dialogue.waiting){
+    if(['Enter',' ','z','Z','x','X'].includes(e.key)&&!e.repeat){e.preventDefault();dialogue.advance();}
+    return;
+  }
   const key={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',z:'a',Z:'a',Enter:'a',x:'b',X:'b',Escape:'b'}[e.key];
   if(key){e.preventDefault();if(!e.repeat||(state?.request?.teamPreview&&scene==='field'))control(key);}
   else if(e.code==='Space'){e.preventDefault();if(!e.repeat)$('#modal').open?closeModal():state?.request?.teamPreview?setScene(scene==='party'?'field':'party'):state?.ended?advanceCircuit():showLog();}
@@ -435,7 +454,8 @@ document.addEventListener('keydown',e=>{
 let gamepadFrame=null,lastButtons={},lastPadTime=0;
 function pollGamepad(time){
   const pad=[...(navigator.getGamepads?.()||[])].find(Boolean);
-  if(pad){const buttons={a:pad.buttons[0]?.pressed,b:pad.buttons[1]?.pressed,select:pad.buttons[8]?.pressed,start:pad.buttons[9]?.pressed,up:pad.buttons[12]?.pressed||pad.axes[1]<-.5,down:pad.buttons[13]?.pressed||pad.axes[1]>.5,left:pad.buttons[14]?.pressed||pad.axes[0]<-.5,right:pad.buttons[15]?.pressed||pad.axes[0]>.5};for(const [key,pressed]of Object.entries(buttons)){if(pressed&&(!lastButtons[key]||(state?.request?.teamPreview&&scene==='field'&&['up','down','left','right'].includes(key)))&&time-lastPadTime>140){lastPadTime=time;if(key==='start')$('[data-action="start-key"]').click();else if(key==='select')showLog();else control(key);}}lastButtons=buttons;}
+  if(pad){const buttons={a:pad.buttons[0]?.pressed,b:pad.buttons[1]?.pressed,select:pad.buttons[8]?.pressed,start:pad.buttons[9]?.pressed,up:pad.buttons[12]?.pressed||pad.axes[1]<-.5,down:pad.buttons[13]?.pressed||pad.axes[1]>.5,left:pad.buttons[14]?.pressed||pad.axes[0]<-.5,right:pad.buttons[15]?.pressed||pad.axes[0]>.5};for(const [key,pressed]of Object.entries(buttons)){if(pressed&&(!lastButtons[key]||(state?.request?.teamPreview&&scene==='field'&&['up','down','left','right'].includes(key)))&&time-lastPadTime>140){lastPadTime=time;if(dialogue.waiting){if(key==='a'||key==='b'||key==='start')dialogue.advance();}
+        else if(key==='start')$('[data-action="start-key"]').click();else if(key==='select')showLog();else control(key);}}lastButtons=buttons;}
   gamepadFrame=requestAnimationFrame(pollGamepad);
 }
 window.addEventListener('gamepadconnected',()=>{if(!gamepadFrame)gamepadFrame=requestAnimationFrame(pollGamepad);toast('Controller connected · A confirms, B goes back.');});
