@@ -1,6 +1,7 @@
 import {Battle,Dex,PRNG,extractChannelMessages} from '@pkmn/sim';
 import {randomTeam,championTeam,SETS,SPECIES} from './sets.js';
 import {validOrder} from './team-order.js';
+import {STAGES,newRun,validRun,stageInfo,partyForStage,foeForStage} from './circuit.js';
 
 export const FORMAT = {name:'Kanto Champion Loop',mod:'gen9',ruleset:['Standard NatDex','Terastal Clause']};
 Dex.formats.extend([FORMAT]);
@@ -8,6 +9,13 @@ Dex.formats.extend([FORMAT]);
 export function createBattle(team=randomTeam(),seed) {
   return new Battle({formatid:'kantochampionloop',seed,
     p1:{name:'YOU',team},p2:{name:'BLUE',team:championTeam()}});
+}
+
+function createEncounter(run) {
+  const info=STAGES[run.stage];
+  return new Battle({formatid:'kantochampionloop',
+    p1:{name:'YOU',team:partyForStage(run.party,run.stage)},
+    p2:{name:info.name.toUpperCase(),team:foeForStage(run.stage,run.champion)}});
 }
 
 export function legalChoices(b,sideID) {
@@ -124,7 +132,7 @@ function actionScore(b,sideID,action) {
 }
 
 function evaluate(b) {
-  if(b.ended)return b.winner==='BLUE'?20000:b.winner==='YOU'?-20000:0;
+  if(b.ended)return b.winner===b.p2.name?20000:b.winner==='YOU'?-20000:0;
   function value(side){
     let sum=0;
     for(const p of side.pokemon){
@@ -146,11 +154,17 @@ function evaluate(b) {
   return value(b.p2)-value(b.p1);
 }
 
-export function chooseAI(b,sideID='p2',{search=true}={}) {
+export function chooseAI(b,sideID='p2',{search=true,skill=3}={}) {
   const actions=legalChoices(b,sideID);
   if(!actions.length)return null;
   for(const a of actions)a.score=actionScore(b,sideID,a);
   actions.sort((a,c)=>c.score-a.score);
+  // Each leader uses the same legal actions. Only planning skill improves.
+  // Never inspect a human move that has already been selected.
+  if(skill<3&&actions.length>1&&!b[sideID].activeRequest?.forceSwitch){
+    const choices=skill===0?Math.min(3,actions.length):skill===1?Math.min(2,actions.length):1;
+    return actions[Math.floor(Math.random()*choices)].command;
+  }
   if(actions.length===1||!search||b[sideID].activeRequest?.forceSwitch||b.requestState==='teampreview')return actions[0].command;
   const foeID=sideID==='p2'?'p1':'p2';
   const replies=legalChoices(b,foeID);
@@ -211,34 +225,58 @@ export function publicLog(b,from=0) {
 
 export class Game {
   constructor(saved){
-    this.battle=saved?Battle.fromJSON(saved):createBattle();
+    const data=saved?{...saved}:null;
+    const run=data?._kantoRun;
+    if(data)delete data._kantoRun;
+    this.run=validRun(run)?{stage:run.stage,party:[...run.party],champion:[...run.champion]}:newRun();
+    this.battle=data?Battle.fromJSON(data):createEncounter(this.run);
     if(this.battle.sides.some(side=>side.pokemon.some(p=>!p.species.num||!p.species.name)))throw new Error('Invalid saved cartridge state.');
   }
-  fresh(){this.battle.destroy();this.battle=createBattle();return this.result(0);}
+  fresh(){
+    this.battle.destroy();
+    this.run=newRun();this.battle=createEncounter(this.run);
+    return this.result(0);
+  }
+  advance(){
+    const b=this.battle;
+    if(!b.ended)throw new Error('Finish the current battle before advancing.');
+    if(b.winner!=='YOU'||this.run.stage===STAGES.length-1)return this.fresh();
+    b.destroy();
+    this.run.stage++;
+    this.battle=createEncounter(this.run);
+    return this.result(0);
+  }
   start(lead=1,order){
     const b=this.battle,from=b.log.length;
     if(b.requestState!=='teampreview')throw new Error('This battle has already started.');
     if(order!==undefined&&!validOrder(order,b.p1.pokemon.map((p,i)=>i+1)))throw new Error('Party order must contain each of your six slots exactly once.');
     if(order===undefined&&(!Number.isInteger(lead)||lead<1||lead>b.p1.pokemon.length))throw new Error('Choose a valid lead Pokémon.');
-    b.choose('p1',`team ${order?order.join(','):lead}`);b.choose('p2','team 1');
+    b.choose('p1',`team ${order?order.join(','):lead}`);
+    b.choose('p2','team 1');
     return this.result(from);
   }
   act(command,{search=true}={}){
     const b=this.battle,from=b.log.length;
     if(b.ended)throw new Error('This battle is finished. Start a new challenge.');
-    // Decide independently before committing the human input; never pass command to AI.
-    const ai=chooseAI(b,'p2',{search});
+    const skill=STAGES[this.run.stage].skill;
+    const ai=chooseAI(b,'p2',{search:search&&skill>=3,skill});
     if(!b.choose('p1',command))throw new Error(b.p1.choice.error||'That action is unavailable.');
     if(ai&&!b.ended&&!b.p2.isChoiceDone())b.choose('p2',ai);
     let guard=0;
     while(!b.ended&&b.p1.activeRequest?.wait&&guard++<12){
-      const next=chooseAI(b,'p2',{search});
+      const next=chooseAI(b,'p2',{search:search&&skill>=3,skill});
       if(!next)break;
       b.choose('p2',next);
     }
     return this.result(from);
   }
-  result(from=0){return {state:snapshot(this.battle),logs:publicLog(this.battle,from),save:this.battle.toJSON()};}
+  result(from=0){
+    return {
+      state:{...snapshot(this.battle),stage:stageInfo(this.run.stage)},
+      logs:publicLog(this.battle,from),
+      save:{...this.battle.toJSON(),_kantoRun:{stage:this.run.stage,party:[...this.run.party],champion:[...this.run.champion]}}
+    };
+  }
 }
 
 export function catalog() {

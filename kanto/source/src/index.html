@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#192331">
-  <meta name="description" content="One champion. A different team every time. A GBA-inspired Pokémon battle challenge with all 151 originals and real Showdown mechanics.">
-  <title>KANTO / Champion Loop</title>
+  <meta name="description" content="Three Kanto Gym Leaders, a randomized Champion, evolving partners, and real Pokémon Showdown mechanics.">
+  <title>KANTO / Gym Circuit</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23f2c744' stroke='%23282c30' stroke-width='3'/%3E%3Cpath d='M2 16h28' stroke='%23282c30' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23efeee7' stroke='%23282c30' stroke-width='3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="classic.css">
@@ -13,20 +13,20 @@
 <body>
   <div class="page">
     <header class="site-header">
-      <a href="./" class="brand" aria-label="Kanto Champion Loop home"><span class="pokeball-mark"></span><span>KANTO<span class="brand-slash"> / </span><small>CHAMPION LOOP</small></span></a>
+      <a href="./" class="brand" aria-label="Kanto Champion Loop home"><span class="pokeball-mark"></span><span>KANTO<span class="brand-slash"> / </span><small>GYM CIRCUIT</small></span></a>
       <nav aria-label="Main navigation"><button class="nav-button active" data-action="battle">BATTLE <span>01</span></button><button class="nav-button" data-action="dex">POKÉDEX <span>151</span></button><button class="nav-button" data-action="guide">FIELD GUIDE <span>↗</span></button></nav>
       <button class="sound-button" data-action="sound" aria-label="Enable sound" title="Toggle sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 4 5 9H2v6h3l6 5V4Z"/><path class="sound-waves" d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="sound-slash" d="m15 9 6 6m0-6-6 6"/></svg></button>
     </header>
 
     <main>
-      <div class="intro-row"><div><p class="eyebrow"><span class="live-dot"></span> INDIGO PLATEAU · BATTLE FACILITY</p><h1>The champion<br><span>is waiting.</span></h1></div><div class="intro-aside"><span class="cartridge-label">KANTO ORIGINALS</span><p>Pick your six. Climb the summit.<br>Make your next attempt count.</p></div></div>
+      <div class="intro-row"><div><p class="eyebrow"><span class="live-dot"></span> INDIGO PLATEAU · BATTLE FACILITY</p><h1>Earn three badges.<br><span>Face the Champion.</span></h1></div><div class="intro-aside"><span class="cartridge-label">KANTO ORIGINALS</span><p>Keep your six. Beat three gyms.<br>Evolve together. Face the Champion.</p></div></div>
 
       <div class="game-layout">
-        <aside class="team-rail player-rail"><div class="rail-heading"><div><span class="eyebrow">THE CHALLENGER</span><h2>Your six<span class="count-label">06</span></h2></div><button class="icon-button" data-action="reroll" aria-label="Reroll your team" title="Reroll team">⤨</button></div><p class="rail-hint" id="team-hint">Pick your lead. Make it count.</p><div id="player-team" class="party-list" role="list"><div class="loading-team">Shuffling the Pokédex…</div></div><div class="rail-foot"><span class="tiny-square"></span> ALL LV.100 · HELD ITEMS · EV TRAINED</div></aside>
+        <aside class="team-rail player-rail"><div class="rail-heading"><div><span class="eyebrow">THE CHALLENGER</span><h2>Your six<span class="count-label">06</span></h2></div><button class="icon-button" data-action="reroll" aria-label="Reroll your team" title="Reroll team">⤨</button></div><p class="rail-hint" id="team-hint">Pick your lead. Make it count.</p><div id="player-team" class="party-list" role="list"><div class="loading-team">Shuffling the Pokédex…</div></div><div class="rail-foot"><span class="tiny-square"></span> SAME SIX · LEVEL-CAPPED · EV TRAINED</div></aside>
 
         <section class="console" aria-label="Pokémon battle game">
           <div class="console-top"><span class="console-badge">KANTO<span>ADVANCE</span></span><div class="console-indicators"><span class="power-light"></span> POWER <span class="serial">K-151</span></div></div>
-          <div class="screen-bezel"><div class="screen-top"><button id="screen-state" data-action="champion" aria-label="Inspect Champion Blue’s team" title="Inspect Champion Blue’s team">CHAMPION CHALLENGE ↗</button><span id="turn-counter">READY?</span></div>
+          <div class="screen-bezel"><div class="screen-top"><button id="screen-state" data-action="champion" aria-label="Inspect the current opponent’s team" title="Inspect the current opponent’s team">PEWTER GYM · BROCK ↗</button><span id="turn-counter">READY?</span></div>
             <div class="battlefield" id="battlefield">
               <div class="pixel-sun"></div><div class="cloud cloud-one"></div><div class="cloud cloud-two"></div><div class="mountain mountain-one"></div><div class="mountain mountain-two"></div><div class="tree-line"></div><div class="stadium-wall"></div>
               <div class="ground-lines"></div>
@@ -49,7 +49,7 @@
           <div class="hardware-controls" id="hardware-controls"><div class="dpad" aria-label="Directional controls"><button class="pad-up" data-key="up" aria-label="Move selection up">▲</button><button class="pad-left" data-key="left" aria-label="Move selection left">◀</button><span class="pad-center"></span><button class="pad-right" data-key="right" aria-label="Move selection right">▶</button><button class="pad-down" data-key="down" aria-label="Move selection down">▼</button></div><div class="console-center"><span class="console-wordmark">CHAMPION <b>LOOP</b></span><div class="small-hardware"><button data-action="log">SELECT</button><button data-action="start-key">START</button></div><div class="speaker-grille"><i></i><i></i><i></i><i></i><i></i></div></div><div class="action-buttons"><div><button data-key="b" class="hardware-b" aria-label="B button: back">B</button><span>BACK</span></div><div><button data-key="a" class="hardware-a" aria-label="A button: confirm">A</button><span>CONFIRM</span></div></div></div>
         </section>
 
-        <aside class="team-rail champion-rail"><div class="rail-heading"><div><span class="eyebrow">THE ONE TO BEAT</span><h2>Champion Blue</h2></div><span class="champion-star">✦</span></div><p class="rail-hint">Same champion. No easy way out.</p><div id="champion-team" class="party-list" role="list"></div><div class="champion-quote"><img src="assets/blue.png" alt="Trainer Blue" draggable="false"><div><span class="eyebrow">BLUE SAYS</span><p>“I’m the most powerful trainer in the world!”</p></div></div></aside>
+        <aside class="team-rail champion-rail"><div class="rail-heading"><div><span class="eyebrow">THE ONE TO BEAT</span><h2 id="opponent-name">Brock</h2></div><span class="champion-star">✦</span></div><p class="rail-hint" id="opponent-hint">Boulder Badge · Ace Lv14</p><div id="champion-team" class="party-list" role="list"></div><div class="champion-quote"><img src="assets/blue.png" alt="Trainer Blue" draggable="false"><div><span class="eyebrow" id="opponent-tag">GYM CIRCUIT</span><p id="opponent-quote">Defeat three leaders, then challenge Blue.</p></div></div></aside>
       </div>
 
       <div class="below-game"><div class="run-stats"><div><span class="eyebrow">CHALLENGES</span><strong id="stat-played">00</strong></div><div><span class="eyebrow">VICTORIES</span><strong id="stat-wins">00</strong></div><div><span class="eyebrow">WIN STREAK</span><strong id="stat-streak">00</strong></div><div><span class="eyebrow">BEST STREAK</span><strong id="stat-best">00</strong></div></div><div class="mode-note"><span class="mini-cartridge">▥</span><p><b>OLD-SCHOOL SOUL. MODERN BATTLE BRAIN.</b><br>Showdown engine · National Dex mechanics · Open team sheets</p><button data-action="guide" aria-label="Read battle rules">↗</button></div></div>

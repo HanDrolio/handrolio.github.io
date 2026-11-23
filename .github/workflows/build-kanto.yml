@@ -2,7 +2,7 @@ name: Build KANTO Champion Loop
 
 on:
   push:
-    branches: [main, feature/kanto-champion-loop]
+    branches: [main, feature/kanto-champion-loop, feature/kanto-ios-motion-gym-circuit]
     paths:
       - 'kanto/source/**'
       - '.github/workflows/build-kanto.yml'

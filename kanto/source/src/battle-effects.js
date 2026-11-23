@@ -95,9 +95,9 @@ export class BattleEffects {
     const actor=this.actor(side),b=this.center(side),label=document.createElement('span');label.className=`damage-number ${heal?'is-heal':''}`;label.textContent=`${heal?'+':'−'}${Math.abs(Math.round(amount))}`;Object.assign(label.style,{left:`${b.x}px`,top:`${b.y-25}px`});this.layer.append(label);
     if(!this.reduced){actor.animate(heal?[{filter:'brightness(1)'},{filter:'brightness(1.6) saturate(1.5)'},{filter:'brightness(1)'}]:[{opacity:1,transform:'translateX(0)'},{opacity:.25,transform:'translateX(-2px)'},{opacity:1,transform:'translateX(2px)'},{opacity:.25,transform:'translateX(-1px)'},{opacity:1,transform:'translateX(0)'}],{duration:330/this.speed()});const a=label.animate([{opacity:0,transform:'translate(-50%,0)'},{opacity:1,transform:'translate(-50%,-8px)',offset:.2},{opacity:0,transform:'translate(-50%,-30px)'}],{duration:560/this.speed()});await a.finished.catch(()=>{});}label.remove();
   }
-  async intro(){
+  async intro(opponent='Blue'){
     const el=document.createElement('div');el.className='trainer-intro';el.innerHTML='<div class="intro-stripe"></div><div class="intro-trainer intro-you"><img src="assets/red.png" alt="Your trainer"><span>CHALLENGER</span></div><span class="versus">VS</span><div class="intro-trainer intro-blue"><img src="assets/blue.png" alt="Champion Blue"><span>CHAMPION BLUE</span></div>';
-    el.querySelector('.intro-you img').src='assets/player-trainer.svg';this.layer.append(el);
+    el.querySelector('.intro-you img').src='assets/player-trainer.svg';el.querySelector('.intro-blue span').textContent=opponent.toUpperCase();el.querySelector('.intro-blue img').alt=opponent+' trainer';this.layer.append(el);
     const duration=(this.reduced?120:1250)/this.speed();
     const a=el.animate([{opacity:0},{opacity:1,offset:.12},{opacity:1,offset:.82},{opacity:0}],{duration,fill:'both'});
     await a.finished.catch(()=>{});el.remove();

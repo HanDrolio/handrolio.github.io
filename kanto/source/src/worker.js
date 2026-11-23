@@ -15,6 +15,7 @@ self.onmessage=({data})=>{
       game?.battle.destroy();game=resumed;
       result={...game.result(),restored:true};
     }else if(type==='new')result=game.fresh();
+    else if(type==='advance')result=game.advance();
     else if(type==='start')result=game.start(input.lead,input.order);
     else if(type==='act')result=game.act(input.command);
     self.postMessage({id,result});
