@@ -137,6 +137,12 @@ function commands(){
 function render(){
   if(!state)return;
   $('#player-team').innerHTML=teamCards('p1');$('#champion-team').innerHTML=teamCards('p2');
+  $('#opponent-name').textContent=opponent();
+  $('#opponent-hint').textContent=`${state.stage.badge} ${state.stage.final?'Title':'Badge'} · Ace Lv${state.stage.aceLevel} · ${state.stage.index+1}/4`;
+  $('#opponent-tag').textContent=state.stage.final?'CHAMPION BLUE':'GYM LEADER';
+  $('#opponent-quote').textContent=state.stage.final?'The final hurdle. Six surprises await.':'Defeat this leader to level up and evolve your same six.';
+  $('.champion-quote img').style.visibility=state.stage.final?'visible':'hidden';
+
   $('#team-hint').textContent=state.request?.teamPreview?'Drag to swap. Tap a Pokémon to lead.':'Tap a Pokémon to inspect its set.';
   $('#turn-counter').textContent=state.ended?'BATTLE OVER':state.turn?`TURN ${pad(state.turn)}`:'READY?';
   $('#screen-state').textContent=state.ended?(state.winner==='YOU'?state.stage.final?'NEW CHAMPION':state.stage.badge.toUpperCase()+' BADGE':'RUN ENDED'):`${opponentTitle()} · LV${state.stage.aceLevel}`;
