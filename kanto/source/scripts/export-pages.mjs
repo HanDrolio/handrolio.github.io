@@ -12,6 +12,6 @@ await cp(dist,destination,{recursive:true,filter:path=>{
   const name=relative(dist,path).replaceAll('\\','/');
   return name!=='.openai'&&!name.startsWith('.openai/')&&name!=='_headers'&&name!=='assets/animated'&&!name.startsWith('assets/animated/');
 }});
-for(const name of ['index.html','app.js','worker.js','style.css','classic.css','assets/player-trainer.svg'])await stat(resolve(destination,name));
+for(const name of ['index.html','app.js','worker.js','style.css','classic.css','assets/player-trainer.svg',...['brock','misty','surge','blue'].map(name=>`assets/trainers/${name}.svg`)])await stat(resolve(destination,name));
 for(let n=1;n<=151;n++)for(const kind of ['front','back','calm'])await stat(resolve(destination,`assets/${kind}/${n}.png`));
 console.log(`Exported standalone GitHub Pages game to ${destination}`);
