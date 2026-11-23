@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {TeamValidator,Battle} from '@pkmn/sim';
 import {SETS,SPECIES,randomTeam,championTeam,CHAMPION_NUMS} from '../src/sets.js';
 import {Game,createBattle,chooseAI,legalChoices,publicLog,snapshot,catalog} from '../src/engine.js';
+import {STAGES,newRun,partyForStage,foeForStage,evolutionAtLevel} from '../src/circuit.js';
 import {build} from 'esbuild';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -41,7 +42,7 @@ test('lead selection, tactical choices, and serialization preserve a playable ba
   assert.equal(JSON.stringify(g.battle.toJSON()),before,'AI search must not alter the battle or its RNG');
   const command=chooseAI(g.battle,'p1',{search:false});const r=g.act(command);
   assert.ok(r.logs.length);assert.ok(r.state.turn>=1);
-  const loaded=new Game(r.save);assert.deepEqual(snapshot(loaded.battle),r.state);
+  const loaded=new Game(r.save);assert.deepEqual(loaded.result().state,r.state);
   assert.equal(JSON.stringify(loaded.battle.prng.getSeed()),JSON.stringify(g.battle.prng.getSeed()));
 });
 
@@ -87,10 +88,10 @@ test('multiple full battles handle faints, pivots, forced switches, and terminal
       assert.ok(!result.logs.some(l=>l.startsWith('|error|')),result.logs.join('\n'));
     }
     assert.ok(g.battle.ended,'Battle must finish without a softlock');
-    assert.ok(['YOU','BLUE',''].includes(g.battle.winner));
+    assert.ok(['YOU','BROCK',''].includes(g.battle.winner));
     totalTurns+=g.battle.turn;
     const next=g.fresh();assert.equal(next.state.request.teamPreview,true);assert.equal(next.state.turn,0);
-    assert.deepEqual(g.battle.p2.pokemon.map(p=>p.set.species),championTeam().map(s=>s.species));
+    assert.deepEqual(g.battle.p2.pokemon.map(p=>p.set.species),foeForStage(0,g.run.champion).map(s=>s.species));
   }
   assert.ok(totalTurns>50);assert.ok(forced>0);
 });
@@ -111,8 +112,44 @@ test('optimized browser engine preserves named references, search isolation, and
     assert.equal(JSON.stringify(game.battle.toJSON()),before);
     const result=game.act(bundled.chooseAI(game.battle,'p1',{search:false}));
     const restored=new bundled.Game(JSON.parse(JSON.stringify(result.save)));
-    assert.deepEqual(bundled.snapshot(restored.battle),result.state);
+    assert.deepEqual(restored.result().state,result.state);
     assert.ok(restored.battle.p1.active[0].species.num);
     restored.act(bundled.chooseAI(restored.battle,'p1',{search:false}));
   }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('circuit preserves a six-member evolutionary party at every ace level',()=>{
+  assert.deepEqual(STAGES.map(s=>s.aceLevel),[14,21,24,63]);
+  const run=newRun();
+  assert.equal(run.party.length,6);
+  assert.equal(new Set(run.party).size,6);
+  for(let stage=0;stage<STAGES.length;stage++){
+    const party=partyForStage(run.party,stage);
+    assert.equal(party.length,6);
+    assert.ok(party.every(p=>p.level===STAGES[stage].aceLevel));
+  }
+  assert.equal(evolutionAtLevel(4,14),4);
+  assert.equal(evolutionAtLevel(4,21),5);
+  assert.equal(evolutionAtLevel(4,63),6);
+  assert.equal(evolutionAtLevel(25,24),25);
+  assert.equal(evolutionAtLevel(25,63),26);
+});
+test('badge win advances same six to next leader with level cap and a fresh battle',()=>{
+  const game=new Game();
+  const roots=[...game.run.party],champion=[...game.run.champion];
+  assert.equal(game.result().state.stage.name,'Brock');
+  assert.equal(game.battle.p2.pokemon.length,2);
+  game.battle.ended=true;game.battle.winner='YOU';
+  const after=game.advance();
+  assert.equal(after.state.stage.name,'Misty');
+  assert.equal(after.state.stage.aceLevel,21);
+  assert.deepEqual(game.run.party,roots);
+  assert.deepEqual(game.run.champion,champion);
+  assert.ok(after.state.p1.pokemon.every(p=>p.level===21));
+  assert.equal(after.state.request.teamPreview,true);
+  const saved=after.save;
+  const restored=new Game(JSON.parse(JSON.stringify(saved)));
+  assert.equal(restored.result().state.stage.name,'Misty');
+  assert.deepEqual(restored.run.party,roots);
+  assert.deepEqual(restored.result().state.p1.pokemon.map(p=>p.species),after.state.p1.pokemon.map(p=>p.species));
 });
