@@ -259,7 +259,7 @@ async function playLogs(lines){
       if(p)p.boosts[b]=Math.max(-6,Math.min(6,(p.boosts[b]||0)+(+c)*(kind==='-boost'?1:-1)));say(text,'');renderField();await sleep(120);
     }else if(['-supereffective','-resisted','-crit','-miss','-immune','-fail','cant','-activate','-transform'].includes(kind)){
       say(text,'');await sleep(180);
-    }else if(text&&kind!=='turn'&&kind!=='win'&&kind!=='tie'){
+    }else if(text&&kind!=='turn'){
       say(text,'');await sleep(100);
     }
     // Never discard a readable result while another event or opponent move plays.
