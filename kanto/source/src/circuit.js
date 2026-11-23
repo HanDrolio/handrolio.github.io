@@ -1,8 +1,8 @@
 import {Dex} from '@pkmn/sim';
-import {SETS,SPECIES,cloneSet} from './sets.js';
+import {SETS,SPECIES,cloneSet,CHAMPION_NUMS,championTeam} from './sets.js';
 
 // Each new fight starts at the upcoming opponent's ace level.
-// The three badges are followed by one randomized, six-Pokemon Champion.
+// The three badges are followed by Blue's original fixed six-Pokemon Champion team.
 export const STAGES=Object.freeze([
   {id:'brock',name:'Brock',title:'PEWTER GYM',badge:'Boulder',aceLevel:14,skill:0,
     roster:[[74,12],[95,14]]},
@@ -20,9 +20,9 @@ function shuffle(numbers,rng=Math.random){
 }
 function inKanto(name){const n=Dex.species.get(name).num;return n>=1&&n<=151;}
 const familyRoots=SPECIES.filter(s=>!s.prevo&&(s.evos||[]).some(inKanto)).map(s=>s.num);
-const championPool=SPECIES.filter(s=>s.num<144&&!(s.evos||[]).some(inKanto)&&s.num!==132).map(s=>s.num);
+const championPool=[...CHAMPION_NUMS];
 export function newRun(rng=Math.random){
-  return {stage:0,party:shuffle(familyRoots,rng).slice(0,6),champion:shuffle(championPool,rng).slice(0,6)};
+  return {stage:0,party:shuffle(familyRoots,rng).slice(0,6),champion:[...CHAMPION_NUMS]};
 }
 // Stone and trade evolutions unlock at the Champion jump. Natural level
 // evolutions trigger at their actual level threshold, including multi-stage lines.
@@ -46,7 +46,7 @@ export function partyForStage(party,stage){
 export function foeForStage(stage,champion){
   const info=STAGES[stage];
   if(info.roster)return info.roster.map(([num,level])=>({...cloneSet(SETS[num]),level}));
-  return champion.map(num=>({...cloneSet(SETS[num]),level:info.aceLevel}));
+  return championTeam().map(set=>({...set,level:info.aceLevel}));
 }
 export function stageInfo(stage){
   const s=STAGES[stage];
@@ -55,5 +55,5 @@ export function stageInfo(stage){
 export function validRun(run){
   return !!run&&Number.isInteger(run.stage)&&run.stage>=0&&run.stage<STAGES.length&&
     Array.isArray(run.party)&&run.party.length===6&&new Set(run.party).size===6&&run.party.every(n=>familyRoots.includes(n))&&
-    Array.isArray(run.champion)&&run.champion.length===6&&new Set(run.champion).size===6&&run.champion.every(n=>championPool.includes(n));
+    Array.isArray(run.champion)&&run.champion.length===6&&new Set(run.champion).size===6&&run.champion.every((n,i)=>n===CHAMPION_NUMS[i]);
 }

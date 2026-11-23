@@ -2,6 +2,7 @@ import {Summit} from './world.js';
 import {BattleEffects} from './battle-effects.js';
 import {enablePartyDrag} from './drag-party.js';
 import {validOrder,swapSlots} from './team-order.js';
+import {createDialogueGate} from './dialogue-gate.js';
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -29,6 +30,21 @@ worker.onmessage=({data})=>{const p=pending.get(data.id);if(p){pending.delete(da
 worker.onerror=e=>{for(const p of pending.values())p.reject(new Error(e.message||'The battle engine could not load.'));pending.clear();showEngineError();};
 const request=(type,data={})=>new Promise((resolve,reject)=>{const id=++messageId;pending.set(id,{resolve,reject});worker.postMessage({id,type,...data});});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms/speed));
+// Battle text and the VS portrait stay visible until a player action arrives.
+const dialogue=createDialogueGate({
+  onWait:()=>{
+    document.body.classList.add('dialogue-waiting');
+    $('#dialogue-continue').hidden=false;
+    $('#message-sub').textContent='▶ TAP / CLICK / PRESS A TO CONTINUE';
+    commands();
+  },
+  onAdvance:()=>{
+    document.body.classList.remove('dialogue-waiting');
+    $('#dialogue-continue').hidden=true;
+    commands();
+  }
+});
+
 
 function save(){
   try{
@@ -89,6 +105,7 @@ function hud(p,side){
   return `<div class="hud-name"><span>${esc(p.species)}</span><small>Lv${p.level}</small></div><div class="hud-hp"><span>HP</span><div class="hp-track"><div class="hp-fill ${hpColor(p)}" style="width:${health(p)}%"></div></div></div>${side==='p1'?`<div class="hp-count">${Math.round(p.hp)} / ${p.maxhp}</div>`:''}<div class="hud-footer"><span>${p.status?`<span class="status-badge">${esc(p.status.toUpperCase())}</span>`:esc(p.types.join(' / ').toUpperCase())}</span><div class="boost-chips">${boosts}</div></div>`;
 }
 function renderField(){
+  $('#battlefield').dataset.arena=state?.stage?.id||'brock';
   for(const [side,sel]of [['p1','player'],['p2','enemy']]){
     const p=active(view,side);if(!p)continue;
     $(`#${sel}-hud`).innerHTML=hud(p,side);
@@ -111,7 +128,7 @@ function commands(){
   $('#reroll-inline').classList.toggle('hidden',!state?.request?.teamPreview);
   $('#reroll-inline').disabled=busy;
   const el=$('#commands');
-  if(busy){el.innerHTML=`<div class="waiting-command"><div class="loading-ring"></div> ${playingTurn?'PLAYING TURN…':'GET READY…'}</div>`;return;}
+  if(busy){el.innerHTML=dialogue.waiting?'<div class="waiting-command message-wait">▶ TAP SCREEN OR PRESS A</div>':`<div class="waiting-command"><div class="loading-ring"></div> ${playingTurn?'PLAYING TURN…':'GET READY…'}</div>`;return;}
   if(state.ended){
     const won=state.winner==='YOU';
     const next=won&&!state.stage.final?'NEXT GYM':'NEW RUN';
@@ -141,7 +158,12 @@ function render(){
   $('#opponent-hint').textContent=`${state.stage.badge} ${state.stage.final?'Title':'Badge'} · Ace Lv${state.stage.aceLevel} · ${state.stage.index+1}/4`;
   $('#opponent-tag').textContent=state.stage.final?'CHAMPION BLUE':'GYM LEADER';
   $('#opponent-quote').textContent=state.stage.final?'The final hurdle. Six surprises await.':'Defeat this leader to level up and evolve your same six.';
-  $('.champion-quote img').style.visibility=state.stage.final?'visible':'hidden';
+  const portrait=$('#opponent-portrait');
+  portrait.src=`assets/trainers/${state.stage.id}.svg`;
+  portrait.alt=`${opponent()} trainer pixel art`;
+  $('.world-location').textContent=opponentTitle();
+  $('.world-trainer-label').textContent=opponent().toUpperCase();
+  $('#summit-canvas').setAttribute('aria-label',`Approach ${opponent()} at ${opponentTitle()}`);
 
   $('#team-hint').textContent=state.request?.teamPreview?'Drag to swap. Tap a Pokémon to lead.':'Tap a Pokémon to inspect its set.';
   $('#turn-counter').textContent=state.ended?'BATTLE OVER':state.turn?`TURN ${pad(state.turn)}`:'READY?';
@@ -201,7 +223,7 @@ function describe(line){
     case '-end':return `${name}’s ${b.replace(/^move: /,'')} ended.`;
     case 'cant':return `${name} couldn’t move! (${b})`;
     case '-heal':return `${name} recovered health${c?.includes('item:')?` with ${c.split('item: ')[1]}`:''}.`;
-    case '-damage':return c?.includes('[from]')?`${name} took damage from ${c.replace('[from] ','').replace(/^(item|ability|move): /,'')}.`:'';
+    case '-damage':return c?.includes('[from]')?`${name} took damage from ${c.replace('[from] ','').replace(/^(item|ability|move): /,'')}.`:`${name} took damage!`;
     case '-fieldstart':return `${a.replace(/^move: /,'')} is active!`;
     case '-fieldend':return `${a.replace(/^move: /,'')} ended.`;
     case '-transform':return `${name} transformed into ${nameOf(b)}!`;
@@ -237,9 +259,12 @@ async function playLogs(lines){
       if(p)p.boosts[b]=Math.max(-6,Math.min(6,(p.boosts[b]||0)+(+c)*(kind==='-boost'?1:-1)));say(text,'');renderField();await sleep(120);
     }else if(['-supereffective','-resisted','-crit','-miss','-immune','-fail','cant','-activate','-transform'].includes(kind)){
       say(text,'');await sleep(180);
-    }else if(text&&kind!=='turn'&&kind!=='win'&&kind!=='tie'){
+    }else if(text&&kind!=='turn'){
       say(text,'');await sleep(100);
     }
+    // Never discard a readable result while another event or opponent move plays.
+    // Each line of narrated text, including KOs and results, requires a fresh tap.
+    if(text&&kind!=='turn')await dialogue.wait();
   }
 }
 function readyMessage(){
@@ -268,7 +293,7 @@ async function run(type,data={}){
     const r=await request(type,data);
     if(type==='start'){record.played++;resumable=null;}
     if(type==='act')tab='fight';
-    if(type==='start'){scene='battle';$('#overworld').classList.add('hidden');$('#party-overlay').classList.add('hidden');$('.console').classList.remove('mode-field','mode-party');world.enabled=false;$('#screen-overlay').classList.add('hidden');say(`${opponent().toUpperCase()} wants to battle!`,'');await effects.intro(opponent());}
+    if(type==='start'){scene='battle';$('#overworld').classList.add('hidden');$('#party-overlay').classList.add('hidden');$('.console').classList.remove('mode-field','mode-party');world.enabled=false;$('#screen-overlay').classList.add('hidden');say(`${opponent().toUpperCase()} wants to battle!`,'');await effects.intro(opponent(),()=>dialogue.wait());}
     await apply(r,true);
   }catch(e){busy=false;commands();toast(e.message);readyMessage();}
 }
@@ -328,11 +353,14 @@ function filterDex(){
   $('#dex-summary').textContent=`${matches.length} of 151 Pokémon · Tap a sprite to inspect the set.`;
 }
 function showLog(){modal('Battle record.',`<div class="battle-log" id="battle-log">${history.length?history.map(e=>`<p class="${e.kind==='turn'?'log-turn':''}">${esc(e.text)}</p>`).join(''):'<p>Your battle hasn’t started yet. Pick your lead and challenge the leader.</p>'}</div><div class="modal-actions">${state&&!state.ended&&!state.request?.teamPreview?'<button class="secondary-button" data-action="forfeit">FORFEIT BATTLE</button>':''}<button class="secondary-button" data-action="close">BACK TO BATTLE</button></div>`);const log=$('#battle-log');log.scrollTop=log.scrollHeight;}
-function showGuide(){modal('The Kanto Gym Circuit.',`<div class="guide-content"><span class="guide-pill">3 Gym Leaders + Champion</span><span class="guide-pill">Six evolving partners</span><span class="guide-pill">Ace-level caps</span><span class="guide-pill">Original 151</span><h3>THE CIRCUIT</h3><p>Brock Lv14 → Misty Lv21 → Lt. Surge Lv24 → randomized Champion Lv63. Every victory heals your same six Pokémon and raises them to match the next boss's ace. Level evolutions occur at their normal thresholds; trade and stone evolutions unlock at Lv36 for the Champion leap.</p><h3>THE AI</h3><p>Brock chooses from several reasonable moves, Misty narrows her decisions, Surge chooses the strongest immediate option, and Blue runs limited turn simulations against possible replies. Opponents never inspect your chosen move before deciding.</p><h3>THE RULES</h3><p>Pokémon Showdown Gen 9 National Dex mechanics. Six permanent partners for each four-fight run, but fainting in one battle does not permanently remove them. Losing restarts with a fresh six. Your Pokémon match the opponent's ace level. Move sets refresh when Pokémon evolve.</p><h3>CONTROLS</h3><p>Walk with D-pad and press A to challenge, or tap the fight button. START opens your party. Drag to reorder, tap to lead. Battle moves, switches, and controller input work as before. Sound and sprite motion can be toggled separately.</p></div>`,'FIELD GUIDE · FOUR FIGHTS');}
+function showGuide(){modal('The Kanto Gym Circuit.',`<div class="guide-content"><span class="guide-pill">3 Gym Leaders + Champion</span><span class="guide-pill">Six evolving partners</span><span class="guide-pill">Ace-level caps</span><span class="guide-pill">Original 151</span><h3>THE CIRCUIT</h3><p>Brock Lv14 → Misty Lv21 → Lt. Surge Lv24 → Champion Blue Lv63, using his original Pidgeot, Alakazam, Rhydon, Exeggutor, Arcanine and Blastoise. Every victory heals your same six Pokémon and raises them to match the next boss's ace. Level evolutions occur at their normal thresholds; trade and stone evolutions unlock at Lv36 for the Champion leap.</p><h3>THE AI</h3><p>Brock chooses from several reasonable moves, Misty narrows her decisions, Surge chooses the strongest immediate option, and Blue runs limited turn simulations against possible replies. Opponents never inspect your chosen move before deciding.</p><h3>THE RULES</h3><p>Pokémon Showdown Gen 9 National Dex mechanics. Six permanent partners for each four-fight run, but fainting in one battle does not permanently remove them. Losing restarts with a fresh six. Your Pokémon match the opponent's ace level. Move sets refresh when Pokémon evolve.</p><h3>CONTROLS</h3><p>Walk with D-pad and press A to challenge, or tap the fight button. START opens your party. Drag to reorder, tap to lead. Battle moves, switches, and controller input work as before. Sound and sprite motion can be toggled separately.</p></div>`,'FIELD GUIDE · FOUR FIGHTS');}
 
 function credits(){modal('Built on good company.',`<div class="guide-content"><p>A fan-made battle challenge built for Han. Pokémon characters, names, and original FireRed/LeafGreen sprites belong to Nintendo, Game Freak, and The Pokémon Company.</p><h3>BATTLE ENGINE</h3><p><a href="https://github.com/pkmn/ps" target="_blank" rel="noopener">@pkmn/sim</a>, a browser-compatible extraction of the MIT-licensed <a href="https://github.com/smogon/pokemon-showdown" target="_blank" rel="noopener">Pokémon Showdown simulator</a>. The battle AI, interface, and move effects are custom.</p><h3>SPRITES & TYPE</h3><p>FireRed/LeafGreen back sprites and animated Emerald front sprites from <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokéAPI Sprites</a>. Blue’s trainer sprite hosted by Pokémon Showdown. Silkscreen by Jason Kottke and Space Grotesk by Florian Karsten, distributed under the SIL Open Font License.</p><p>No official affiliation. No account, battle server, or external API needed during play.</p></div>`,'KANTO / CHAMPION LOOP · CREDITS');}
 
 function control(key){
+  // Pointer buttons are acknowledged by the click-capture listener below.
+  // Keyboard and gamepad A also reach the same gate without triggering moves.
+  if(dialogue.waiting)return;
   if($('#modal').open){if(key==='b')closeModal();return;}
   if(busy)return;
   if(state?.request?.teamPreview){
@@ -363,6 +391,13 @@ document.addEventListener('pointerdown',e=>{
 });
 const stopHardware=()=>{clearTimeout(hardwareRepeat);clearInterval(hardwareRepeat);hardwareRepeat=null;};
 document.addEventListener('pointerup',stopHardware);document.addEventListener('pointercancel',stopHardware);window.addEventListener('blur',stopHardware);
+// Capture console taps before button commands fire. A single tap means one
+// acknowledgement, regardless of whether the user taps the text, A, or the field.
+document.addEventListener('click',e=>{
+  if(!dialogue.waiting||!e.target.closest('.console'))return;
+  e.preventDefault();e.stopImmediatePropagation();
+  dialogue.advance();
+},true);
 document.addEventListener('click',async e=>{
   const button=e.target.closest('button');if(!button)return;
   if(button.dataset.key){if(hardwareHandled&&e.detail>0){hardwareHandled=false;return;}control(button.dataset.key);return;}
@@ -408,6 +443,10 @@ $('#modal').addEventListener('click',e=>{if(e.target===$('#modal')){const r=$('#
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)document.body.classList.remove('game-expanded');});
 document.addEventListener('keydown',e=>{
   if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;
+  if(dialogue.waiting){
+    if(['Enter',' ','z','Z','x','X'].includes(e.key)&&!e.repeat){e.preventDefault();dialogue.advance();}
+    return;
+  }
   const key={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',z:'a',Z:'a',Enter:'a',x:'b',X:'b',Escape:'b'}[e.key];
   if(key){e.preventDefault();if(!e.repeat||(state?.request?.teamPreview&&scene==='field'))control(key);}
   else if(e.code==='Space'){e.preventDefault();if(!e.repeat)$('#modal').open?closeModal():state?.request?.teamPreview?setScene(scene==='party'?'field':'party'):state?.ended?advanceCircuit():showLog();}
@@ -416,7 +455,8 @@ document.addEventListener('keydown',e=>{
 let gamepadFrame=null,lastButtons={},lastPadTime=0;
 function pollGamepad(time){
   const pad=[...(navigator.getGamepads?.()||[])].find(Boolean);
-  if(pad){const buttons={a:pad.buttons[0]?.pressed,b:pad.buttons[1]?.pressed,select:pad.buttons[8]?.pressed,start:pad.buttons[9]?.pressed,up:pad.buttons[12]?.pressed||pad.axes[1]<-.5,down:pad.buttons[13]?.pressed||pad.axes[1]>.5,left:pad.buttons[14]?.pressed||pad.axes[0]<-.5,right:pad.buttons[15]?.pressed||pad.axes[0]>.5};for(const [key,pressed]of Object.entries(buttons)){if(pressed&&(!lastButtons[key]||(state?.request?.teamPreview&&scene==='field'&&['up','down','left','right'].includes(key)))&&time-lastPadTime>140){lastPadTime=time;if(key==='start')$('[data-action="start-key"]').click();else if(key==='select')showLog();else control(key);}}lastButtons=buttons;}
+  if(pad){const buttons={a:pad.buttons[0]?.pressed,b:pad.buttons[1]?.pressed,select:pad.buttons[8]?.pressed,start:pad.buttons[9]?.pressed,up:pad.buttons[12]?.pressed||pad.axes[1]<-.5,down:pad.buttons[13]?.pressed||pad.axes[1]>.5,left:pad.buttons[14]?.pressed||pad.axes[0]<-.5,right:pad.buttons[15]?.pressed||pad.axes[0]>.5};for(const [key,pressed]of Object.entries(buttons)){if(pressed&&(!lastButtons[key]||(state?.request?.teamPreview&&scene==='field'&&['up','down','left','right'].includes(key)))&&time-lastPadTime>140){lastPadTime=time;if(dialogue.waiting){if(key==='a'||key==='b'||key==='start')dialogue.advance();}
+        else if(key==='start')$('[data-action="start-key"]').click();else if(key==='select')showLog();else control(key);}}lastButtons=buttons;}
   gamepadFrame=requestAnimationFrame(pollGamepad);
 }
 window.addEventListener('gamepadconnected',()=>{if(!gamepadFrame)gamepadFrame=requestAnimationFrame(pollGamepad);toast('Controller connected · A confirms, B goes back.');});
