@@ -1,0 +1,57 @@
+name: Build KANTO Champion Loop
+
+on:
+  push:
+    branches: [main, feature/kanto-champion-loop]
+    paths:
+      - 'kanto/source/**'
+      - '.github/workflows/build-kanto.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kanto-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: kanto/source/package-lock.json
+      - name: Install and test the battle engine
+        working-directory: kanto/source
+        run: npm ci && npm test
+      - name: Prepare the original sprites and fonts
+        working-directory: kanto/source
+        run: |
+          python3 scripts/download-assets.py
+          python3 scripts/download-animation-assets.py
+      - name: Build the complete standalone game
+        working-directory: kanto/source
+        run: npm run build && node scripts/export-pages.mjs ..
+      - name: Verify the release and arcade link
+        run: |
+          test -s kanto/index.html
+          test -s kanto/app.js
+          test -s kanto/worker.js
+          test -s kanto/assets/calm/151.png
+          test -s kanto/assets/back/151.png
+          grep -q 'href="./kanto/"' index.html
+      - name: Commit the compiled release
+        env:
+          BUILD_BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add kanto
+          if ! git diff --cached --quiet; then
+            git commit -m "Build standalone KANTO Champion Loop release"
+            git push origin "HEAD:$BUILD_BRANCH"
+          fi
