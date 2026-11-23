@@ -174,10 +174,10 @@ async function damageAnimation(p,ident,heal=false,amount=0){
 function condition(p,value){if(!p||!value)return;const [hp,status]=value.split(' ');if(hp==='0'){p.hp=0;return;}const [now,max]=hp.split('/').map(Number);if(Number.isFinite(now))p.hp=max?Math.max(0,Math.round(now/max*p.maxhp)):now;if(status&&status!=='fnt')p.status=status;}
 
 function describe(line){
-  const [,kind,a,b,c,...rest]=line.split('|'),name=nameOf(a),owner=sideOf(a)==='p2'?'Blue’s ':'';
+  const [,kind,a,b,c,...rest]=line.split('|'),name=nameOf(a),owner=sideOf(a)==='p2'?`${opponent()}’s `:'';
   switch(kind){
     case 'turn':return `Turn ${a}`;
-    case 'switch':case 'drag':return `${sideOf(a)==='p2'?'Blue sent out':'Go,'} ${name}!`;
+    case 'switch':case 'drag':return `${sideOf(a)==='p2'?`${opponent()} sent out`:'Go,'} ${name}!`;
     case 'move':return `${owner}${name} used ${b}!`;
     case 'faint':return `${owner}${name} fainted!`;
     case '-supereffective':return 'It’s super effective!';
@@ -191,7 +191,7 @@ function describe(line){
     case '-boost':return `${name}’s ${b.toUpperCase()} rose${+c>1?' sharply':''}!`;
     case '-unboost':return `${name}’s ${b.toUpperCase()} fell${+c>1?' sharply':''}!`;
     case '-weather':return a==='none'?'The weather cleared.':`Weather: ${a.replace('SunnyDay','harsh sunlight').replace('RainDance','rain')}.`;
-    case '-sidestart':return `${a.startsWith('p2')?'Blue’s':'Your'} side: ${b.replace('move: ','')}.`;
+    case '-sidestart':return `${a.startsWith('p2')?opponent()+'’s':'Your'} side: ${b.replace('move: ','')}.`;
     case '-sideend':return `${b.replace('move: ','')} wore off.`;
     case '-enditem':return `${name} used its ${b}!`;
     case '-item':return `${name} obtained ${b}!`;
@@ -303,7 +303,7 @@ function showEngineError(){
   $('#commands').innerHTML='<button class="challenge-button" data-action="reload">RELOAD GAME <span>↻</span></button>';
 }
 
-function modal(title,html,kicker='KANTO / CHAMPION LOOP'){
+function modal(title,html,kicker='KANTO / GYM CIRCUIT'){
   $('#modal-title').textContent=title;$('#modal-kicker').textContent=kicker;$('#modal-body').innerHTML=html;if(!$('#modal').open)$('#modal').showModal();
 }
 function closeModal(){if($('#modal').open)$('#modal').close();}
@@ -314,7 +314,7 @@ function inspect(key,side='p1',dexNumber=null){
   const types=p?.types||entry.types,moves=p?.moves||entry.set.moves;
   const evs=Object.entries(set.evs||{}).filter(([,n])=>n).map(([k,n])=>`${n} ${k.toUpperCase()}`).join(' / ');
   const canLead=p&&side==='p1'&&state.request?.teamPreview;
-  modal(entry.name,`<div class="detail-header"><div class="detail-image"><img src="${sprite(p?.num||entry.num)}" alt="${esc(entry.name)}"></div><div><span class="eyebrow">#${String(entry.num).padStart(3,'0')} · LEVEL ${p?.level||100}</span><p class="detail-role">${esc(set.role)}</p><div class="detail-types">${types.map(chip).join('')}</div></div></div><div class="detail-info"><div class="detail-cell"><b>HELD ITEM</b>${esc(set.item||'Item used / removed')}${p&&p.item!==p.originalItem?`<small>Started with ${esc(p.originalItem)}</small>`:''}</div><div class="detail-cell"><b>ABILITY</b>${esc(set.ability)}<small>${esc(p?.abilityDescription||entry.abilityDescription)}</small></div><div class="detail-cell"><b>NATURE</b>${esc(set.nature)}</div><div class="detail-cell"><b>EV SPREAD</b><small>${esc(evs)}</small></div></div>${moves.map(m=>`<div class="detail-move"><div><strong>${esc(m.name)}</strong><p>${esc(m.description)}</p></div><div>${chip(m.type)}<br>${m.category} · ${m.power||'—'} power<br>${m.accuracy===true?'Always hits':m.accuracy+'% acc'} · ${m.pp}${m.maxpp?'/'+m.maxpp:''} PP</div></div>`).join('')}<div class="detail-stats">${Object.entries(p?.stats||entry.baseStats).map(([k,v])=>`<div class="detail-stat">${k.toUpperCase()}<b>${v}</b></div>`).join('')}</div><p class="dex-summary">${p?'Battle stats with nature, IVs, and EVs.':'Base species stats. This is the set used when rolled.'}</p>${canLead?`<button class="challenge-button detail-lead" data-action="lead" data-slot="${p.slot}">${lead===p.slot?'CURRENT LEAD':'MAKE THIS YOUR LEAD'} <span>→</span></button>`:''}`,dexNumber?'THE ORIGINAL 151 · SET LIBRARY':`${side==='p2'?'CHAMPION BLUE':'YOUR TEAM'} · OPEN TEAM SHEET`);
+  modal(entry.name,`<div class="detail-header"><div class="detail-image"><img src="${sprite(p?.num||entry.num)}" alt="${esc(entry.name)}"></div><div><span class="eyebrow">#${String(entry.num).padStart(3,'0')} · LEVEL ${p?.level||100}</span><p class="detail-role">${esc(set.role)}</p><div class="detail-types">${types.map(chip).join('')}</div></div></div><div class="detail-info"><div class="detail-cell"><b>HELD ITEM</b>${esc(set.item||'Item used / removed')}${p&&p.item!==p.originalItem?`<small>Started with ${esc(p.originalItem)}</small>`:''}</div><div class="detail-cell"><b>ABILITY</b>${esc(set.ability)}<small>${esc(p?.abilityDescription||entry.abilityDescription)}</small></div><div class="detail-cell"><b>NATURE</b>${esc(set.nature)}</div><div class="detail-cell"><b>EV SPREAD</b><small>${esc(evs)}</small></div></div>${moves.map(m=>`<div class="detail-move"><div><strong>${esc(m.name)}</strong><p>${esc(m.description)}</p></div><div>${chip(m.type)}<br>${m.category} · ${m.power||'—'} power<br>${m.accuracy===true?'Always hits':m.accuracy+'% acc'} · ${m.pp}${m.maxpp?'/'+m.maxpp:''} PP</div></div>`).join('')}<div class="detail-stats">${Object.entries(p?.stats||entry.baseStats).map(([k,v])=>`<div class="detail-stat">${k.toUpperCase()}<b>${v}</b></div>`).join('')}</div><p class="dex-summary">${p?'Battle stats with nature, IVs, and EVs.':'Base species stats. This is the set used when rolled.'}</p>${canLead?`<button class="challenge-button detail-lead" data-action="lead" data-slot="${p.slot}">${lead===p.slot?'CURRENT LEAD':'MAKE THIS YOUR LEAD'} <span>→</span></button>`:''}`,dexNumber?'THE ORIGINAL 151 · SET LIBRARY':`${side==='p2'?opponent().toUpperCase():'YOUR TEAM'} · OPEN TEAM SHEET`);
 }
 function showDex(){
   if(!dex.length){toast('The Pokédex is still loading.');return;}
@@ -327,7 +327,7 @@ function filterDex(){
   $('#dex-grid').innerHTML=matches.map(d=>`<button class="dex-mon" data-action="dex-inspect" data-num="${d.num}"><small>#${String(d.num).padStart(3,'0')}</small><img src="${sprite(d.num)}" alt="" loading="lazy"><span>${esc(d.name)}</span></button>`).join('')||'<p class="dex-summary">No Pokémon found.</p>';
   $('#dex-summary').textContent=`${matches.length} of 151 Pokémon · Tap a sprite to inspect the set.`;
 }
-function showLog(){modal('Battle record.',`<div class="battle-log" id="battle-log">${history.length?history.map(e=>`<p class="${e.kind==='turn'?'log-turn':''}">${esc(e.text)}</p>`).join(''):'<p>Your battle hasn’t started yet. Pick your lead and challenge Blue.</p>'}</div><div class="modal-actions">${state&&!state.ended&&!state.request?.teamPreview?'<button class="secondary-button" data-action="forfeit">FORFEIT BATTLE</button>':''}<button class="secondary-button" data-action="close">BACK TO BATTLE</button></div>`);const log=$('#battle-log');log.scrollTop=log.scrollHeight;}
+function showLog(){modal('Battle record.',`<div class="battle-log" id="battle-log">${history.length?history.map(e=>`<p class="${e.kind==='turn'?'log-turn':''}">${esc(e.text)}</p>`).join(''):'<p>Your battle hasn’t started yet. Pick your lead and challenge the leader.</p>'}</div><div class="modal-actions">${state&&!state.ended&&!state.request?.teamPreview?'<button class="secondary-button" data-action="forfeit">FORFEIT BATTLE</button>':''}<button class="secondary-button" data-action="close">BACK TO BATTLE</button></div>`);const log=$('#battle-log');log.scrollTop=log.scrollHeight;}
 function showGuide(){modal('The Kanto Gym Circuit.',`<div class="guide-content"><span class="guide-pill">3 Gym Leaders + Champion</span><span class="guide-pill">Six evolving partners</span><span class="guide-pill">Ace-level caps</span><span class="guide-pill">Original 151</span><h3>THE CIRCUIT</h3><p>Brock Lv14 → Misty Lv21 → Lt. Surge Lv24 → randomized Champion Lv63. Every victory heals your same six Pokémon and raises them to match the next boss's ace. Level evolutions occur at their normal thresholds; trade and stone evolutions unlock at Lv36 for the Champion leap.</p><h3>THE AI</h3><p>Brock chooses from several reasonable moves, Misty narrows her decisions, Surge chooses the strongest immediate option, and Blue runs limited turn simulations against possible replies. Opponents never inspect your chosen move before deciding.</p><h3>THE RULES</h3><p>Pokémon Showdown Gen 9 National Dex mechanics. Six permanent partners for each four-fight run, but fainting in one battle does not permanently remove them. Losing restarts with a fresh six. Your Pokémon match the opponent's ace level. Move sets refresh when Pokémon evolve.</p><h3>CONTROLS</h3><p>Walk with D-pad and press A to challenge, or tap the fight button. START opens your party. Drag to reorder, tap to lead. Battle moves, switches, and controller input work as before. Sound and sprite motion can be toggled separately.</p></div>`,'FIELD GUIDE · FOUR FIGHTS');}
 
 function credits(){modal('Built on good company.',`<div class="guide-content"><p>A fan-made battle challenge built for Han. Pokémon characters, names, and original FireRed/LeafGreen sprites belong to Nintendo, Game Freak, and The Pokémon Company.</p><h3>BATTLE ENGINE</h3><p><a href="https://github.com/pkmn/ps" target="_blank" rel="noopener">@pkmn/sim</a>, a browser-compatible extraction of the MIT-licensed <a href="https://github.com/smogon/pokemon-showdown" target="_blank" rel="noopener">Pokémon Showdown simulator</a>. The battle AI, interface, and move effects are custom.</p><h3>SPRITES & TYPE</h3><p>FireRed/LeafGreen back sprites and animated Emerald front sprites from <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener">PokéAPI Sprites</a>. Blue’s trainer sprite hosted by Pokémon Showdown. Silkscreen by Jason Kottke and Space Grotesk by Florian Karsten, distributed under the SIL Open Font License.</p><p>No official affiliation. No account, battle server, or external API needed during play.</p></div>`,'KANTO / CHAMPION LOOP · CREDITS');}
@@ -336,7 +336,7 @@ function control(key){
   if($('#modal').open){if(key==='b')closeModal();return;}
   if(busy)return;
   if(state?.request?.teamPreview){
-    if(scene==='field'){if(key==='b'){setScene('party');return;}if(key==='a'){if(world.near())begin();else say('Blue is at the top of the stairs.','Walk up, or tap FIGHT BLUE to approach.');return;}world.move(key);playSound('select');return;}
+    if(scene==='field'){if(key==='b'){setScene('party');return;}if(key==='a'){if(world.near())begin();else say(`${opponent()} is at the top of the stairs.`,`Walk up, or tap FIGHT ${opponent().toUpperCase()} to approach.`);return;}world.move(key);playSound('select');return;}
     if(key==='b'){setScene('field');return;}
     if(key==='a'){chooseLead(teamOrder[partySelection]);return;}
     const delta={up:-1,down:1,left:-1,right:1}[key]||0;partySelection=(partySelection+delta+6)%6;
