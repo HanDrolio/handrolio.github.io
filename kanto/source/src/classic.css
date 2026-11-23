@@ -23,3 +23,86 @@ dialog{background:#eee6ce;color:#2c4651;border-color:#d8c58f}.modal-heading{bord
 @media(max-width:370px) and (orientation:portrait){.move-name{font-size:7px}.party-editor-grid .mon-name{font-size:5.5px}.field-commands .challenge-button{font-size:7px}.party-help{font-size:5px}.hud-name{font-size:7px}}
 @media(orientation:landscape) and (max-height:600px){.console{padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));max-width:none;border-radius:0}.battlefield{height:auto;min-height:0}.enemy-sprite{width:137px;height:137px;right:5%;top:auto;bottom:28%}.opponent-platform{width:148px;height:38px;top:auto;bottom:24%;right:4%}.player-sprite{width:180px;height:180px;left:-7px;bottom:-23px}.player-platform{width:184px;height:48px;bottom:-10px}.enemy-hud{top:10px;left:9px;width:47%}.player-hud{bottom:10px;right:8px;width:47%}.hud-name{font-size:8px}.hud-name small{font-size:6px}.hud-hp{font-size:6px}.hp-count{font-size:6px}.hud-footer{font-size:4px}.message-box{min-height:51px;padding:7px}.message-box #message{font-size:8px}.message-sub{font-size:8px;margin-top:3px}.field-commands{grid-template-columns:1fr;align-content:center;gap:13px}.field-commands .start-note{grid-column:1;font-size:7px;line-height:1.6}.field-commands .challenge-button{font-size:8px;height:49px}.party-overlay{padding:7px;gap:5px}.party-title{font-size:8px;height:13px}.party-title span{font-size:5px}.party-help{font-size:6px;padding:6px}.party-editor-grid{grid-template-columns:37% minmax(0,1fr);gap:4px 6px}.party-editor-grid .party-main{flex-direction:row;text-align:left;gap:6px;justify-content:flex-start}.party-editor-grid .party-main img{width:32px;height:32px}.party-editor-grid .mon-name{font-size:7px}.party-editor-grid .mon-name small{font-size:5px}.party-editor-grid .mon-item{font-size:6px;margin-top:2px}.party-hp-count{font-size:5px;margin-top:2px}.party-editor-grid .mon-hp{height:6px;margin-top:3px}.party-editor-grid .party-card:first-child .party-main img{width:75px;height:75px}.party-editor-grid .party-card:first-child .mon-item{font-size:7px}.party-editor-grid .party-card{padding:3px 23px 3px 5px}.move-grid{gap:6px}.move-button{min-height:36px}.move-name{font-size:8px}.move-pp{font-size:8px}.world-location{font-size:6px}.world-trainer-label{font-size:5px}.intro-trainer span{font-size:8px}.intro-trainer img{max-height:155px}.versus{font-size:28px}.game-layout{margin:0}.console-top{margin:0 4px}.screen-bezel{padding:6px}.command-content{height:auto}.hardware-controls{display:contents}}
 @media(orientation:landscape) and (max-height:350px){.message-box{min-height:40px;padding:5px}.message-box #message{font-size:7px}.message-sub{display:none}.enemy-sprite{width:108px;height:108px}.player-sprite{width:145px;height:145px}.party-title{font-size:6px;height:11px}.party-overlay{padding:5px;gap:4px}.party-help{font-size:5px;padding:4px}.party-editor-grid .party-main img{width:23px;height:23px}.party-editor-grid .mon-name{font-size:6px}.party-editor-grid .mon-item{display:none}.party-editor-grid .party-card:first-child .mon-item{display:block}.party-editor-grid .party-card:first-child .party-main img{width:55px;height:55px}.party-editor-grid .party-info{width:13px;height:13px;font-size:6px}.party-hp-count{font-size:4px}.party-editor-grid .mon-hp{height:5px}.party-editor-grid .party-card{padding:2px 19px 2px 3px}.field-commands .challenge-button{height:39px;font-size:7px}.field-commands{gap:9px}.field-commands .start-note{font-size:6px}.move-name{font-size:7px}.move-meta{display:none}}
+
+
+/* Dialogue is a player-controlled part of the battle, not a timed slideshow. */
+.dialogue-waiting .message-box{
+  cursor:pointer;
+  border-color:#ffe49a;
+  background:#1d4661;
+  box-shadow:inset 0 0 0 2px #f8efc8,0 0 0 2px #f0cd78;
+}
+.dialogue-waiting .message-marker{color:#ffe59b;}
+.dialogue-continue{
+  border:2px solid #efce82;
+  background:#416d70;
+  color:#fff3cf;
+  border-radius:3px;
+  min-width:31px;
+  min-height:31px;
+  font:13px var(--pixel);
+  box-shadow:2px 2px 0 #112c42;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.dialogue-continue[hidden]{display:none!important;}
+.dialogue-continue:focus-visible{outline:3px solid #ffe49a;outline-offset:2px;}
+.message-wait{color:#f9df9b!important;text-shadow:1px 1px #16324b;}
+.intro-hint{
+  position:absolute;
+  z-index:4;
+  bottom:9px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:6px 9px;
+  background:#243b53;
+  border:2px solid #ffdb83;
+  box-shadow:3px 3px 0 #172d40;
+  color:#fff1be;
+  font:7px var(--pixel);
+  letter-spacing:.2px;
+  text-align:center;
+  white-space:nowrap;
+}
+.trainer-intro{
+  background:
+    repeating-linear-gradient(0deg,transparent 0 6px,#14283e20 6px 8px),
+    linear-gradient(135deg,#1c536d 0 48%,#f5d58a 48% 52%,#965243 52%);
+  border:4px solid #d9bd7b;
+  image-rendering:pixelated;
+}
+.trainer-intro .intro-trainer img{
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  filter:drop-shadow(4px 4px 0 #16283d90);
+  max-height:150px;
+  width:82%;
+}
+.trainer-intro .intro-trainer span{
+  background:#233a56;
+  border:1px solid #e1c67b;
+  padding:4px 5px;
+  font-size:clamp(6px,1vw,9px);
+}
+.trainer-intro .intro-trainer{gap:6px;}
+.champion-quote img{
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  object-fit:contain;
+  background:linear-gradient(#d7bd83,#e8dcae);
+  border:2px solid #ad8f65;
+  border-radius:2px;
+}
+.sprite-wrap img,.party-card img,.switch-option img,.dex-mon img,.detail-image img{
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+}
+@media(max-width:700px){
+  .dialogue-continue{min-width:26px;min-height:29px;font-size:10px;}
+  .dialogue-waiting .message-sub{font-size:7px;}
+  .intro-hint{font-size:6px;bottom:5px;padding:4px 6px;}
+}
+@media(orientation:landscape) and (max-height:600px){
+  .dialogue-continue{min-width:25px;min-height:25px;font-size:10px;}
+  .intro-hint{bottom:4px;font-size:6px;}
+}
