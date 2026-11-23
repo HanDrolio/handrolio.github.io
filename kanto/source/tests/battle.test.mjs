@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TeamValidator,Battle} from '@pkmn/sim';
+import {TeamValidator,Battle,Dex} from '@pkmn/sim';
 import {SETS,SPECIES,randomTeam,championTeam,CHAMPION_NUMS} from '../src/sets.js';
 import {Game,createBattle,chooseAI,legalChoices,publicLog,snapshot,catalog} from '../src/engine.js';
 import {STAGES,newRun,partyForStage,foeForStage,evolutionAtLevel} from '../src/circuit.js';
@@ -152,4 +152,16 @@ test('badge win advances same six to next leader with level cap and a fresh batt
   assert.equal(restored.result().state.stage.name,'Misty');
   assert.deepEqual(restored.run.party,roots);
   assert.deepEqual(restored.result().state.p1.pokemon.map(p=>p.species),after.state.p1.pokemon.map(p=>p.species));
+});
+
+
+test('Champion Blue always uses his original six regardless of run seed',()=>{
+  const original=[18,65,112,103,59,9];
+  assert.deepEqual(CHAMPION_NUMS,original);
+  for(let i=0;i<20;i++){
+    const run=newRun();
+    const champion=foeForStage(3,run.champion);
+    assert.deepEqual(champion.map(p=>Dex.species.get(p.species).num),original);
+    assert.ok(champion.every(p=>p.level===63));
+  }
 });
