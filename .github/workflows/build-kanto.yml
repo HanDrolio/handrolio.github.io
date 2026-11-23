@@ -2,7 +2,7 @@ name: Build KANTO Champion Loop
 
 on:
   push:
-    branches: [main, feature/kanto-champion-loop, feature/kanto-ios-motion-gym-circuit]
+    branches: [main, feature/kanto-champion-loop, feature/kanto-ios-motion-gym-circuit, feature/kanto-manual-dialogue-trainer-art]
     paths:
       - 'kanto/source/**'
       - '.github/workflows/build-kanto.yml'
@@ -43,6 +43,10 @@ jobs:
           test -s kanto/worker.js
           test -s kanto/assets/calm/151.png
           test -s kanto/assets/back/151.png
+          test -s kanto/assets/trainers/brock.svg
+          test -s kanto/assets/trainers/misty.svg
+          test -s kanto/assets/trainers/surge.svg
+          test -s kanto/assets/trainers/blue.svg
           grep -q 'href="./kanto/"' index.html
       - name: Commit the compiled release
         env:
