@@ -1,0 +1,91 @@
+Bundled license information:
+
+@pkmn/sim/build/esm/sim/dex-data.mjs:
+  /**
+   * Dex Data
+   * Pokemon Showdown - http://pokemonshowdown.com/
+   *
+   * @license MIT
+   */
+
+@pkmn/sim/build/esm/sim/pokemon.mjs:
+  /**
+   * Simulator Pokemon
+   * Pokemon Showdown - http://pokemonshowdown.com/
+   *
+   * @license MIT license
+   */
+
+@pkmn/sim/build/esm/sim/prng.mjs:
+  /**
+   * PRNG
+   * Pokemon Showdown - http://pokemonshowdown.com/
+   *
+   * This simulates the on-cartridge PRNG used in the real games.
+   *
+   * In addition to potentially allowing us to read replays from in-game,
+   * this also makes it possible to record an "input log" (a seed +
+   * initial teams + move/switch decisions) and "replay" a simulation to
+   * get the same result.
+   *
+   * @license MIT license
+   */
+
+@pkmn/sim/build/esm/sim/side.mjs:
+  /**
+   * Simulator Side
+   * Pokemon Showdown - http://pokemonshowdown.com/
+   *
+   * There's a lot of ambiguity between the terms "player", "side", "team",
+   * and "half-field", which I'll try to explain here:
+   *
+   * These terms usually all mean the same thing. The exceptions are:
+   *
+   * - Multi-battle: there are 2 half-fields, 2 teams, 4 sides
+   *
+   * - Free-for-all: there are 2 half-fields, 4 teams, 4 sides
+   *
+   * "Half-field" is usually abbreviated to "half".
+   *
+   * Function naming will be very careful about which term to use. Pay attention
+   * if it's relevant to your code.
+   *
+   * @license MIT
+   */
+
+@pkmn/sim/build/esm/sim/state.mjs:
+  /**
+   * Simulator State
+   * Pokemon Showdown - http://pokemonshowdown.com/
+   *
+   * Helper functions for serializing Battle instances to JSON and back.
+   *
+   * (You might also consider using input logs instead.)
+   *
+   * @license MIT
+   */
+
+@pkmn/sim/build/esm/sim/field.mjs:
+  /**
+   * Simulator Field
+   * Pokemon Showdown - http://pokemonshowdown.com/
+   *
+   * @license MIT
+   */
+
+@pkmn/sim/build/esm/sim/battle.mjs:
+  /**
+   * Simulator Battle
+   * Pokemon Showdown - http://pokemonshowdown.com/
+   *
+   * This file is where the battle simulation itself happens.
+   *
+   * The most important part of the simulation is the event system:
+   * see the `runEvent` function definition for details.
+   *
+   * General battle mechanics are in `battle-actions`; move-specific,
+   * item-specific, etc mechanics are in the corresponding file in
+   * `data`.
+   *
+   * @license MIT
+   */
