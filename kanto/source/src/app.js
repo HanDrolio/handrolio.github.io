@@ -105,6 +105,7 @@ function hud(p,side){
   return `<div class="hud-name"><span>${esc(p.species)}</span><small>Lv${p.level}</small></div><div class="hud-hp"><span>HP</span><div class="hp-track"><div class="hp-fill ${hpColor(p)}" style="width:${health(p)}%"></div></div></div>${side==='p1'?`<div class="hp-count">${Math.round(p.hp)} / ${p.maxhp}</div>`:''}<div class="hud-footer"><span>${p.status?`<span class="status-badge">${esc(p.status.toUpperCase())}</span>`:esc(p.types.join(' / ').toUpperCase())}</span><div class="boost-chips">${boosts}</div></div>`;
 }
 function renderField(){
+  $('#battlefield').dataset.arena=state?.stage?.id||'brock';
   for(const [side,sel]of [['p1','player'],['p2','enemy']]){
     const p=active(view,side);if(!p)continue;
     $(`#${sel}-hud`).innerHTML=hud(p,side);
