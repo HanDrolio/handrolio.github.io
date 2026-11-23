@@ -1,0 +1,16 @@
+{
+  "name": "kanto-champion-loop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@pkmn/sim": "^0.10.7"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
