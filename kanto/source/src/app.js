@@ -2,6 +2,7 @@ import {Summit} from './world.js';
 import {BattleEffects} from './battle-effects.js';
 import {enablePartyDrag} from './drag-party.js';
 import {validOrder,swapSlots} from './team-order.js';
+import {createDialogueGate} from './dialogue-gate.js';
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -29,6 +30,21 @@ worker.onmessage=({data})=>{const p=pending.get(data.id);if(p){pending.delete(da
 worker.onerror=e=>{for(const p of pending.values())p.reject(new Error(e.message||'The battle engine could not load.'));pending.clear();showEngineError();};
 const request=(type,data={})=>new Promise((resolve,reject)=>{const id=++messageId;pending.set(id,{resolve,reject});worker.postMessage({id,type,...data});});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms/speed));
+// Battle text and the VS portrait stay visible until a player action arrives.
+const dialogue=createDialogueGate({
+  onWait:()=>{
+    document.body.classList.add('dialogue-waiting');
+    $('#dialogue-continue').hidden=false;
+    $('#message-sub').textContent='▶ TAP / CLICK / PRESS A TO CONTINUE';
+    commands();
+  },
+  onAdvance:()=>{
+    document.body.classList.remove('dialogue-waiting');
+    $('#dialogue-continue').hidden=true;
+    commands();
+  }
+});
+
 
 function save(){
   try{
@@ -111,7 +127,7 @@ function commands(){
   $('#reroll-inline').classList.toggle('hidden',!state?.request?.teamPreview);
   $('#reroll-inline').disabled=busy;
   const el=$('#commands');
-  if(busy){el.innerHTML=`<div class="waiting-command"><div class="loading-ring"></div> ${playingTurn?'PLAYING TURN…':'GET READY…'}</div>`;return;}
+  if(busy){el.innerHTML=dialogue.waiting?'<div class="waiting-command message-wait">▶ TAP SCREEN OR PRESS A</div>':`<div class="waiting-command"><div class="loading-ring"></div> ${playingTurn?'PLAYING TURN…':'GET READY…'}</div>`;return;}
   if(state.ended){
     const won=state.winner==='YOU';
     const next=won&&!state.stage.final?'NEXT GYM':'NEW RUN';
@@ -201,7 +217,7 @@ function describe(line){
     case '-end':return `${name}’s ${b.replace(/^move: /,'')} ended.`;
     case 'cant':return `${name} couldn’t move! (${b})`;
     case '-heal':return `${name} recovered health${c?.includes('item:')?` with ${c.split('item: ')[1]}`:''}.`;
-    case '-damage':return c?.includes('[from]')?`${name} took damage from ${c.replace('[from] ','').replace(/^(item|ability|move): /,'')}.`:'';
+    case '-damage':return c?.includes('[from]')?`${name} took damage from ${c.replace('[from] ','').replace(/^(item|ability|move): /,'')}.`:`${name} took damage!`;
     case '-fieldstart':return `${a.replace(/^move: /,'')} is active!`;
     case '-fieldend':return `${a.replace(/^move: /,'')} ended.`;
     case '-transform':return `${name} transformed into ${nameOf(b)}!`;
@@ -240,6 +256,9 @@ async function playLogs(lines){
     }else if(text&&kind!=='turn'&&kind!=='win'&&kind!=='tie'){
       say(text,'');await sleep(100);
     }
+    // Never discard a readable result while another event or opponent move plays.
+    // Each line of narrated text, including KOs and results, requires a fresh tap.
+    if(text&&kind!=='turn')await dialogue.wait();
   }
 }
 function readyMessage(){
@@ -268,7 +287,7 @@ async function run(type,data={}){
     const r=await request(type,data);
     if(type==='start'){record.played++;resumable=null;}
     if(type==='act')tab='fight';
-    if(type==='start'){scene='battle';$('#overworld').classList.add('hidden');$('#party-overlay').classList.add('hidden');$('.console').classList.remove('mode-field','mode-party');world.enabled=false;$('#screen-overlay').classList.add('hidden');say(`${opponent().toUpperCase()} wants to battle!`,'');await effects.intro(opponent());}
+    if(type==='start'){scene='battle';$('#overworld').classList.add('hidden');$('#party-overlay').classList.add('hidden');$('.console').classList.remove('mode-field','mode-party');world.enabled=false;$('#screen-overlay').classList.add('hidden');say(`${opponent().toUpperCase()} wants to battle!`,'');await effects.intro(opponent(),()=>dialogue.wait());}
     await apply(r,true);
   }catch(e){busy=false;commands();toast(e.message);readyMessage();}
 }
